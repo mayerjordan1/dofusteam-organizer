@@ -1,0 +1,10 @@
+__pycache__/
+*.pyc
+build/
+dist/
+*.spec
+venv/
+.venv/
+
+# Donnees perso (comptes, calibration ecran) — jamais commit
+settings.json

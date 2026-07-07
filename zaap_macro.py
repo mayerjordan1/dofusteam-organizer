@@ -1,0 +1,368 @@
+
+import ctypes as _ctypes
+
+def _send_key_sendinput(key_char):
+    """Most reliable key injection via SendInput (bypasses all hooks)."""
+    class KEYBDINPUT(_ctypes.Structure):
+        _fields_=[('wVk',_ctypes.c_ushort),('wScan',_ctypes.c_ushort),('dwFlags',_ctypes.c_ulong),
+                  ('time',_ctypes.c_ulong),('dwExtraInfo',_ctypes.c_void_p)]
+    class INPUT(_ctypes.Structure):
+        class _I(_ctypes.Union):
+            _fields_=[('ki',KEYBDINPUT)]
+        _anonymous_=('_i',); _fields_=[('type',_ctypes.c_ulong),('_i',_I)]
+    vk=ord(key_char.upper())
+    inp=INPUT(type=1); inp.ki.wVk=vk; inp.ki.dwFlags=0
+    _ctypes.windll.user32.SendInput(1,_ctypes.pointer(inp),_ctypes.sizeof(inp))
+    import time; time.sleep(0.06)
+    inp.ki.dwFlags=0x0002  # KEYEVENTF_KEYUP
+    _ctypes.windll.user32.SendInput(1,_ctypes.pointer(inp),_ctypes.sizeof(inp))
+
+"""
+DofusTeam — zaap_macro.py
+Système Auto-Zaap : calibration + exécution en 3 phases
+"""
+
+import time
+import threading
+import ctypes
+import win32gui
+import win32api
+import pyautogui
+
+pyautogui.FAILSAFE = False
+
+
+# ── Mouse freeze ──────────────────────────────────────────────────────────────
+
+def freeze_mouse():
+    """Bloque la souris (nécessite admin, sinon silencieux)."""
+    try:
+        ctypes.windll.user32.BlockInput(True)
+    except:
+        pass
+
+def unfreeze_mouse():
+    try:
+        ctypes.windll.user32.BlockInput(False)
+    except:
+        pass
+
+
+# ── Relative coords helpers ───────────────────────────────────────────────────
+
+def abs_to_rel(hwnd, ax, ay):
+    """Convertit des coordonnées absolues en relatives à la fenêtre."""
+    rect = win32gui.GetWindowRect(hwnd)
+    w = rect[2] - rect[0]
+    h = rect[3] - rect[1]
+    if w <= 0 or h <= 0:
+        return None
+    return ((ax - rect[0]) / w, (ay - rect[1]) / h)
+
+def rel_to_abs(hwnd, rx, ry):
+    """Convertit des coordonnées relatives en absolues."""
+    rect = win32gui.GetWindowRect(hwnd)
+    w = rect[2] - rect[0]
+    h = rect[3] - rect[1]
+    return (int(rect[0] + w * rx), int(rect[1] + h * ry))
+
+
+# ── Calibration capture ───────────────────────────────────────────────────────
+
+class ZaapCalibrator:
+    """
+    Capture la position du zaap pour un personnage donné.
+    Usage :
+        calib = ZaapCalibrator(hwnd, on_done_callback)
+        calib.start()   # attend 3s puis capture le prochain clic
+    """
+    def __init__(self, hwnd, name, on_done):
+        self.hwnd    = hwnd
+        self.name    = name
+        self.on_done = on_done  # fn(name, rx, ry) ou fn(name, None, None) si annulé
+        self._active = False
+
+    def start(self):
+        self._active = True
+        threading.Thread(target=self._wait_click, daemon=True).start()
+
+    def cancel(self):
+        self._active = False
+
+    def _wait_click(self):
+        """Attend un clic gauche et capture sa position."""
+        # Attendre relâchement de tout bouton actuel
+        time.sleep(0.3)
+        while self._active:
+            if win32api.GetAsyncKeyState(0x01) & 0x8000:  # LMB pressed
+                ax, ay = win32api.GetCursorPos()
+                rel = abs_to_rel(self.hwnd, ax, ay)
+                self._active = False
+                if rel:
+                    self.on_done(self.name, rel[0], rel[1])
+                else:
+                    self.on_done(self.name, None, None)
+                return
+            time.sleep(0.02)
+        self.on_done(self.name, None, None)
+
+
+# ── Zaap Executor ─────────────────────────────────────────────────────────────
+
+class ZaapExecutor:
+    """
+    Exécute la macro auto-zaap en 3 phases.
+
+    Phase 1 : Pour chaque perso actif → H + clic zaap calibré
+    Phase 2 : Pause — l'utilisateur tape la destination + Ctrl+A + Ctrl+C
+    Phase 3 : Sur les persos suivants → Ctrl+V + Entrée
+    """
+
+    def __init__(self, config, logic, on_status=None, on_phase2_ready=None, on_done=None):
+        self.config          = config
+        self.logic           = logic
+        self.on_status       = on_status        # fn(str) — message de progression
+        self.on_phase2_ready = on_phase2_ready  # fn() — prévient que phase 2 peut commencer
+        self.on_done         = on_done          # fn() — macro terminée
+        self._running        = False
+        self._phase3_event   = threading.Event()
+
+    def _status(self, msg):
+        if self.on_status:
+            self.on_status(msg)
+
+    def start(self):
+        """Lance la phase 1 dans un thread."""
+        self._running = True
+        self._phase3_event.clear()
+        threading.Thread(target=self._run, daemon=True).start()
+
+    def trigger_phase3(self):
+        """Appelé par l'UI quand l'utilisateur a fini la phase 2."""
+        self._phase3_event.set()
+
+    def stop(self):
+        self._running = False
+        self._phase3_event.set()  # débloquer si en attente
+
+    def _run(self):
+        accounts = self.logic.get_cycle_list()
+        if not accounts:
+            self._status("Aucun compte actif détecté.")
+            if self.on_done: self.on_done()
+            return
+
+        zaaps   = self.config.get("macro_positions", {}).get("zaaps", {})
+        delay_h = float(self.config.get("zaap_open_delay", 0.8))   # délai après H
+        delay_z = float(self.config.get("zaap_click_delay", 0.5))  # délai après clic zaap
+
+        # ── PHASE 1 : Ouvrir tous les havresacs + zaap ───────────────────────
+        self._status("Phase 1 — Ouverture des havresacs...")
+        freeze_mouse()
+
+        for i, acc in enumerate(accounts):
+            if not self._running:
+                unfreeze_mouse()
+                return
+
+            name = acc["name"]
+            hwnd = acc["hwnd"]
+            coords = zaaps.get(name)
+
+            self._status(f"Phase 1 [{i+1}/{len(accounts)}] — {name}")
+
+            # Focus fenêtre
+            self.logic.focus_window(hwnd)
+            time.sleep(0.3)
+
+            # Appuyer H → ouvre l'havre sac
+            haven_key = self.config.get("game_haven_key", "h")
+            pyautogui.press(haven_key)
+            time.sleep(delay_h)
+
+            # Clic sur le zaap calibré
+            if coords:
+                rx, ry = coords
+                try:
+                    ax, ay = rel_to_abs(hwnd, rx, ry)
+                    pyautogui.click(ax, ay)
+                    time.sleep(delay_z)
+                except Exception as e:
+                    self._status(f"Erreur clic zaap {name}: {e}")
+            else:
+                self._status(f"⚠ {name} — zaap non calibré, ignoré")
+                time.sleep(0.3)
+
+        unfreeze_mouse()
+
+        # ── PHASE 2 : Pause utilisateur ──────────────────────────────────────
+        self._status(
+            "Phase 2 — Allez sur le 1er perso, tapez la destination,\n"
+            "faites Ctrl+A puis Ctrl+C, puis cliquez Exécuter !"
+        )
+        if self.on_phase2_ready:
+            self.on_phase2_ready()
+
+        # Attendre que l'utilisateur clique "Exécuter"
+        self._phase3_event.wait()
+        if not self._running:
+            if self.on_done: self.on_done()
+            return
+
+        # ── PHASE 3 : Coller la destination sur tous les autres ──────────────
+        self._status("Phase 3 — Envoi de la destination...")
+        freeze_mouse()
+
+        # Récupère le chat_position pour la saisie de destination
+        chat_pos = self.config.get("macro_positions", {}).get("chat_position")
+        delay_p  = float(self.config.get("zaap_paste_delay", 0.4))
+
+        for i, acc in enumerate(accounts):
+            if not self._running:
+                break
+            name = acc["name"]
+            hwnd = acc["hwnd"]
+            self._status(f"Phase 3 [{i+1}/{len(accounts)}] — {name}")
+
+            self.logic.focus_window(hwnd)
+            time.sleep(0.3)
+
+            # Coller dans le champ de recherche du zaap
+            pyautogui.hotkey("ctrl", "a")
+            time.sleep(0.1)
+            pyautogui.hotkey("ctrl", "v")
+            time.sleep(0.2)
+            pyautogui.press("enter")
+            time.sleep(delay_p)
+
+        unfreeze_mouse()
+        self._status("✅ Auto-zaap terminé !")
+        self._running = False
+        if self.on_done: self.on_done()
+
+
+# ── Quick macros accessible from toolbar ─────────────────────────────────────
+
+def quick_havresac_zaap(config, logic, on_status=None):
+    """
+    Macro havre-sac + zaap — même workflow que la main :
+    
+    Phase 1 (H rapide sur tous):
+      → switch fenetre → H → switch → H → switch → H...
+      Pas d'attente entre les H, les havre-sacs chargent en parallèle
+    
+    Phase 2 (après délai = havre-sacs chargés):
+      → switch fenetre → clic zaap → switch → clic → ...
+    """
+    import time, threading, random
+    try: import pyautogui, win32gui, win32api
+    except ImportError:
+        if on_status: on_status("❌ dépendances manquantes"); return
+
+    def _run():
+        accounts   = logic.get_cycle_list()
+        if not accounts:
+            if on_status: on_status("⚠ Aucun compte actif"); return
+
+        zaaps      = config.get("macro_positions", {}).get("zaaps", {})
+        haven_key  = config.get("game_haven_key", "h")
+        open_delay = float(config.get("zaap_open_delay", 1.0))
+
+        try: import ctypes; ctypes.windll.user32.BlockInput(True)
+        except: pass
+
+        # ── Phase 1 : H sur chaque fenetre (rapide, sans attente) ──────────
+        if on_status: on_status("Phase 1 — Ouverture havresacs (H×" + str(len(accounts)) + ")")
+        for acc in accounts:
+            logic.focus_window(acc["hwnd"])
+            # Attendre confirmation focus (max 1.5s)
+            for _ in range(15):
+                try:
+                    if win32gui.GetForegroundWindow() == acc["hwnd"]: break
+                except: pass
+                time.sleep(0.1)
+            time.sleep(0.08)
+            # Envoyer H
+            try:
+                _send_key_sendinput(haven_key)
+            except Exception as e:
+                print(f"[hsac] key err: {e}")
+                try:
+                    import keyboard as _kb; _kb.send(haven_key)
+                except: pyautogui.press(haven_key)
+            time.sleep(0.12)  # switch rapide vers le suivant
+
+        # ── Attente chargement havre-sacs ──────────────────────────────────
+        if on_status: on_status(f"⏳ Chargement havresacs... ({open_delay}s)")
+        time.sleep(open_delay)
+
+        # ── Phase 2 : Clic zaap sur chaque fenetre ─────────────────────────
+        if on_status: on_status("Phase 2 — Clic zaaps")
+        for acc in accounts:
+            name = acc["name"]; hwnd = acc["hwnd"]
+            logic.focus_window(hwnd)
+            for _ in range(15):
+                try:
+                    if win32gui.GetForegroundWindow() == hwnd: break
+                except: pass
+                time.sleep(0.08)
+            time.sleep(0.1)
+            if name in zaaps:
+                try:
+                    rect = win32gui.GetWindowRect(hwnd)
+                    w = rect[2]-rect[0]; h = rect[3]-rect[1]
+                    rx,ry = zaaps[name]
+                    pyautogui.click(int(rect[0]+w*rx), int(rect[1]+h*ry))
+                except Exception as e:
+                    if on_status: on_status(f"⚠ Zaap {name}: {e}")
+            else:
+                if on_status: on_status(f"⚠ {name} non calibré")
+            time.sleep(0.2)
+
+        try: import ctypes; ctypes.windll.user32.BlockInput(False)
+        except: pass
+        if on_status: on_status("✅ Havresacs + zaaps ouverts — Copie la destination !")
+
+    threading.Thread(target=_run, daemon=True).start()
+
+
+def quick_paste_zaap(config, logic, on_status=None):
+    """
+    Bouton 2 toolbar :
+    Pour chaque fenêtre : Ctrl+A + Ctrl+V + Entrée
+    (l'utilisateur a déjà copié la destination)
+    """
+    import time, threading, random
+    try:
+        import pyautogui
+        pyautogui.FAILSAFE = False
+    except ImportError:
+        if on_status: on_status("❌ pyautogui manquant")
+        return
+
+    def _run():
+        accounts = logic.get_cycle_list()
+        if not accounts:
+            if on_status: on_status("⚠ Aucun compte actif"); return
+
+        paste_delay = float(config.get("zaap_paste_delay", 0.35))
+
+        try: import ctypes; ctypes.windll.user32.BlockInput(True)
+        except: pass
+
+        if on_status: on_status("📋 Collage de la destination...")
+        for i,acc in enumerate(accounts):
+            logic.focus_window(acc["hwnd"])
+            time.sleep(0.2)
+            pyautogui.hotkey("ctrl","v")
+            time.sleep(0.08)
+            pyautogui.press("enter")
+            time.sleep(random.uniform(0.07, 0.13))  # délai aléatoire anti-détection
+            if on_status: on_status(f"📋 {i+1}/{len(accounts)} — {acc['name']}")
+
+        try: import ctypes; ctypes.windll.user32.BlockInput(False)
+        except: pass
+
+        if on_status: on_status("✅ Destination collée sur tous les persos !")
+
+    threading.Thread(target=_run, daemon=True).start()

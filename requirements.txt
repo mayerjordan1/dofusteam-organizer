@@ -1,0 +1,8 @@
+PyQt6>=6.4.0
+pywin32>=306
+keyboard>=0.13.5
+mouse>=0.7.1
+pyautogui>=0.9.54
+pyperclip>=1.8.2
+Pillow>=10.0.0
+pygame>=2.5.0

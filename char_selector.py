@@ -12,7 +12,7 @@ if getattr(sys,'frozen',False): APP_DIR=Path(sys.executable).parent
 else: APP_DIR=Path(__file__).parent
 SKIN_DIR=APP_DIR/"skin"
 
-BG="#0d1117"; BG2="#161b22"; BG3="#1c2128"; ACC="#c8f135"; TEXT="#e8e9ed"; MUT="#7a7d8a"; GOLD="#c8a000"
+BG="#0f1115"; BG2="#151922"; BG3="#1b2130"; ACC="#ff8a1e"; TEXT="#f3f4f6"; MUT="#9ca3af"; GOLD="#c8a000"
 CELL=110  # cell size px
 
 def make_avatar(classe,size=48):
@@ -32,10 +32,10 @@ class CharCell(QPushButton):
         self.setFixedSize(CELL, CELL)
         self.setCursor(Qt.CursorShape.PointingHandCursor)
         border_c = ACC if is_current else "rgba(255,255,255,0.08)"
-        bg_c     = "rgba(200,241,53,0.10)" if is_current else BG2
+        bg_c     = "rgba(255,138,30,0.10)" if is_current else BG2
         self.setStyleSheet(f"""
             QPushButton {{background:{bg_c};border:2px solid {border_c};border-radius:10px;}}
-            QPushButton:hover {{background:rgba(200,241,53,0.15);border-color:{ACC};}}
+            QPushButton:hover {{background:rgba(255,138,30,0.15);border-color:{ACC};}}
         """)
         lay = QVBoxLayout(self); lay.setContentsMargins(6,8,6,4); lay.setSpacing(3)
         av = QLabel(); av.setAlignment(Qt.AlignmentFlag.AlignCenter); av.setFixedHeight(46)
@@ -56,7 +56,7 @@ class LogoCell(QWidget):
     def __init__(self, parent=None):
         super().__init__(parent)
         self.setFixedSize(CELL, CELL)
-        self.setStyleSheet(f"background:rgba(200,241,53,0.06);border:2px solid rgba(200,241,53,0.2);border-radius:10px;")
+        self.setStyleSheet(f"background:rgba(255,138,30,0.06);border:2px solid rgba(255,138,30,0.2);border-radius:10px;")
         lay = QVBoxLayout(self); lay.setContentsMargins(10,10,10,6); lay.setSpacing(4)
         logo = QLabel(); logo.setAlignment(Qt.AlignmentFlag.AlignCenter)
         logo_path = SKIN_DIR/"logo.png"
@@ -97,7 +97,7 @@ class CharSelector(QWidget):
         total = CELL * 3 + GAP * 2 + PAD * 2
         self.setFixedSize(total + 4, total + 4)
         self.container = QWidget(self)
-        self.container.setStyleSheet(f"QWidget{{background:{BG};border:1px solid rgba(200,241,53,0.3);border-radius:14px;}}")
+        self.container.setStyleSheet(f"QWidget{{background:{BG};border:1px solid rgba(255,138,30,0.3);border-radius:14px;}}")
         self.container.setGeometry(2, 2, total, total)
         lay = QVBoxLayout(self.container); lay.setContentsMargins(PAD, PAD, PAD, PAD); lay.setSpacing(4)
 

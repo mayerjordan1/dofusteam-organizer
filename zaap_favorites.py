@@ -25,7 +25,7 @@ try:
 except ImportError:
     WINDOWS=False
 
-BG="#0d1117"; BG2="#161b22"; BG3="#1c2128"; ACC="#c8f135"; TEXT="#e8e9ed"; MUT="#7a7d8a"; GOLD="#c8a000"; RED="#e05c5c"
+BG="#0f1115"; BG2="#151922"; BG3="#1b2130"; ACC="#ff8a1e"; TEXT="#f3f4f6"; MUT="#9ca3af"; GOLD="#c8a000"; RED="#e05555"
 
 STYLE=f"""
 QWidget{{background:{BG};color:{TEXT};font-family:'Segoe UI';font-size:13px;}}
@@ -188,12 +188,12 @@ class ZaapFavoritesDialog(QDialog):
     def _show_tab(self, tab):
         self._current_tab = tab
         self.tab_favs.setStyleSheet(
-            f"background:rgba(200,241,53,0.12);color:{ACC};border:1px solid rgba(200,241,53,0.3);border-radius:6px;padding:5px 16px;font-weight:700;"
+            f"background:rgba(255,138,30,0.12);color:{ACC};border:1px solid rgba(255,138,30,0.3);border-radius:6px;padding:5px 16px;font-weight:700;"
             if tab=="favs" else
             f"background:{BG3};border:1px solid rgba(255,255,255,0.07);border-radius:6px;padding:5px 16px;"
         )
         self.tab_all.setStyleSheet(
-            f"background:rgba(200,241,53,0.12);color:{ACC};border:1px solid rgba(200,241,53,0.3);border-radius:6px;padding:5px 16px;font-weight:700;"
+            f"background:rgba(255,138,30,0.12);color:{ACC};border:1px solid rgba(255,138,30,0.3);border-radius:6px;padding:5px 16px;font-weight:700;"
             if tab=="all" else
             f"background:{BG3};border:1px solid rgba(255,255,255,0.07);border-radius:6px;padding:5px 16px;"
         )

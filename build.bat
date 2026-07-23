@@ -45,6 +45,8 @@ echo.
     --hidden-import "PIL" ^
     --hidden-import "pygame" ^
     --hidden-import "tkinter" ^
+    --hidden-import "requests" ^
+    --hidden-import "pyperclip" ^
     main.py
 
 if errorlevel 1 (

@@ -19,7 +19,7 @@ if getattr(sys,'frozen',False): APP_DIR=Path(sys.executable).parent
 else: APP_DIR=Path(__file__).parent
 SKIN_DIR=APP_DIR/"skin"
 
-BG="#0d1117"; BG2="#161b22"; ACC="#c8f135"; TEXT="#e8e9ed"; MUT="#7a7d8a"; GOLD="#c8a000"; RED="#e05c5c"
+BG="#0f1115"; BG2="#151922"; ACC="#ff8a1e"; TEXT="#f3f4f6"; MUT="#9ca3af"; GOLD="#c8a000"; RED="#e05555"
 
 def make_avatar(classe, size=32):
     if not classe: return None

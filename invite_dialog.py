@@ -16,7 +16,7 @@ try:
 except ImportError:
     PYAUTOGUI_OK=False
 
-BG="#0d1117";BG2="#161b22";BG3="#1c2128";ACC="#c8f135";RED="#ff5c5c";TEXT="#e8e9ed";MUTED="#7a7d8a";GOLD="#c8a000"
+BG="#0f1115";BG2="#151922";BG3="#1b2130";ACC="#ff8a1e";RED="#ff5c5c";TEXT="#f3f4f6";MUTED="#9ca3af";GOLD="#c8a000"
 
 STYLE=f"""
 QWidget{{background:{BG};color:{TEXT};font-family:'Segoe UI';font-size:13px;}}
@@ -103,7 +103,7 @@ class InviteDialog(QDialog):
         refresh_btn.clicked.connect(self._populate_list); btns.addWidget(refresh_btn)
         btns.addStretch()
         go = QPushButton("🚀  Lancer les invitations")
-        go.setStyleSheet(f"background:{ACC};color:#0d1117;border:none;border-radius:6px;padding:8px 20px;font-weight:700;font-size:13px;")
+        go.setStyleSheet(f"background:{ACC};color:#0f1115;border:none;border-radius:6px;padding:8px 20px;font-weight:700;font-size:13px;")
         go.clicked.connect(self._invite_all); btns.addWidget(go)
         cl.addLayout(btns)
 

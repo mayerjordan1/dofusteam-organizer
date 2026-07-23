@@ -15,14 +15,14 @@ except Exception:
 
 from PIL import Image, ImageTk
 
-BG_SLICE = "#1c2128"
+BG_SLICE = "#1b2130"
 BG_ACTIVE = "#21324a"
-BG_HOVER = "#c8f135"
+BG_HOVER = "#ff8a1e"
 BORDER = "#2a303a"
-BORDER_HOVER = "#c8f135"
-TEXT = "#e8e9ed"
-TEXT_HOVER = "#0d1117"
-CENTER_BG = "#161b22"
+BORDER_HOVER = "#ff8a1e"
+TEXT = "#f3f4f6"
+TEXT_HOVER = "#0f1115"
+CENTER_BG = "#151922"
 
 
 class RadialMenu:

@@ -3,14 +3,9 @@ import time, threading
 from PyQt6.QtWidgets import *
 from PyQt6.QtCore import *
 from PyQt6.QtGui import *
-from pathlib import Path
-import sys
 
-if getattr(sys,'frozen',False): APP_DIR=Path(sys.executable).parent
-else: APP_DIR=Path(__file__).parent
-SKIN_DIR=APP_DIR/"skin"
-
-STYLE="QWidget{background:#0f1115;color:#f3f4f6;font-family:'Segoe UI';font-size:13px;}QDialog{background:#0f1115;}QLineEdit{background:#151922;color:#f3f4f6;border:1px solid rgba(255,255,255,0.08);border-radius:5px;padding:4px 8px;}QScrollArea{background:transparent;border:none;}"
+from paths import SKIN_DIR
+from theme import STYLE, make_avatar
 
 try:
     import pyautogui, win32gui, win32api, win32process, ctypes
@@ -18,14 +13,6 @@ try:
     MACRO_OK=True
 except ImportError:
     MACRO_OK=False
-
-def make_avatar(classe,size=32):
-    if not classe: return None
-    path=SKIN_DIR/f"{classe.lower()}.png"
-    if not path.exists(): return None
-    pix=QPixmap(str(path))
-    if pix.isNull(): return None
-    return pix.scaled(size,size,Qt.AspectRatioMode.KeepAspectRatio,Qt.TransformationMode.SmoothTransformation)
 
 def rel_to_abs(hwnd,rx,ry):
     rect=win32gui.GetWindowRect(hwnd)

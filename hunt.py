@@ -24,7 +24,7 @@ try:
 except ImportError:
     PYAUTOGUI_OK = False
 
-STYLE = "QWidget{background:#0f1115;color:#f3f4f6;font-family:'Segoe UI';font-size:13px;}QDialog{background:#0f1115;}QLineEdit,QComboBox{background:#151922;color:#f3f4f6;border:1px solid rgba(255,255,255,0.08);border-radius:5px;padding:4px 8px;}QScrollArea{background:transparent;border:none;}QListWidget{background:#151922;border:1px solid rgba(255,255,255,0.07);border-radius:6px;}QListWidget::item{padding:6px;}QListWidget::item:selected{background:rgba(255,138,30,0.15);color:#ff8a1e;}"
+from theme import STYLE, BG, BG2, BG3, ACC, RED, TEXT, MUT, BORDER
 
 DIRECTIONS = [("Est", 0), ("Sud", 1), ("Ouest", 2), ("Nord", 3)]
 API_HINTS = "https://api.dofusdb.fr/treasure-hunt"

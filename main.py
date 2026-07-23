@@ -18,11 +18,9 @@ except: KEYBOARD_OK = False
 try: import pyautogui, pyperclip; pyautogui.FAILSAFE = False; PYAUTOGUI_OK = True
 except: PYAUTOGUI_OK = False
 
-# ── Paths ──────────────────────────────────────────────────────────────────────
-if getattr(sys, 'frozen', False): APP_DIR = Path(sys.executable).parent
-else: APP_DIR = Path(__file__).parent
-SKIN_DIR = APP_DIR / "skin"
-SETTINGS_PATH = APP_DIR / "settings.json"
+from paths import APP_DIR, SKIN_DIR, SOUNDS_DIR, SETTINGS_PATH
+from theme import (BG, BG2, BG3, BG4, ACC, RED, GREEN, GOLD, BLUE, TEXT, MUT, BORDER,
+                    STYLE, mono, section_label, card, accent_btn, ghost_btn, make_avatar)
 
 APP_NAME = "DofusTeam"
 VERSION  = "Beta V1.01"
@@ -31,69 +29,6 @@ CLASSES = ["Cra","Ecaflip","Eliotrope","Eniripsa","Enutrof","Feca","Forgelance",
            "Huppermage","Iop","Osamodas","Ouginak","Pandawa","Roublard","Sacrieur",
            "Sadida","Sram","Steamer","Xelor","Zobal"]
 TEAMS = ["", "Team 1", "Team 2", "Team 3", "Team 4"]
-
-# ── Design System (aligné sur dofus-team/app/globals.css) ─────────────────────
-BG   = "#0f1115"
-BG2  = "#151922"
-BG3  = "#1b2130"
-BG4  = "#232a3d"
-ACC  = "#ff8a1e"
-BLUE = "#4fa3e0"
-RED  = "#e05555"
-TEXT = "#f3f4f6"
-MUT  = "#9ca3af"
-GOLD = "#c8a000"
-BORDER = "rgba(255,255,255,0.08)"
-
-STYLE = f"""
-QWidget {{ background:{BG}; color:{TEXT}; font-family:'Segoe UI',sans-serif; font-size:13px; }}
-QMainWindow, QDialog {{ background:{BG}; }}
-QScrollArea {{ background:transparent; border:none; }}
-QScrollBar:vertical {{ background:{BG2}; width:4px; border-radius:2px; margin:0; }}
-QScrollBar::handle:vertical {{ background:{BG4}; border-radius:2px; min-height:20px; }}
-QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical {{ height:0; }}
-QPushButton {{ background:{BG3}; color:{TEXT}; border:1px solid rgba(255,255,255,0.07);
-               border-radius:6px; padding:5px 12px; font-size:12px; }}
-QPushButton:hover {{ background:{BG4}; border-color:rgba(255,255,255,0.14); }}
-QPushButton:pressed {{ background:{BG2}; }}
-QLineEdit {{ background:{BG2}; color:{TEXT}; border:1px solid rgba(255,255,255,0.08);
-             border-radius:6px; padding:5px 10px; }}
-QLineEdit:focus {{ border-color:{ACC}; }}
-QComboBox {{ background:{BG3}; color:{TEXT}; border:1px solid rgba(255,255,255,0.07);
-             border-radius:6px; padding:4px 10px; }}
-QComboBox::drop-down {{ border:none; width:20px; }}
-QComboBox QAbstractItemView {{ background:{BG2}; color:{TEXT};
-    selection-background-color:{BG3}; border:1px solid rgba(255,255,255,0.08); }}
-QSlider::groove:horizontal {{ height:3px; background:{BG3}; border-radius:2px; }}
-QSlider::handle:horizontal {{ background:{ACC}; width:12px; height:12px; border-radius:6px; margin:-5px 0; }}
-QSlider::sub-page:horizontal {{ background:{ACC}; border-radius:2px; }}
-QCheckBox {{ spacing:6px; }}
-QCheckBox::indicator {{ width:15px; height:15px; border-radius:4px;
-    border:1px solid rgba(255,255,255,0.15); background:{BG2}; }}
-QCheckBox::indicator:checked {{ background:{ACC}; border-color:{ACC}; }}
-QMenu {{ background:{BG2}; color:{TEXT}; border:1px solid rgba(255,255,255,0.08);
-         border-radius:8px; padding:4px; }}
-QMenu::item {{ padding:6px 20px; border-radius:5px; }}
-QMenu::item:selected {{ background:{BG3}; }}
-QToolTip {{ background:{BG2}; color:{TEXT}; border:1px solid rgba(255,255,255,0.1);
-            border-radius:5px; padding:4px 8px; font-size:11px; }}
-"""
-
-def mono(size=11, bold=False):
-    f = QFont("Space Mono", size)
-    f.setBold(bold)
-    return f
-
-def section_label(text):
-    """● SECTION LABEL style Farm Tracker"""
-    lbl = QLabel(f"● {text}")
-    lbl.setFont(mono(10))
-    lbl.setStyleSheet(f"color:{MUT}; letter-spacing:1px; text-transform:uppercase;")
-    return lbl
-
-def card(widget):
-    widget.setStyleSheet(f"background:{BG2}; border:1px solid rgba(255,255,255,0.07); border-radius:10px;")
-    return widget
 
 # ── Settings ──────────────────────────────────────────────────────────────────
 DEFAULT = {
@@ -335,24 +270,6 @@ class HotkeyManager:
         for i,b in enumerate(c.get("cycle_row_binds",[])):
             self._reg(b,lambda idx=i: self.logic.switch_to_index(idx))
 
-# ── Helpers ───────────────────────────────────────────────────────────────────
-def make_avatar(classe,size=36):
-    if not classe: return None
-    p=SKIN_DIR/f"{classe.lower()}.png"
-    if not p.exists(): return None
-    pix=QPixmap(str(p))
-    return None if pix.isNull() else pix.scaled(size,size,Qt.AspectRatioMode.KeepAspectRatio,Qt.TransformationMode.SmoothTransformation)
-
-def accent_btn(text,fn,color=ACC):
-    b=QPushButton(text)
-    b.setStyleSheet(f"background:{color};color:{'#0f1115' if color==ACC else 'white'};border:none;border-radius:6px;padding:6px 16px;font-weight:700;font-size:12px;")
-    b.clicked.connect(fn); return b
-
-def ghost_btn(text,fn):
-    b=QPushButton(text)
-    b.setStyleSheet(f"background:transparent;color:{MUT};border:1px solid rgba(255,255,255,0.08);border-radius:6px;padding:5px 12px;font-size:12px;")
-    b.clicked.connect(fn); return b
-
 # ── Account Row ───────────────────────────────────────────────────────────────
 class AccountRow(QFrame):
     sig_remove=pyqtSignal(str); sig_up=pyqtSignal(str); sig_down=pyqtSignal(str); sig_leader=pyqtSignal(str)
@@ -361,85 +278,85 @@ class AccountRow(QFrame):
         super().__init__(parent)
         self.acc=acc; self.config=config
         name=acc["name"]; live=acc.get("hwnd") is not None
-        self.setFixedHeight(42)
-        # Clean row — no internal borders, just bottom separator
+        self.setFixedHeight(36)
         self.setStyleSheet("""
             AccountRow { background: transparent; border: none; border-bottom: 1px solid rgba(255,255,255,0.05); }
             AccountRow:hover { background: rgba(255,255,255,0.02); border: none; border-bottom: 1px solid rgba(255,255,255,0.05); }
         """)
 
         lay = QHBoxLayout(self)
-        lay.setContentsMargins(14, 6, 10, 6)
-        lay.setSpacing(10)
+        lay.setContentsMargins(12, 4, 8, 4)
+        lay.setSpacing(8)
 
         # Position number — plain text
         num = QLabel(str(pos_num))
-        num.setFixedWidth(18)
+        num.setFixedWidth(16)
         num.setAlignment(Qt.AlignmentFlag.AlignCenter)
         num.setAutoFillBackground(False)
-        num.setStyleSheet(f"color:{MUT};font-size:11px;font-family:'Space Mono';font-weight:700;background:transparent;border:none;")
+        num.setStyleSheet(f"color:{MUT};font-size:10px;font-weight:700;background:transparent;border:none;")
         lay.addWidget(num)
 
         # Live dot
         dot = QLabel("●" if live else "○")
-        dot.setFixedWidth(12)
+        dot.setFixedWidth(10)
         dot.setAutoFillBackground(False)
-        dot.setStyleSheet(f"color:{'#3fb950' if live else '#2a3040'};font-size:10px;background:transparent;border:none;")
+        dot.setStyleSheet(f"color:{GREEN if live else '#2a3040'};font-size:9px;background:transparent;border:none;")
         lay.addWidget(dot)
 
         # Avatar — no border, no background
         av = QLabel()
-        av.setFixedSize(38,38)
+        av.setFixedSize(28,28)
         av.setAlignment(Qt.AlignmentFlag.AlignCenter)
         av.setAutoFillBackground(False)
         av.setStyleSheet("background:transparent;border:none;")
-        pix = make_avatar(acc.get("classe",""), 36)
+        pix = make_avatar(acc.get("classe",""), 26)
         if pix: av.setPixmap(pix)
-        else: av.setText("?"); av.setStyleSheet(f"color:{MUT};font-size:14px;background:transparent;")
+        else: av.setText("?"); av.setStyleSheet(f"color:{MUT};font-size:13px;background:transparent;")
         lay.addWidget(av)
 
-        # Name + class — single HTML label, no container widget
+        # Name + class — une seule ligne, densifié
         name_lbl = QLabel(
-            f"<span style='font-weight:700;font-size:13px;color:{TEXT};'>{name}</span><br>"
-            f"<span style='font-size:9px;color:{MUT};font-family:Space Mono;letter-spacing:1px;'>{acc.get('classe','').upper()}</span>"
+            f"<span style='font-weight:600;font-size:12px;color:{TEXT};'>{name}</span>"
+            f"<span style='font-size:10px;color:{MUT};'>  ·  {acc.get('classe','').upper() or 'INCONNU'}</span>"
         )
         name_lbl.setStyleSheet("background:transparent;border:none;")
         name_lbl.setMinimumWidth(100)
         lay.addWidget(name_lbl)
         lay.addStretch()
 
-        # ── Right side buttons — all same height, no borders on container ──
-        def icon_btn(text, tip, bg, color, size=(30,28)):
+        # ── Right side buttons — plats, neutres, colorés seulement à l'état actif ──
+        def icon_btn(text, tip, active=False, active_color=None, active_bg="rgba(200,160,0,0.15)", size=(26,24)):
             b = QPushButton(text); b.setFixedSize(*size); b.setToolTip(tip)
-            b.setStyleSheet(f"QPushButton{{background:{bg};color:{color};border:none;border-radius:5px;font-size:13px;font-weight:700;}}QPushButton:hover{{opacity:0.8;}}")
+            bg = active_bg if active else "transparent"
+            fg = (active_color or MUT) if active else MUT
+            b.setStyleSheet(f"QPushButton{{background:{bg};color:{fg};border:none;border-radius:5px;font-size:11px;font-weight:700;}}QPushButton:hover{{background:rgba(255,255,255,0.06);}}")
             return b
 
-        # Up/Down — bigger, 65% opacity
-        btn_up = icon_btn("▲", "Monter", "rgba(255,138,30,0.65)", "#0f1115", size=(34,30))
+        btn_up = icon_btn("▲", "Monter")
         btn_up.clicked.connect(lambda: self.sig_up.emit(name)); lay.addWidget(btn_up)
-        btn_dn = icon_btn("▼", "Descendre", "rgba(255,138,30,0.65)", "#0f1115", size=(34,30))
+        btn_dn = icon_btn("▼", "Descendre")
         btn_dn.clicked.connect(lambda: self.sig_down.emit(name)); lay.addWidget(btn_dn)
 
         # Team badge
         team = config.get("accounts_team",{}).get(name,"")
         self.tb = QPushButton(team.replace("Team ","T") if team else "—")
-        self.tb.setFixedSize(36,30)
-        tc = "#4fa3e0" if team else MUT
-        self.tb.setStyleSheet(f"QPushButton{{background:rgba(79,163,224,{'0.15' if team else '0.05'});color:{tc};border:none;border-radius:5px;font-size:10px;font-weight:700;}}QPushButton:hover{{background:rgba(79,163,224,0.25);}}")
+        self.tb.setFixedSize(30,24)
         self.tb.setToolTip("Changer d'équipe"); self.tb.clicked.connect(lambda: self._cycle_team(name)); lay.addWidget(self.tb)
+        self._style_team_badge(bool(team))
 
-        # Star — gold when leader
+        # Star — accent quand chef
         is_leader = config.get("leader_name") == name
-        self.star = QPushButton("★"); self.star.setFixedSize(34,30)
-        star_bg = "rgba(200,160,0,0.18)" if is_leader else "rgba(255,255,255,0.04)"
-        star_c  = "#c8a000" if is_leader else "#3a3f4a"
-        self.star.setStyleSheet(f"QPushButton{{background:{star_bg};color:{star_c};border:none;border-radius:5px;font-size:15px;}}QPushButton:hover{{background:rgba(200,160,0,0.25);color:#c8a000;}}")
-        self.star.setToolTip("Définir comme chef"); self.star.clicked.connect(lambda: self.sig_leader.emit(name)); lay.addWidget(self.star)
+        self.star = icon_btn("★", "Définir comme chef", active=is_leader, active_color=GOLD)
+        self.star.clicked.connect(lambda: self.sig_leader.emit(name)); lay.addWidget(self.star)
 
-        # Remove — red X
-        rm = QPushButton("✕"); rm.setFixedSize(32,30)
-        rm.setStyleSheet(f"QPushButton{{background:rgba(224,85,85,0.10);color:{RED};border:none;border-radius:5px;font-size:12px;font-weight:700;}}QPushButton:hover{{background:rgba(224,85,85,0.30);color:white;}}")
-        rm.setToolTip("Retirer de la liste"); rm.clicked.connect(lambda: self.sig_remove.emit(name)); lay.addWidget(rm)
+        # Remove
+        rm = icon_btn("✕", "Retirer de la liste", size=(26,24))
+        rm.clicked.connect(lambda: self.sig_remove.emit(name)); lay.addWidget(rm)
+
+    def _style_team_badge(self, active):
+        tc = BLUE if active else MUT
+        bg = "rgba(79,163,224,0.14)" if active else "transparent"
+        self.tb.setStyleSheet(f"QPushButton{{background:{bg};color:{tc};border:none;border-radius:5px;font-size:10px;font-weight:700;}}QPushButton:hover{{background:rgba(255,255,255,0.06);}}")
 
     def _cycle_team(self,name):
         cur=self.config.get("accounts_team",{}).get(name,"")
@@ -448,9 +365,8 @@ class AccountRow(QFrame):
         if new: t[name]=new
         else: t.pop(name,None)
         self.config.set("accounts_team",t); self.config.save()
-        tc="#4fa3e0" if new else MUT
         self.tb.setText(new.replace("Team ","T") if new else "—")
-        self.tb.setStyleSheet(f"QPushButton{{background:rgba(79,163,224,{'0.15' if new else '0.05'});color:{tc};border:none;border-radius:5px;font-size:10px;font-weight:700;}}QPushButton:hover{{background:rgba(79,163,224,0.25);}}")
+        self._style_team_badge(bool(new))
 
 # ── Preset Panel ──────────────────────────────────────────────────────────────
 class PresetPanel(QWidget):
@@ -798,27 +714,16 @@ class MainWindow(QMainWindow):
         self.status_badge.setStyleSheet(f"background:rgba(255,255,255,0.04);color:{MUT};border:1px solid rgba(255,255,255,0.08);border-radius:5px;padding:2px 10px;")
         lay.addWidget(self.status_badge)
 
-        # ON/OFF
-        # RACCOURCIS : ON/OFF — label stays neutral, status colored
-        hk_container = QWidget(); hk_container.setStyleSheet("background:transparent;")
-        hk_lay = QHBoxLayout(hk_container); hk_lay.setContentsMargins(0,0,0,0); hk_lay.setSpacing(4)
-        hk_label = QLabel("RACCOURCIS :"); hk_label.setFont(mono(9,True))
-        hk_label.setStyleSheet(f"color:{MUT};background:transparent;")
-        hk_lay.addWidget(hk_label)
-        self.hk_status = QLabel("OFF"); self.hk_status.setFont(mono(10,True))
-        self.hk_status.setStyleSheet(f"color:{RED};background:transparent;")
-        hk_lay.addWidget(self.hk_status)
-        lay.addWidget(hk_container)
-        # Toggle button — clear and prominent
-        self.hk_btn = QPushButton("Activer raccourcis")
-        self.hk_btn.setFixedHeight(30); self.hk_btn.setFont(mono(9))
+        # Raccourcis — un seul bouton bascule, l'état est porté par sa couleur/texte
+        self.hk_btn = QPushButton("Raccourcis : désactivés")
+        self.hk_btn.setFixedHeight(30)
         self.hk_btn.setToolTip("Active / désactive les raccourcis clavier (suivant, précédent, chef...)")
-        self.hk_btn.setStyleSheet(f"background:rgba(224,85,85,0.12);color:{RED};border:1px solid rgba(224,85,85,0.3);border-radius:6px;padding:0 12px;")
+        self.hk_btn.setStyleSheet(f"background:transparent;color:{MUT};border:1px solid {BORDER};border-radius:6px;padding:0 12px;font-size:11px;")
         self.hk_btn.clicked.connect(self._toggle_hk); lay.addWidget(self.hk_btn)
 
         # Settings
         s=QPushButton("⚙"); s.setFixedSize(34,34)
-        s.setStyleSheet(f"background:{BG3};border:1px solid rgba(255,255,255,0.07);border-radius:6px;font-size:14px;")
+        s.setStyleSheet(f"background:{BG3};border:1px solid {BORDER};border-radius:6px;font-size:14px;")
         s.clicked.connect(self._settings); lay.addWidget(s)
         return w
 
@@ -827,39 +732,39 @@ class MainWindow(QMainWindow):
         w=QWidget(); w.setStyleSheet(f"background:{BG};border-bottom:1px solid rgba(255,255,255,0.05);"); w.setFixedHeight(46)
         lay=QHBoxLayout(w); lay.setContentsMargins(20,0,20,0); lay.setSpacing(6)
 
-        def ab(icon,text,tip,fn,color=BG3):
-            b=QPushButton(f"{icon}  {text}"); b.setToolTip(tip)
-            b.setStyleSheet(f"background:{color};color:{'#0f1115' if color==ACC else TEXT};border:{'none' if color==ACC else '1px solid rgba(255,255,255,0.07)'};border-radius:6px;padding:5px 14px;font-size:12px;{'font-weight:700;' if color==ACC else ''}")
+        def flat_btn(text,tip,fn,size=(34,30)):
+            b=QPushButton(text); b.setFixedSize(*size); b.setToolTip(tip)
+            b.setStyleSheet(f"background:{BG3};border:1px solid {BORDER};border-radius:6px;font-size:12px;color:{TEXT};")
             b.clicked.connect(fn); return b
 
-        # Nav buttons
-        prev=QPushButton("◀"); prev.setFixedSize(34,30); prev.setToolTip("Perso précédent")
-        prev.setStyleSheet(f"background:{BG3};border:1px solid rgba(255,255,255,0.07);border-radius:6px;font-size:12px;color:{TEXT};")
-        prev.clicked.connect(lambda: self.logic.switch_prev()); lay.addWidget(prev)
+        # Navigation (groupe compact, usage fréquent)
+        lay.addWidget(flat_btn("◀","Perso précédent",lambda: self.logic.switch_prev()))
+        lay.addWidget(flat_btn("▶","Perso suivant",lambda: self.logic.switch_next()))
+        lay.addWidget(flat_btn("⭐","Aller au chef",lambda: self.logic.switch_to_leader()))
 
-        nxt=QPushButton("▶"); nxt.setFixedSize(34,30); nxt.setToolTip("Perso suivant")
-        nxt.setStyleSheet(f"background:{BG3};border:1px solid rgba(255,255,255,0.07);border-radius:6px;font-size:12px;color:{TEXT};")
-        nxt.clicked.connect(lambda: self.logic.switch_next()); lay.addWidget(nxt)
+        sep=QFrame(); sep.setFrameShape(QFrame.Shape.VLine); sep.setStyleSheet(f"color:{BORDER};"); lay.addWidget(sep)
 
-        chef=QPushButton("⭐"); chef.setFixedSize(34,30); chef.setToolTip("Aller au chef")
-        chef.setStyleSheet(f"background:rgba(200,160,0,0.12);border:1px solid rgba(200,160,0,0.25);border-radius:6px;font-size:14px;color:{GOLD};")
-        chef.clicked.connect(lambda: self.logic.switch_to_leader()); lay.addWidget(chef)
+        # Action principale : scanner (seul bouton accentué de la barre)
+        scan_btn=QPushButton("🔍  Scanner"); scan_btn.setToolTip("Scanner les fenêtres Dofus")
+        scan_btn.setStyleSheet(f"background:{ACC};color:#0f1115;border:none;border-radius:6px;padding:5px 14px;font-size:12px;font-weight:700;")
+        scan_btn.clicked.connect(self._scan); lay.addWidget(scan_btn)
+        lay.addWidget(ghost_btn("Trier la barre Windows",lambda: self.logic.sort_taskbar()))
 
-        # Separator
-        sep=QFrame(); sep.setFrameShape(QFrame.Shape.VLine); sep.setStyleSheet(f"color:rgba(255,255,255,0.08);"); lay.addWidget(sep)
-
-        lay.addWidget(ab("⚡","AUTO ZAAP","Lancer la macro Auto-Zaap",self._open_zaap,BG3))
-        zaap_fav_btn = QPushButton("★  FAVORIS")
-        zaap_fav_btn.setToolTip("Zaap favoris — clic droit sur 🏠 dans la toolbar")
-        zaap_fav_btn.setStyleSheet(f"background:rgba(200,160,0,0.12);color:{GOLD};border:1px solid rgba(200,160,0,0.3);border-radius:6px;padding:5px 12px;font-size:12px;")
-        zaap_fav_btn.clicked.connect(self._open_zaap_favorites); lay.addWidget(zaap_fav_btn)
-        lay.addWidget(ab("👥","INVITER","Inviter le groupe",self._open_invite,BG3))
-        lay.addWidget(ab("🗺","CHASSE","Chasse au trésor — indices + zaap le plus proche",self._open_hunt,BG3))
-        lay.addWidget(ab("🎯","CALIB ZAAP  F4","Calibrer les positions zaap",self._open_calib_zaap,BG3))
-        lay.addWidget(ab("💬","CALIB CHAT","Calibrer la zone de chat",self._open_calib_chat,BG3))
         lay.addStretch()
-        lay.addWidget(ab("🔍","SCANNER","Scanner les fenêtres Dofus",self._scan,ACC))
-        lay.addWidget(ab("📊","TRIER","Trier la barre Windows",lambda: self.logic.sort_taskbar(),BG3))
+
+        # Le reste : regroupé dans un seul menu pour ne pas noyer la barre
+        tools_btn=QPushButton("Outils  ▾"); tools_btn.setToolTip("Auto Zaap, favoris, invitation, chasse au trésor, calibrations")
+        tools_btn.setStyleSheet(f"background:{BG3};border:1px solid {BORDER};border-radius:6px;padding:5px 14px;font-size:12px;color:{TEXT};")
+        menu=QMenu(tools_btn); menu.setStyleSheet(STYLE)
+        menu.addAction("⚡  Auto Zaap").triggered.connect(self._open_zaap)
+        menu.addAction("★  Zaap favoris").triggered.connect(self._open_zaap_favorites)
+        menu.addAction("👥  Inviter le groupe").triggered.connect(self._open_invite)
+        menu.addAction("🗺  Chasse au trésor").triggered.connect(self._open_hunt)
+        menu.addSeparator()
+        menu.addAction("🎯  Calibrer Zaap  (F4)").triggered.connect(self._open_calib_zaap)
+        menu.addAction("💬  Calibrer Chat").triggered.connect(self._open_calib_chat)
+        tools_btn.setMenu(menu)
+        lay.addWidget(tools_btn)
         return w
 
     # ── Accounts Panel ────────────────────────────────────────────────────────
@@ -1053,17 +958,13 @@ class MainWindow(QMainWindow):
         self._hk=not self._hk
         if self._hk:
             self.hk.enable()
-            self.hk_status.setText("ON")
-            self.hk_status.setStyleSheet(f"color:#3fb950;background:transparent;font-family:'Space Mono';font-size:10px;font-weight:700;")
-            self.hk_btn.setText("Désactiver raccourcis")
-            self.hk_btn.setStyleSheet(f"background:rgba(59,185,80,0.12);color:#3fb950;border:1px solid rgba(59,185,80,0.3);border-radius:6px;padding:0 12px;font-family:'Space Mono';font-size:9px;")
+            self.hk_btn.setText("Raccourcis : activés")
+            self.hk_btn.setStyleSheet(f"background:rgba(63,185,80,0.1);color:{GREEN};border:1px solid rgba(63,185,80,0.3);border-radius:6px;padding:0 12px;font-size:11px;font-weight:600;")
             self.scan_msg.setText("✅  Raccourcis actifs — " + (self.config.get("next_key","?") or "?") + " = perso suivant")
         else:
             self.hk.disable()
-            self.hk_status.setText("OFF")
-            self.hk_status.setStyleSheet(f"color:{RED};background:transparent;font-family:'Space Mono';font-size:10px;font-weight:700;")
-            self.hk_btn.setText("Activer raccourcis")
-            self.hk_btn.setStyleSheet(f"background:rgba(224,85,85,0.12);color:{RED};border:1px solid rgba(224,85,85,0.3);border-radius:6px;padding:0 12px;font-family:'Space Mono';font-size:9px;")
+            self.hk_btn.setText("Raccourcis : désactivés")
+            self.hk_btn.setStyleSheet(f"background:transparent;color:{MUT};border:1px solid {BORDER};border-radius:6px;padding:0 12px;font-size:11px;")
 
     def _hide_to_mini(self): self.hide(); self.mini.show(); self.mini.raise_()
     def _show_self(self): self.mini.hide(); self.show(); self.raise_(); self.activateWindow()

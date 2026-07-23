@@ -3,12 +3,6 @@ import threading, time, random
 from PyQt6.QtWidgets import *
 from PyQt6.QtCore import *
 from PyQt6.QtGui import *
-from pathlib import Path
-import sys
-
-if getattr(sys,'frozen',False): APP_DIR=Path(sys.executable).parent
-else: APP_DIR=Path(__file__).parent
-SKIN_DIR=APP_DIR/"skin"
 
 try:
     import pyautogui, pyperclip
@@ -16,24 +10,8 @@ try:
 except ImportError:
     PYAUTOGUI_OK=False
 
-BG="#0f1115";BG2="#151922";BG3="#1b2130";ACC="#ff8a1e";RED="#ff5c5c";TEXT="#f3f4f6";MUTED="#9ca3af";GOLD="#c8a000"
-
-STYLE=f"""
-QWidget{{background:{BG};color:{TEXT};font-family:'Segoe UI';font-size:13px;}}
-QDialog{{background:{BG};}}
-QLineEdit{{background:{BG2};color:{TEXT};border:1px solid rgba(255,255,255,0.08);border-radius:5px;padding:4px 8px;}}
-QScrollArea{{background:transparent;border:none;}}
-QScrollBar:vertical{{background:{BG2};width:5px;border-radius:3px;margin:0;}}
-QScrollBar::handle:vertical{{background:#2a3040;border-radius:3px;min-height:20px;}}
-QSpinBox{{background:{BG2};color:{TEXT};border:1px solid rgba(255,255,255,0.08);border-radius:5px;padding:3px;}}
-"""
-
-def make_avatar(classe, size=28):
-    if not classe: return None
-    path = SKIN_DIR / f"{classe.lower()}.png"
-    if not path.exists(): return None
-    pix = QPixmap(str(path))
-    return None if pix.isNull() else pix.scaled(size, size, Qt.AspectRatioMode.KeepAspectRatio, Qt.TransformationMode.SmoothTransformation)
+from paths import SKIN_DIR
+from theme import BG, BG2, BG3, ACC, RED, TEXT, MUT as MUTED, GOLD, STYLE, make_avatar
 
 class InviteDialog(QDialog):
     _status_sig = pyqtSignal(str)

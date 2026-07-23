@@ -1,0 +1,124 @@
+"""Design system partagé DofusTeam Organizer — une seule source de vérité.
+
+Avant : chaque fichier (main/hunt/calibrator/char_selector/invite_dialog/
+zaap_dialog/zaap_favorites) redéfinissait sa propre palette + son propre
+STYLE + son propre make_avatar(), avec des variations qui divergeaient au
+fil des sessions. Tout le monde importe désormais ce module.
+"""
+from PyQt6.QtWidgets import QPushButton, QLabel
+from PyQt6.QtGui import QPixmap, QFont
+from PyQt6.QtCore import Qt
+from paths import SKIN_DIR
+
+# ── Palette (alignée sur dofus-team/app/globals.css) ───────────────────────────
+BG     = "#0f1115"
+BG2    = "#151922"
+BG3    = "#1b2130"
+BG4    = "#232a3d"
+ACC    = "#ff8a1e"
+RED    = "#e05555"
+GREEN  = "#3fb950"
+GOLD   = "#c8a000"
+BLUE   = "#4fa3e0"
+TEXT   = "#f3f4f6"
+MUT    = "#9ca3af"
+BORDER = "rgba(255,255,255,0.08)"
+
+# ── Feuille de style globale ────────────────────────────────────────────────────
+# Principes : un seul accent (utilisé pour l'action principale + focus/actif),
+# le reste reste neutre. Space Mono réservé aux valeurs numériques/compteurs.
+STYLE = f"""
+QWidget {{ background:{BG}; color:{TEXT}; font-family:'Segoe UI',sans-serif; font-size:13px; }}
+QMainWindow, QDialog {{ background:{BG}; }}
+QScrollArea {{ background:transparent; border:none; }}
+QScrollBar:vertical {{ background:{BG2}; width:4px; border-radius:2px; margin:0; }}
+QScrollBar::handle:vertical {{ background:{BG4}; border-radius:2px; min-height:20px; }}
+QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical {{ height:0; }}
+QPushButton {{ background:{BG3}; color:{TEXT}; border:1px solid {BORDER};
+               border-radius:6px; padding:5px 12px; font-size:12px; }}
+QPushButton:hover {{ background:{BG4}; border-color:rgba(255,255,255,0.16); }}
+QPushButton:pressed {{ background:{BG2}; }}
+QLineEdit {{ background:{BG2}; color:{TEXT}; border:1px solid {BORDER};
+             border-radius:6px; padding:5px 10px; }}
+QLineEdit:focus {{ border-color:{ACC}; }}
+QComboBox {{ background:{BG3}; color:{TEXT}; border:1px solid {BORDER};
+             border-radius:6px; padding:4px 10px; }}
+QComboBox::drop-down {{ border:none; width:20px; }}
+QComboBox QAbstractItemView {{ background:{BG2}; color:{TEXT};
+    selection-background-color:{BG3}; border:1px solid {BORDER}; }}
+QListWidget {{ background:{BG2}; border:1px solid {BORDER}; border-radius:8px; }}
+QListWidget::item {{ padding:6px; border-radius:5px; }}
+QListWidget::item:selected {{ background:rgba(255,138,30,0.14); color:{ACC}; }}
+QSlider::groove:horizontal {{ height:3px; background:{BG3}; border-radius:2px; }}
+QSlider::handle:horizontal {{ background:{ACC}; width:12px; height:12px; border-radius:6px; margin:-5px 0; }}
+QSlider::sub-page:horizontal {{ background:{ACC}; border-radius:2px; }}
+QCheckBox {{ spacing:6px; }}
+QCheckBox::indicator {{ width:15px; height:15px; border-radius:4px;
+    border:1px solid rgba(255,255,255,0.15); background:{BG2}; }}
+QCheckBox::indicator:checked {{ background:{ACC}; border-color:{ACC}; }}
+QMenu {{ background:{BG2}; color:{TEXT}; border:1px solid {BORDER}; border-radius:8px; padding:4px; }}
+QMenu::item {{ padding:6px 20px; border-radius:5px; }}
+QMenu::item:selected {{ background:{BG3}; color:{ACC}; }}
+QMenu::separator {{ background:{BORDER}; height:1px; margin:4px 8px; }}
+QToolTip {{ background:{BG2}; color:{TEXT}; border:1px solid rgba(255,255,255,0.1);
+            border-radius:5px; padding:4px 8px; font-size:11px; }}
+"""
+
+
+def mono(size=11, bold=False):
+    f = QFont("Space Mono", size)
+    f.setBold(bold)
+    return f
+
+
+def section_label(text):
+    """Titre de section discret — sans puce, séparation par soulignement fin."""
+    lbl = QLabel(text.upper())
+    lbl.setFont(mono(9, True))
+    lbl.setStyleSheet(f"color:{MUT}; letter-spacing:1.5px; background:transparent;")
+    return lbl
+
+
+def card(widget):
+    widget.setStyleSheet(f"background:{BG2}; border:1px solid {BORDER}; border-radius:10px;")
+    return widget
+
+
+def accent_btn(text, fn, color=ACC):
+    b = QPushButton(text)
+    b.setStyleSheet(
+        f"background:{color}; color:#0f1115; border:none; border-radius:6px;"
+        f"padding:6px 16px; font-weight:700; font-size:12px;"
+    )
+    b.clicked.connect(fn)
+    return b
+
+
+def ghost_btn(text, fn):
+    b = QPushButton(text)
+    b.setStyleSheet(
+        f"background:transparent; color:{MUT}; border:1px solid {BORDER};"
+        f"border-radius:6px; padding:5px 12px; font-size:12px;"
+    )
+    b.clicked.connect(fn)
+    return b
+
+
+_avatar_cache = {}
+
+
+def make_avatar(classe, size=36):
+    if not classe:
+        return None
+    key = (classe.lower(), size)
+    if key in _avatar_cache:
+        return _avatar_cache[key]
+    p = SKIN_DIR / f"{classe.lower()}.png"
+    if not p.exists():
+        return None
+    pix = QPixmap(str(p))
+    if pix.isNull():
+        return None
+    scaled = pix.scaled(size, size, Qt.AspectRatioMode.KeepAspectRatio, Qt.TransformationMode.SmoothTransformation)
+    _avatar_cache[key] = scaled
+    return scaled

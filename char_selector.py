@@ -2,25 +2,15 @@
 DofusTeam — char_selector.py
 Sélecteur rectangulaire 3x3 : 8 persos + logo DofusTeam au centre
 """
-import sys, math
-from pathlib import Path
+import math
 from PyQt6.QtWidgets import *
 from PyQt6.QtCore import *
 from PyQt6.QtGui import *
 
-if getattr(sys,'frozen',False): APP_DIR=Path(sys.executable).parent
-else: APP_DIR=Path(__file__).parent
-SKIN_DIR=APP_DIR/"skin"
+from paths import SKIN_DIR
+from theme import BG, BG2, BG3, ACC, TEXT, MUT, GOLD, make_avatar
 
-BG="#0f1115"; BG2="#151922"; BG3="#1b2130"; ACC="#ff8a1e"; TEXT="#f3f4f6"; MUT="#9ca3af"; GOLD="#c8a000"
 CELL=110  # cell size px
-
-def make_avatar(classe,size=48):
-    if not classe: return None
-    p=SKIN_DIR/f"{classe.lower()}.png"
-    if not p.exists(): return None
-    pix=QPixmap(str(p))
-    return None if pix.isNull() else pix.scaled(size,size,Qt.AspectRatioMode.KeepAspectRatio,Qt.TransformationMode.SmoothTransformation)
 
 
 class CharCell(QPushButton):

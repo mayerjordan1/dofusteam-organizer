@@ -2,15 +2,10 @@
 DofusTeam — zaap_favorites.py
 Gestion des zaap favoris + macro auto-zaap vers destination
 """
-import sys, time, threading, random
-from pathlib import Path
+import time, threading, random
 from PyQt6.QtWidgets import *
 from PyQt6.QtCore import *
 from PyQt6.QtGui import *
-
-if getattr(sys,'frozen',False): APP_DIR=Path(sys.executable).parent
-else: APP_DIR=Path(__file__).parent
-SKIN_DIR=APP_DIR/"skin"
 
 try:
     import pyautogui, pyperclip
@@ -25,17 +20,8 @@ try:
 except ImportError:
     WINDOWS=False
 
-BG="#0f1115"; BG2="#151922"; BG3="#1b2130"; ACC="#ff8a1e"; TEXT="#f3f4f6"; MUT="#9ca3af"; GOLD="#c8a000"; RED="#e05555"
-
-STYLE=f"""
-QWidget{{background:{BG};color:{TEXT};font-family:'Segoe UI';font-size:13px;}}
-QDialog{{background:{BG};}}
-QLineEdit{{background:{BG2};color:{TEXT};border:1px solid rgba(255,255,255,0.08);border-radius:6px;padding:5px 10px;}}
-QLineEdit:focus{{border-color:{ACC};}}
-QScrollArea{{background:transparent;border:none;}}
-QScrollBar:vertical{{background:{BG2};width:5px;border-radius:3px;margin:0;}}
-QScrollBar::handle:vertical{{background:#2a3040;border-radius:3px;min-height:20px;}}
-"""
+from paths import SKIN_DIR
+from theme import BG, BG2, BG3, ACC, TEXT, MUT, GOLD, RED, STYLE
 
 
 def run_zaap_to_destination(config, logic, destination_name, on_status=None):

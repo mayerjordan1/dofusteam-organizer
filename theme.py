@@ -65,6 +65,24 @@ QToolTip {{ background:{BG2}; color:{TEXT}; border:1px solid rgba(255,255,255,0.
 """
 
 
+# ── Chrome additif : sidebar de navigation + header de page ────────────────────
+# Additif uniquement — ne redéfinit aucune couleur existante, juste des règles
+# de style scoped par objectName pour la nouvelle nav (sidebar + QStackedWidget).
+SIDEBAR_STYLE = f"""
+#Sidebar {{ background:{BG2}; border-right:1px solid {BORDER}; }}
+#SidebarGroupLabel {{ color:{MUT}; font-size:10px; font-weight:700; letter-spacing:1.5px;
+    background:transparent; padding:14px 16px 4px 16px; }}
+#SidebarItem {{ background:transparent; color:{MUT}; border:none; border-radius:8px;
+    text-align:left; padding:8px 14px; font-size:12.5px; font-weight:600; }}
+#SidebarItem:hover {{ background:{BG3}; color:{TEXT}; }}
+#SidebarItem[active="true"] {{ background:rgba(255,138,30,0.12); color:{ACC}; }}
+#PageHeader {{ background:transparent; border-bottom:1px solid {BORDER}; }}
+#PageTitle {{ color:{TEXT}; font-size:16px; font-weight:700; font-family:'Space Mono',monospace;
+    background:transparent; }}
+#PageSubtitle {{ color:{MUT}; font-size:11px; background:transparent; }}
+"""
+
+
 def mono(size=11, bold=False):
     f = QFont("Space Mono", size)
     f.setBold(bold)

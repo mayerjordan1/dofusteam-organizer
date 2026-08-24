@@ -20,7 +20,8 @@ except: PYAUTOGUI_OK = False
 
 from paths import APP_DIR, SKIN_DIR, SOUNDS_DIR, SETTINGS_PATH
 from theme import (BG, BG2, BG3, BG4, ACC, RED, GREEN, GOLD, BLUE, TEXT, MUT, BORDER,
-                    STYLE, mono, section_label, card, accent_btn, ghost_btn, make_avatar)
+                    STYLE, SIDEBAR_STYLE, mono, section_label, card, accent_btn, ghost_btn, make_avatar)
+from sidebar import Sidebar
 
 APP_NAME = "DofusTeam"
 VERSION  = "Beta V1.01"
@@ -510,24 +511,33 @@ class MiniToolbar(QWidget):
             b=QPushButton(icon); b.setFixedSize(36,34); b.setToolTip(tip); b.setCheckable(ck)
             b.setStyleSheet(f"QPushButton{{background:{color};color:white;border:none;border-radius:6px;font-size:15px;}}QPushButton:checked{{background:{ACC};color:#0f1115;}}")
             return b
-        self.b_show=mkb("🥚","Afficher DofusTeam")
-        self.b_prev=mkb("◀","Perso précédent")
-        self.b_next=mkb("▶","Perso suivant")
+        # Primaires — visibles en permanence dans la barre
         self.b_leader=mkb("⭐","Aller au chef",GOLD)
         self.b_hsac=mkb("🏠","Havre-sac + Zaap\n1. Appuie H sur tous les persos\n2. Clique zaap calibré sur tous",GOLD)
-        self.b_paste=mkb("📋","Coller destination zaap\nCtrl+A + Ctrl+V + Entrée sur tous les persos\n(copie la destination d'abord !)")
-        self.b_spam=mkb("🖱","Spam Click",ck=True)
-        self.b_show.clicked.connect(lambda:(self.hide(),self.on_show()))
-        self.b_prev.clicked.connect(lambda: self.logic.switch_prev() if self.logic else None)
-        self.b_next.clicked.connect(lambda: self.logic.switch_next() if self.logic else None)
+        self.b_zaap=mkb("⚡","Automatisation Zaap\nOuvre havre-sac + zaap et lance la séquence calibrée (phase 1)",GOLD)
+        self.b_more=mkb("⋯","Plus d'actions")
         self.b_leader.clicked.connect(lambda: self.logic.switch_to_leader() if self.logic else None)
         self.b_hsac.clicked.connect(self._quick_hsac)
         self.b_hsac.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
         self.b_hsac.customContextMenuRequested.connect(lambda: self._show_zaap_menu())
         self.b_hsac.setToolTip("🏠 Havre-sac + Zaap\nClic gauche: ouvrir tous les havresacs\nClic droit: zaap favoris ⭐")
+        self.b_zaap.clicked.connect(self._quick_zaap)
+        self.b_more.clicked.connect(self._show_more_menu)
+        for w in (self.b_leader,self.b_hsac,self.b_zaap,self.b_more): lay.addWidget(w)
+
+        # Secondaires — repliés derrière "⋯" (QMenu), boutons mkb() réutilisés tels quels
+        self.b_show=mkb("🥚","Afficher DofusTeam")
+        self.b_prev=mkb("◀","Perso précédent")
+        self.b_next=mkb("▶","Perso suivant")
+        self.b_paste=mkb("📋","Coller destination zaap\nCtrl+A + Ctrl+V + Entrée sur tous les persos\n(copie la destination d'abord !)")
+        self.b_spam=mkb("🖱","Spam Click",ck=True)
+        self.b_show.clicked.connect(lambda:(self.hide(),self.on_show()))
+        self.b_prev.clicked.connect(lambda: self.logic.switch_prev() if self.logic else None)
+        self.b_next.clicked.connect(lambda: self.logic.switch_next() if self.logic else None)
         self.b_paste.clicked.connect(self._quick_paste)
         self.b_spam.toggled.connect(self._toggle_spam)
-        for w in (self.b_show,self.b_prev,self.b_next,self.b_leader,self.b_hsac,self.b_paste,self.b_spam): lay.addWidget(w)
+        self._secondary_btns=(self.b_show,self.b_prev,self.b_next,self.b_paste,self.b_spam)
+
         self._inner_lay = lay  # store ref for char icons
         self._char_btns = []; self._char_sep = None
         bar.adjustSize(); self.resize(bar.sizeHint().width()+20,bar.sizeHint().height()+14); bar.move(10,7)
@@ -571,6 +581,19 @@ class MiniToolbar(QWidget):
     def _open_fav_manager(self):
         from zaap_favorites import ZaapFavoritesDialog
         ZaapFavoritesDialog(self.config, self).exec()
+
+    def _show_more_menu(self):
+        """Clic sur "⋯" → menu des actions secondaires (b_show/b_prev/b_next/b_paste/b_spam),
+        boutons mkb() réutilisés tels quels via QWidgetAction (garde style + checkable + connexions)."""
+        menu = QMenu(self)
+        menu.setStyleSheet(f"""
+            QMenu{{background:#151922;border:1px solid rgba(255,138,30,0.3);border-radius:8px;padding:4px;}}
+        """)
+        for b in self._secondary_btns:
+            wa = QWidgetAction(menu)
+            wa.setDefaultWidget(b)
+            menu.addAction(wa)
+        menu.exec(self.b_more.mapToGlobal(self.b_more.rect().bottomLeft()))
 
     def _rebuild_char_icons(self, accounts):
         """Rebuild character icon strip after scan."""
@@ -657,7 +680,7 @@ class MainWindow(QMainWindow):
         self.mini=MiniToolbar(self.config,self.logic,self._show_self)
         self.setWindowTitle(f"{APP_NAME}  {VERSION}")
         self.setMinimumWidth(700); self.setMinimumHeight(560)
-        self.setStyleSheet(STYLE)
+        self.setStyleSheet(STYLE + SIDEBAR_STYLE)
         if (SKIN_DIR/"logo.png").exists(): self.setWindowIcon(QIcon(str(SKIN_DIR/"logo.png")))
         self._build_ui()
         # Char selector (rectangle)
@@ -677,17 +700,58 @@ class MainWindow(QMainWindow):
                 except: pass
 
     def _build_ui(self):
+        from pages.mes_equipes import MesEquipesPage
+        from pages.presets import PresetsPage
+        from pages.raccourcis import RaccourcisPage
+        from pages.chasse_tresor import ChasseTresorPage
+        from pages.automatisations_zaap import AutomatisationsZaapPage
+        from pages.fenetres_scan import FenetresScanPage
+
         root=QWidget(); self.setCentralWidget(root)
         vl=QVBoxLayout(root); vl.setContentsMargins(0,0,0,0); vl.setSpacing(0)
         vl.addWidget(self._mk_header())
-        vl.addWidget(self._mk_action_bar())
-        # Main content: accounts + side panel
-        main=QWidget(); ml=QHBoxLayout(main); ml.setContentsMargins(16,12,16,12); ml.setSpacing(16)
-        ml.addWidget(self._mk_accounts_panel(), 6)
-        ml.addWidget(self._mk_side_panel(), 4)
-        vl.addWidget(main, 1)
-        vl.addWidget(self._mk_shortcuts_bar())
+
+        # Corps : sidebar de navigation | pile de pages
+        body=QWidget(); bl=QHBoxLayout(body); bl.setContentsMargins(0,0,0,0); bl.setSpacing(0)
+
+        self.sidebar=Sidebar(VERSION)
+        self.sidebar.sig_navigate.connect(self._navigate)
+        bl.addWidget(self.sidebar)
+
+        self.stack=QStackedWidget()
+        self.page_mes_equipes=MesEquipesPage(self.config,self.logic)
+        self.page_presets=PresetsPage(self.config,self.logic)
+        self.page_raccourcis=RaccourcisPage(self.config,self.logic)
+        self.page_chasse_tresor=ChasseTresorPage(self.config,self.logic)
+        self.page_automatisations_zaap=AutomatisationsZaapPage(self.config,self.logic)
+        self.page_fenetres_scan=FenetresScanPage(self.config,self.logic)
+
+        self.pages={
+            "mes_equipes":self.page_mes_equipes,
+            "presets":self.page_presets,
+            "raccourcis":self.page_raccourcis,
+            "chasse_tresor":self.page_chasse_tresor,
+            "automatisations_zaap":self.page_automatisations_zaap,
+            "fenetres_scan":self.page_fenetres_scan,
+        }
+        for page in self.pages.values(): self.stack.addWidget(page)
+        bl.addWidget(self.stack, 1)
+
+        vl.addWidget(body, 1)
         vl.addWidget(self._mk_status_bar())
+
+        # Inter-pages : rester découplées, MainWindow fait le lien via signaux
+        self.page_presets.preset_applied.connect(self.page_mes_equipes.refresh)
+        self.page_fenetres_scan.accounts_changed.connect(self._on_accounts_changed)
+        self.page_automatisations_zaap.open_calibration.connect(self._open_calib_zaap)
+
+        self._navigate("mes_equipes")
+
+    def _navigate(self,page_key):
+        page=self.pages.get(page_key)
+        if page is None: return
+        self.stack.setCurrentWidget(page)
+        self.sidebar.set_active(page_key)
 
     # ── Header ────────────────────────────────────────────────────────────────
     def _mk_header(self):
@@ -727,140 +791,6 @@ class MainWindow(QMainWindow):
         s.clicked.connect(self._settings); lay.addWidget(s)
         return w
 
-    # ── Action Bar ────────────────────────────────────────────────────────────
-    def _mk_action_bar(self):
-        w=QWidget(); w.setStyleSheet(f"background:{BG};border-bottom:1px solid rgba(255,255,255,0.05);"); w.setFixedHeight(46)
-        lay=QHBoxLayout(w); lay.setContentsMargins(20,0,20,0); lay.setSpacing(6)
-
-        def flat_btn(text,tip,fn,size=(34,30)):
-            b=QPushButton(text); b.setFixedSize(*size); b.setToolTip(tip)
-            b.setStyleSheet(f"background:{BG3};border:1px solid {BORDER};border-radius:6px;font-size:12px;color:{TEXT};")
-            b.clicked.connect(fn); return b
-
-        # Navigation (groupe compact, usage fréquent)
-        lay.addWidget(flat_btn("◀","Perso précédent",lambda: self.logic.switch_prev()))
-        lay.addWidget(flat_btn("▶","Perso suivant",lambda: self.logic.switch_next()))
-        lay.addWidget(flat_btn("⭐","Aller au chef",lambda: self.logic.switch_to_leader()))
-
-        sep=QFrame(); sep.setFrameShape(QFrame.Shape.VLine); sep.setStyleSheet(f"color:{BORDER};"); lay.addWidget(sep)
-
-        # Action principale : scanner (seul bouton accentué de la barre)
-        scan_btn=QPushButton("🔍  Scanner"); scan_btn.setToolTip("Scanner les fenêtres Dofus")
-        scan_btn.setStyleSheet(f"background:{ACC};color:#0f1115;border:none;border-radius:6px;padding:5px 14px;font-size:12px;font-weight:700;")
-        scan_btn.clicked.connect(self._scan); lay.addWidget(scan_btn)
-        lay.addWidget(ghost_btn("Trier la barre Windows",lambda: self.logic.sort_taskbar()))
-
-        lay.addStretch()
-
-        # Le reste : regroupé dans un seul menu pour ne pas noyer la barre
-        tools_btn=QPushButton("Outils  ▾"); tools_btn.setToolTip("Auto Zaap, favoris, invitation, chasse au trésor, calibrations")
-        tools_btn.setStyleSheet(f"background:{BG3};border:1px solid {BORDER};border-radius:6px;padding:5px 14px;font-size:12px;color:{TEXT};")
-        menu=QMenu(tools_btn); menu.setStyleSheet(STYLE)
-        menu.addAction("⚡  Auto Zaap").triggered.connect(self._open_zaap)
-        menu.addAction("★  Zaap favoris").triggered.connect(self._open_zaap_favorites)
-        menu.addAction("👥  Inviter le groupe").triggered.connect(self._open_invite)
-        menu.addAction("🗺  Chasse au trésor").triggered.connect(self._open_hunt)
-        menu.addSeparator()
-        menu.addAction("🎯  Calibrer Zaap  (F4)").triggered.connect(self._open_calib_zaap)
-        menu.addAction("💬  Calibrer Chat").triggered.connect(self._open_calib_chat)
-        tools_btn.setMenu(menu)
-        lay.addWidget(tools_btn)
-        return w
-
-    # ── Accounts Panel ────────────────────────────────────────────────────────
-    def _mk_accounts_panel(self):
-        w=QWidget()
-        lay=QVBoxLayout(w); lay.setContentsMargins(0,0,0,0); lay.setSpacing(8)
-
-        # Header row
-        hrow=QHBoxLayout()
-        hrow.addWidget(section_label("COMPTES"))
-        self.count_lbl=QLabel(""); self.count_lbl.setStyleSheet(f"background:rgba(255,138,30,0.08);color:{ACC};border-radius:8px;padding:1px 8px;font-size:11px;font-family:'Space Mono';")
-        hrow.addWidget(self.count_lbl); hrow.addStretch()
-        add=QPushButton("+ Ajouter"); add.setStyleSheet(f"background:rgba(255,138,30,0.08);color:{ACC};border:1px solid rgba(255,138,30,0.2);border-radius:5px;padding:3px 10px;font-size:11px;"); add.clicked.connect(self._add_account); hrow.addWidget(add)
-        lay.addLayout(hrow)
-
-        # Card container
-        card_w=QWidget(); card_w.setStyleSheet(f"background:{BG2};border:1px solid rgba(255,255,255,0.07);border-radius:10px;")
-        card_lay=QVBoxLayout(card_w); card_lay.setContentsMargins(0,0,0,0); card_lay.setSpacing(0)
-
-        # Empty state
-        self.empty_lbl=QLabel("Aucun personnage détecté\nClique sur  🔍 SCANNER  pour démarrer")
-        self.empty_lbl.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        self.empty_lbl.setStyleSheet(f"color:{MUT};font-size:12px;padding:30px;")
-        card_lay.addWidget(self.empty_lbl)
-
-        # Scroll
-        self.acct_scroll=QScrollArea(); self.acct_scroll.setWidgetResizable(True); self.acct_scroll.setVisible(False)
-        self.acct_container=QWidget(); self.acct_layout=QVBoxLayout(self.acct_container)
-        self.acct_layout.setContentsMargins(0,0,0,0); self.acct_layout.setSpacing(0); self.acct_layout.addStretch()
-        self.acct_scroll.setWidget(self.acct_container); card_lay.addWidget(self.acct_scroll)
-
-        lay.addWidget(card_w, 1)
-        return w
-
-    # ── Side Panel ────────────────────────────────────────────────────────────
-    def _mk_side_panel(self):
-        w=QWidget()
-        lay=QVBoxLayout(w); lay.setContentsMargins(0,0,0,0); lay.setSpacing(14)
-
-        # Version selector + mode
-        mode_card=QWidget(); mode_card.setStyleSheet(f"background:{BG2};border:1px solid rgba(255,255,255,0.07);border-radius:10px;")
-        ml=QVBoxLayout(mode_card); ml.setContentsMargins(12,10,12,10); ml.setSpacing(8)
-        ml.addWidget(section_label("CONFIGURATION"))
-        row1=QHBoxLayout(); row1.addWidget(QLabel("Mode :")); self.mode_c=QComboBox()
-        self.mode_c.addItems(["ALL","Team 1","Team 2","Team 3","Team 4"]); self.mode_c.setCurrentText(self.config.get("current_mode","ALL"))
-        self.mode_c.currentTextChanged.connect(lambda t:(self.config.set("current_mode",t),self.config.save())); row1.addWidget(self.mode_c); ml.addLayout(row1)
-        row2=QHBoxLayout(); row2.addWidget(QLabel("Version :")); self.ver_c=QComboBox()
-        self.ver_c.addItems(["Unity","Rétro"]); self.ver_c.setCurrentText(self.config.get("game_version","Unity"))
-        self.ver_c.currentTextChanged.connect(lambda t:(self.config.set("game_version",t),self.config.save())); row2.addWidget(self.ver_c); ml.addLayout(row2)
-        lay.addWidget(mode_card)
-
-        # Presets
-        preset_card=QWidget(); preset_card.setStyleSheet(f"background:{BG2};border:1px solid rgba(255,255,255,0.07);border-radius:10px;")
-        pl=QVBoxLayout(preset_card); pl.setContentsMargins(12,10,12,10); pl.setSpacing(8)
-        self.preset_panel=PresetPanel(self.config,self.logic)
-        self.preset_panel.preset_applied.connect(self._refresh)
-        pl.addWidget(self.preset_panel)
-        lay.addWidget(preset_card)
-
-        # Quick actions
-        qa_card=QWidget(); qa_card.setStyleSheet(f"background:{BG2};border:1px solid rgba(255,255,255,0.07);border-radius:10px;")
-        ql=QVBoxLayout(qa_card); ql.setContentsMargins(12,10,12,10); ql.setSpacing(8)
-        ql.addWidget(section_label("ACTIONS RAPIDES"))
-        self.spam_btn=QPushButton("🖱  Spam Click"); self.spam_btn.setCheckable(True)
-        self.spam_btn.setStyleSheet(f"background:{BG3};border:1px solid rgba(255,255,255,0.07);border-radius:6px;padding:6px;")
-        self.spam_btn.toggled.connect(self._toggle_spam); ql.addWidget(self.spam_btn)
-        sort_btn=ghost_btn("📊  Trier barre Windows",lambda: self.logic.sort_taskbar()); ql.addWidget(sort_btn)
-        close_btn=QPushButton("✕  Fermer Team")
-        close_btn.setStyleSheet(f"background:rgba(224,85,85,0.1);color:{RED};border:1px solid rgba(224,85,85,0.25);border-radius:6px;padding:6px;")
-        close_btn.clicked.connect(self._close_team); ql.addWidget(close_btn)
-        lay.addWidget(qa_card)
-        lay.addStretch()
-        return w
-
-    # ── Shortcuts Bar ─────────────────────────────────────────────────────────
-    def _mk_shortcuts_bar(self):
-        w=QWidget(); w.setStyleSheet(f"background:{BG2};border-top:1px solid rgba(255,255,255,0.05);border-bottom:1px solid rgba(255,255,255,0.05);")
-        lay=QVBoxLayout(w); lay.setContentsMargins(20,10,20,10); lay.setSpacing(8)
-        lay.addWidget(section_label("RACCOURCIS CLAVIER"))
-        grid=QGridLayout(); grid.setHorizontalSpacing(8); grid.setVerticalSpacing(6)
-        DEFS=[("Précédent","prev_key"),("Suivant","next_key"),("Rafraîchir","refresh_key"),
-              ("Chef","leader_key"),("Afficher/Cacher","toggle_app_key"),("Havre-sac","game_haven_key"),
-              ("Sélecteur","selector_key"),("Calibrer","calib_key"),("Inviter","invite_group_key"),
-              ("Coller+Valider","paste_active_key")]
-        self._sc={}
-        for i,(label,key) in enumerate(DEFS):
-            r,c=divmod(i,3)
-            lb=QLabel(label.upper()); lb.setFont(mono(8)); lb.setStyleSheet(f"color:{MUT};letter-spacing:0.5px;"); grid.addWidget(lb,r,c*3)
-            inp=QLineEdit(self.config.get(key,"")); inp.setFixedWidth(70); inp.setFixedHeight(26)
-            inp.setStyleSheet(f"background:{BG};border:1px solid rgba(255,255,255,0.07);border-radius:5px;padding:2px 6px;font-size:11px;color:{ACC};font-family:'Space Mono';")
-            inp.textChanged.connect(lambda t,k=key:(self.config.set(k,t),self.config.save())); grid.addWidget(inp,r,c*3+1)
-            rm=QPushButton("✕"); rm.setFixedSize(16,16); rm.setStyleSheet(f"background:transparent;color:{MUT};border:none;font-size:8px;"); rm.clicked.connect(inp.clear); grid.addWidget(rm,r,c*3+2)
-            self._sc[key]=inp
-        lay.addLayout(grid)
-        return w
-
     # ── Status Bar ────────────────────────────────────────────────────────────
     def _mk_status_bar(self):
         w=QWidget(); w.setStyleSheet(f"background:{BG};border-top:1px solid rgba(255,255,255,0.05);"); w.setFixedHeight(34)
@@ -873,85 +803,11 @@ class MainWindow(QMainWindow):
         return w
 
     # ── Account management ────────────────────────────────────────────────────
-    def _refresh(self,live=None):
-        # STARTUP BEHAVIOR: show empty if no live scan yet
-        order=self.config.get("custom_order",[]); classes=self.config.get("classes",{})
-        states=self.config.get("accounts_state",{}); teams=self.config.get("accounts_team",{})
-
-        if live is not None:
-            # Only show live accounts (detected in Dofus right now)
-            merged=sorted(live,key=lambda x:order.index(x["name"]) if x["name"] in order else 999)
-        else:
-            # No scan yet — show empty state
-            merged=[]
-
-        # Clear
-        while self.acct_layout.count()>1:
-            item=self.acct_layout.takeAt(0)
-            if item.widget(): item.widget().deleteLater()
-
-        if not merged:
-            self.empty_lbl.setVisible(True); self.acct_scroll.setVisible(False)
-            self.count_lbl.setText(""); return
-
-        self.empty_lbl.setVisible(False); self.acct_scroll.setVisible(True)
-        for i,acc in enumerate(merged):
-            row=AccountRow(acc,self.config,pos_num=i+1)
-            row.sig_remove.connect(self._remove)
-            row.sig_up.connect(lambda n:(self.logic.move_account(n,-1),self._rescan_refresh()))
-            row.sig_down.connect(lambda n:(self.logic.move_account(n,1),self._rescan_refresh()))
-            row.sig_leader.connect(self._set_leader)
-            self.acct_layout.addWidget(row)
-
-        live_count=len([a for a in merged if a.get("hwnd")])
-        self.count_lbl.setText(f"{live_count}/{len(merged)}")
-        self.status_badge.setText(f"● {live_count} EN JEU" if live_count>0 else "○ OFFLINE")
-        self.status_badge.setStyleSheet(f"background:rgba({'59,185,80' if live_count>0 else '255,255,255'},0.05);color:{'#3fb950' if live_count>0 else MUT};border:1px solid rgba({'59,185,80' if live_count>0 else '255,255,255'},0.15);border-radius:12px;padding:3px 10px;font-family:'Space Mono';font-size:10px;")
-
-    def _rescan_refresh(self):
-        """Refresh from current logic state (post-move) without rescanning."""
-        if self.logic.all_accounts:
-            self._refresh(self.logic.all_accounts)
-        else:
-            self._refresh([])
-
-    def _scan(self):
-        self.scan_msg.setText("Scan en cours..."); self.scan_msg.setStyleSheet(f"color:{MUT};")
-        def on_done(accounts):
-            self._refresh(accounts)
-            lv=len(accounts)
-            if lv>0:
-                self.scan_msg.setText(f"✅  {lv} fenêtre(s) Dofus détectée(s)"); self.scan_msg.setStyleSheet(f"color:{ACC};font-family:'Space Mono';font-size:9px;")
-                self.hk_btn.setText(f"● {lv} EN JEU")
-                # Update mini toolbar char icons
-                self.mini._rebuild_char_icons(accounts)
-            else:
-                self.scan_msg.setText("⚠  Aucune fenêtre Dofus — Dofus est-il ouvert ?"); self.scan_msg.setStyleSheet(f"color:#f4a700;font-family:'Space Mono';font-size:9px;")
-        t=ScanThread(self.logic); t.done.connect(on_done); t.start(); self._st=t
-
-    def _add_account(self):
-        dlg=QDialog(self); dlg.setWindowTitle("Ajouter"); dlg.setFixedSize(300,165); dlg.setStyleSheet(STYLE)
-        lay=QVBoxLayout(dlg); lay.setContentsMargins(16,16,16,16); lay.setSpacing(10)
-        lay.addWidget(QLabel("Nom :")); ni=QLineEdit(); ni.setPlaceholderText("Ex: Jamaal"); lay.addWidget(ni)
-        lay.addWidget(QLabel("Classe :")); cc=QComboBox(); cc.addItems(["— Non définie —"]+CLASSES); lay.addWidget(cc)
-        btns=QHBoxLayout(); cancel=ghost_btn("Annuler",dlg.reject); btns.addWidget(cancel)
-        ok=accent_btn("Ajouter",dlg.accept); btns.addWidget(ok); lay.addLayout(btns)
-        if dlg.exec()==QDialog.DialogCode.Accepted:
-            name=ni.text().strip(); cls=cc.currentText()
-            if not name: return
-            order=self.config.get("custom_order",[])
-            if name not in order: order.append(name); self.config.set("custom_order",order)
-            if cls and "Non" not in cls:
-                c=self.config.get("classes",{}); c[name]=cls; self.config.set("classes",c)
-            s=self.config.get("accounts_state",{}); s.setdefault(name,True); self.config.set("accounts_state",s)
-            self.config.save(); self._rescan_refresh()
-
-    def _remove(self,name):
-        order=self.config.get("custom_order",[])
-        if name in order: order.remove(name); self.config.set("custom_order",order)
-        self.config.save(); self._rescan_refresh()
-
-    def _set_leader(self,name): self.logic.set_leader(name); self._rescan_refresh()
+    def _on_accounts_changed(self,accounts):
+        """Branché sur FenetresScanPage.accounts_changed — tient la mini-toolbar
+        et les autres pages à jour sans dépendance directe entre elles."""
+        self.mini._rebuild_char_icons(accounts)
+        self.page_mes_equipes.refresh()
 
     # ── Actions ───────────────────────────────────────────────────────────────
     def _toggle_hk(self):
@@ -972,16 +828,6 @@ class MainWindow(QMainWindow):
         if self.isVisible(): self._hide_to_mini()
         else: self._show_self()
 
-    def _toggle_spam(self,on):
-        if not PYAUTOGUI_OK: self.spam_btn.setChecked(False); return
-        self._spam=on
-        if on:
-            iv=self.config.get("spam_click_interval",0.1)
-            def _s():
-                while self._spam: pyautogui.click(); time.sleep(iv)
-            threading.Thread(target=_s,daemon=True).start()
-        self.spam_btn.setStyleSheet(f"background:{'rgba(255,138,30,0.15)' if on else BG3};color:{ACC if on else TEXT};border:{'1px solid rgba(255,138,30,0.3)' if on else '1px solid rgba(255,255,255,0.07)'};border-radius:6px;padding:6px;font-weight:{'700' if on else '400'};")
-
     def _open_char_selector(self):
         accounts = self.logic.get_cycle_list()
         if not accounts: return
@@ -990,16 +836,6 @@ class MainWindow(QMainWindow):
         if 0 <= self.logic._idx < len(lst): current = lst[self.logic._idx]["name"]
         self._char_selector.show_for(accounts, current)
 
-    def _open_zaap_favorites(self):
-        from zaap_favorites import ZaapFavoritesDialog
-        ZaapFavoritesDialog(self.config, self).exec()
-
-    def _open_invite(self):
-        from invite_dialog import InviteDialog; InviteDialog(self.config,self.logic,self).exec()
-    def _open_hunt(self):
-        from hunt import HuntDialog; HuntDialog(self.config,self.logic,self).exec()
-    def _open_zaap(self):
-        from zaap_dialog import ZaapDialog; ZaapDialog(self.config,self.logic,self).exec()
     def _open_calib(self): self._open_calib_zaap()
 
     def _open_calib_zaap(self):
@@ -1008,7 +844,7 @@ class MainWindow(QMainWindow):
             QMessageBox.warning(self,"Calibration Zaap","Aucune fenêtre Dofus.\nOuvrez Dofus et scannez d'abord."); return
         self._calib_mgr=CalibrationManager(self.config,self.logic,self,mode="zaap")
         self._calib_mgr.status.connect(lambda m: self.scan_msg.setText(m[:60]))
-        self._calib_mgr.finished.connect(lambda:(self.scan_msg.setText("✅  Zaap calibré"),self._rescan_refresh()))
+        self._calib_mgr.finished.connect(lambda:(self.scan_msg.setText("✅  Zaap calibré"),self.page_fenetres_scan._refresh()))
         self._calib_mgr.start()
 
     def _open_calib_chat(self):
@@ -1017,7 +853,7 @@ class MainWindow(QMainWindow):
             QMessageBox.warning(self,"Calibration Chat","Aucune fenêtre Dofus.\nOuvrez Dofus et scannez d'abord."); return
         self._calib_mgr=CalibrationManager(self.config,self.logic,self,mode="chat")
         self._calib_mgr.status.connect(lambda m: self.scan_msg.setText(m[:60]))
-        self._calib_mgr.finished.connect(lambda:(self.scan_msg.setText("✅  Chat calibré"),self._rescan_refresh()))
+        self._calib_mgr.finished.connect(lambda:(self.scan_msg.setText("✅  Chat calibré"),self.page_fenetres_scan._refresh()))
         self._calib_mgr.start()
 
     def _settings(self):
@@ -1038,11 +874,6 @@ class MainWindow(QMainWindow):
             except: pass
             self.config.save(); (self.hk.reload() if self._hk else None); dlg.close()
         sv.clicked.disconnect(); sv.clicked.connect(_sv); lay.addWidget(sv); dlg.exec()
-
-    def _close_team(self):
-        r=QMessageBox.question(self,"Fermer Team","Fermer toutes les fenêtres Dofus actives ?",
-            QMessageBox.StandardButton.Yes|QMessageBox.StandardButton.No)
-        if r==QMessageBox.StandardButton.Yes: self.logic.close_all()
 
     def closeEvent(self,e): self._spam=False; self.hk.disable(); self.config.save(); e.accept()
     def keyPressEvent(self,e):

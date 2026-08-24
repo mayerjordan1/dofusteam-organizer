@@ -23,6 +23,7 @@ Système Auto-Zaap : calibration + exécution en 3 phases
 """
 
 import time
+import random
 import threading
 import ctypes
 import win32gui
@@ -30,6 +31,13 @@ import win32api
 import pyautogui
 
 pyautogui.FAILSAFE = False
+
+
+def _jitter(base, pct=0.3):
+    """Délai avec variation aléatoire — casse la régularité robotique
+    (Dofus peut repérer des actions trop identiques d'une fenêtre à l'autre)
+    sans ralentir la moyenne."""
+    return max(0.05, base * random.uniform(1 - pct, 1 + pct))
 
 
 # ── Mouse freeze ──────────────────────────────────────────────────────────────
@@ -152,7 +160,8 @@ class ZaapExecutor:
             if self.on_done: self.on_done()
             return
 
-        zaaps   = self.config.get("macro_positions", {}).get("zaaps", {})
+        zaaps     = self.config.get("macro_positions", {}).get("zaaps", {})
+        havresacs = self.config.get("macro_positions", {}).get("havresacs", {})
         delay_h = float(self.config.get("zaap_open_delay", 0.8))   # délai après H
         delay_z = float(self.config.get("zaap_click_delay", 0.5))  # délai après clic zaap
 
@@ -168,17 +177,26 @@ class ZaapExecutor:
             name = acc["name"]
             hwnd = acc["hwnd"]
             coords = zaaps.get(name)
+            hs_coords = havresacs.get(name)
 
             self._status(f"Phase 1 [{i+1}/{len(accounts)}] — {name}")
 
             # Focus fenêtre
             self.logic.focus_window(hwnd)
-            time.sleep(0.3)
+            time.sleep(_jitter(0.3))
 
-            # Appuyer H → ouvre l'havre sac
-            haven_key = self.config.get("game_haven_key", "h")
-            pyautogui.press(haven_key)
-            time.sleep(delay_h)
+            # Ouvrir le havre-sac : clic sur l'icône calibrée si dispo
+            # (fallback si la touche H ne marche pas), sinon touche H
+            if hs_coords:
+                try:
+                    ax, ay = rel_to_abs(hwnd, hs_coords[0], hs_coords[1])
+                    pyautogui.click(ax, ay)
+                except Exception as e:
+                    self._status(f"Erreur clic havre-sac {name}: {e}")
+            else:
+                haven_key = self.config.get("game_haven_key", "h")
+                pyautogui.press(haven_key)
+            time.sleep(_jitter(delay_h))
 
             # Clic sur le zaap calibré
             if coords:
@@ -186,12 +204,12 @@ class ZaapExecutor:
                 try:
                     ax, ay = rel_to_abs(hwnd, rx, ry)
                     pyautogui.click(ax, ay)
-                    time.sleep(delay_z)
+                    time.sleep(_jitter(delay_z))
                 except Exception as e:
                     self._status(f"Erreur clic zaap {name}: {e}")
             else:
                 self._status(f"⚠ {name} — zaap non calibré, ignoré")
-                time.sleep(0.3)
+                time.sleep(_jitter(0.3))
 
         unfreeze_mouse()
 
@@ -225,15 +243,15 @@ class ZaapExecutor:
             self._status(f"Phase 3 [{i+1}/{len(accounts)}] — {name}")
 
             self.logic.focus_window(hwnd)
-            time.sleep(0.3)
+            time.sleep(_jitter(0.3))
 
             # Coller dans le champ de recherche du zaap
             pyautogui.hotkey("ctrl", "a")
-            time.sleep(0.1)
+            time.sleep(_jitter(0.1))
             pyautogui.hotkey("ctrl", "v")
-            time.sleep(0.2)
+            time.sleep(_jitter(0.2))
             pyautogui.press("enter")
-            time.sleep(delay_p)
+            time.sleep(_jitter(delay_p))
 
         unfreeze_mouse()
         self._status("✅ Auto-zaap terminé !")
@@ -265,32 +283,45 @@ def quick_havresac_zaap(config, logic, on_status=None):
             if on_status: on_status("⚠ Aucun compte actif"); return
 
         zaaps      = config.get("macro_positions", {}).get("zaaps", {})
+        havresacs  = config.get("macro_positions", {}).get("havresacs", {})
         haven_key  = config.get("game_haven_key", "h")
         open_delay = float(config.get("zaap_open_delay", 1.0))
 
         try: import ctypes; ctypes.windll.user32.BlockInput(True)
         except: pass
 
-        # ── Phase 1 : H sur chaque fenetre (rapide, sans attente) ──────────
-        if on_status: on_status("Phase 1 — Ouverture havresacs (H×" + str(len(accounts)) + ")")
+        # ── Phase 1 : Havre-sac sur chaque fenetre (rapide, sans attente) ──
+        if on_status: on_status("Phase 1 — Ouverture havresacs (×" + str(len(accounts)) + ")")
         for acc in accounts:
-            logic.focus_window(acc["hwnd"])
+            name = acc["name"]; hwnd = acc["hwnd"]
+            logic.focus_window(hwnd)
             # Attendre confirmation focus (max 1.5s)
             for _ in range(15):
                 try:
-                    if win32gui.GetForegroundWindow() == acc["hwnd"]: break
+                    if win32gui.GetForegroundWindow() == hwnd: break
                 except: pass
                 time.sleep(0.1)
-            time.sleep(0.08)
-            # Envoyer H
-            try:
-                _send_key_sendinput(haven_key)
-            except Exception as e:
-                print(f"[hsac] key err: {e}")
+            time.sleep(_jitter(0.08))
+            # Clic sur l'icône calibrée si dispo (fallback si H ne marche pas),
+            # sinon touche H
+            hs_coords = havresacs.get(name)
+            if hs_coords:
                 try:
-                    import keyboard as _kb; _kb.send(haven_key)
-                except: pyautogui.press(haven_key)
-            time.sleep(0.12)  # switch rapide vers le suivant
+                    rect = win32gui.GetWindowRect(hwnd)
+                    w = rect[2]-rect[0]; h = rect[3]-rect[1]
+                    rx, ry = hs_coords
+                    pyautogui.click(int(rect[0]+w*rx), int(rect[1]+h*ry))
+                except Exception as e:
+                    print(f"[hsac] click err: {e}")
+            else:
+                try:
+                    _send_key_sendinput(haven_key)
+                except Exception as e:
+                    print(f"[hsac] key err: {e}")
+                    try:
+                        import keyboard as _kb; _kb.send(haven_key)
+                    except: pyautogui.press(haven_key)
+            time.sleep(_jitter(0.12))  # switch rapide vers le suivant
 
         # ── Attente chargement havre-sacs ──────────────────────────────────
         if on_status: on_status(f"⏳ Chargement havresacs... ({open_delay}s)")
@@ -306,7 +337,7 @@ def quick_havresac_zaap(config, logic, on_status=None):
                     if win32gui.GetForegroundWindow() == hwnd: break
                 except: pass
                 time.sleep(0.08)
-            time.sleep(0.1)
+            time.sleep(_jitter(0.1))
             if name in zaaps:
                 try:
                     rect = win32gui.GetWindowRect(hwnd)
@@ -317,7 +348,7 @@ def quick_havresac_zaap(config, logic, on_status=None):
                     if on_status: on_status(f"⚠ Zaap {name}: {e}")
             else:
                 if on_status: on_status(f"⚠ {name} non calibré")
-            time.sleep(0.2)
+            time.sleep(_jitter(0.2))
 
         try: import ctypes; ctypes.windll.user32.BlockInput(False)
         except: pass

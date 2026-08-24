@@ -107,7 +107,9 @@ class CalibrationManager(QObject):
             if self.mode=='chat':
                 self._do_chat(accounts); return
 
-            # Zaap calibration
+            # Havre-sac + Zaap calibration (2 clics par perso : icône havre-sac
+            # d'abord — fallback si la touche H ne marche pas — puis bouton zaap
+            # une fois le havre-sac ouvert par ce clic).
             total=len(accounts)
             for i,acc in enumerate(accounts):
                 if not self._running: break
@@ -115,7 +117,26 @@ class CalibrationManager(QObject):
                 self.logic.focus_window(hwnd); time.sleep(0.4)
                 self.overlay.center_on_screen()
                 self.overlay._update_sig.emit(name,classe,i+1,total)
+                self.overlay._inst_sig.emit(
+                    f"Calibrer Havre-sac — {name}",
+                    "Clique sur l'icône Havre-sac (menu du jeu)",
+                    f"{i+1}/{total} personnages — étape 1/2",
+                )
                 self.overlay.show(); self.overlay.raise_()
+                self.status.emit(f"[{i+1}/{total}] Havre-sac de {name}...")
+                clicked=self._wait_click(timeout=30)
+                if clicked and not self.overlay._skip_requested:
+                    rel=abs_to_rel(hwnd,clicked[0],clicked[1])
+                    if rel:
+                        pos=self.config.get("macro_positions",{}); pos.setdefault("havresacs",{})[name]=list(rel)
+                        self.config.set("macro_positions",pos); self.config.save()
+
+                self.overlay._skip_requested=False
+                self.overlay._inst_sig.emit(
+                    f"Calibrer Zaap — {name}",
+                    "Ouvre le havre-sac → clique sur le bouton Zaap",
+                    f"{i+1}/{total} personnages — étape 2/2",
+                )
                 self.status.emit(f"[{i+1}/{total}] Zaap de {name}...")
                 clicked=self._wait_click(timeout=30)
                 if clicked and not self.overlay._skip_requested:

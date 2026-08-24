@@ -7,7 +7,7 @@ fil des sessions. Tout le monde importe désormais ce module.
 """
 from PyQt6.QtWidgets import QPushButton, QLabel
 from PyQt6.QtGui import QPixmap, QFont
-from PyQt6.QtCore import Qt
+from PyQt6.QtCore import Qt, pyqtSignal
 from paths import SKIN_DIR
 
 # ── Palette (alignée sur dofus-team/app/globals.css) ───────────────────────────
@@ -122,16 +122,27 @@ def ghost_btn(text, fn):
     return b
 
 
+class ClickableAvatar(QLabel):
+    """QLabel d'avatar cliquable — utilisé pour basculer homme/femme au clic."""
+    clicked = pyqtSignal()
+
+    def mousePressEvent(self, event):
+        self.clicked.emit()
+        super().mousePressEvent(event)
+
+
 _avatar_cache = {}
 
 
-def make_avatar(classe, size=36):
+def make_avatar(classe, size=36, sexe="h"):
     if not classe:
         return None
-    key = (classe.lower(), size)
+    key = (classe.lower(), size, sexe)
     if key in _avatar_cache:
         return _avatar_cache[key]
-    p = SKIN_DIR / f"{classe.lower()}.png"
+    p = SKIN_DIR / f"{classe.lower()}_{sexe}.png"
+    if not p.exists():
+        p = SKIN_DIR / f"{classe.lower()}.png"
     if not p.exists():
         return None
     pix = QPixmap(str(p))

@@ -20,7 +20,8 @@ except: PYAUTOGUI_OK = False
 
 from paths import APP_DIR, SKIN_DIR, SOUNDS_DIR, SETTINGS_PATH
 from theme import (BG, BG2, BG3, BG4, ACC, RED, GREEN, GOLD, BLUE, TEXT, MUT, BORDER,
-                    STYLE, SIDEBAR_STYLE, mono, section_label, card, accent_btn, ghost_btn, make_avatar)
+                    STYLE, SIDEBAR_STYLE, mono, section_label, card, accent_btn, ghost_btn, make_avatar,
+                    ClickableAvatar)
 from sidebar import Sidebar
 
 APP_NAME = "DofusTeam"
@@ -304,15 +305,17 @@ class AccountRow(QFrame):
         dot.setStyleSheet(f"color:{GREEN if live else '#2a3040'};font-size:9px;background:transparent;border:none;")
         lay.addWidget(dot)
 
-        # Avatar — no border, no background
-        av = QLabel()
+        # Avatar — no border, no background — clic = bascule homme/femme
+        av = ClickableAvatar()
         av.setFixedSize(28,28)
         av.setAlignment(Qt.AlignmentFlag.AlignCenter)
         av.setAutoFillBackground(False)
         av.setStyleSheet("background:transparent;border:none;")
-        pix = make_avatar(acc.get("classe",""), 26)
-        if pix: av.setPixmap(pix)
-        else: av.setText("?"); av.setStyleSheet(f"color:{MUT};font-size:13px;background:transparent;")
+        av.setCursor(Qt.CursorShape.PointingHandCursor)
+        av.setToolTip("Clique pour changer le sexe de l'icône")
+        self.av = av
+        self._refresh_avatar()
+        av.clicked.connect(self._toggle_sexe)
         lay.addWidget(av)
 
         # Name + class — une seule ligne, densifié
@@ -368,6 +371,20 @@ class AccountRow(QFrame):
         self.config.set("accounts_team",t); self.config.save()
         self.tb.setText(new.replace("Team ","T") if new else "—")
         self._style_team_badge(bool(new))
+
+    def _refresh_avatar(self):
+        name = self.acc["name"]
+        sexe = self.config.get("sexes",{}).get(name,"h")
+        pix = make_avatar(self.acc.get("classe",""), 26, sexe)
+        if pix: self.av.setPixmap(pix)
+        else: self.av.setText("?"); self.av.setStyleSheet(f"color:{MUT};font-size:13px;background:transparent;")
+
+    def _toggle_sexe(self):
+        name = self.acc["name"]
+        sexes = self.config.get("sexes",{})
+        sexes[name] = "f" if sexes.get(name,"h")=="h" else "h"
+        self.config.set("sexes",sexes); self.config.save()
+        self._refresh_avatar()
 
 # ── Preset Panel ──────────────────────────────────────────────────────────────
 class PresetPanel(QWidget):

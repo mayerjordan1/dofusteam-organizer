@@ -130,6 +130,9 @@ class CalibrationManager(QObject):
                     if rel:
                         pos=self.config.get("macro_positions",{}); pos.setdefault("havresacs",{})[name]=list(rel)
                         self.config.set("macro_positions",pos); self.config.save()
+                        self.status.emit(f"✅ Havre-sac {name} calibré")
+                        self.overlay._inst_sig.emit(f"✅ Havre-sac calibré — {name}","Position enregistrée.","")
+                        time.sleep(0.5)
 
                 self.overlay._skip_requested=False
                 self.overlay._inst_sig.emit(
@@ -145,6 +148,8 @@ class CalibrationManager(QObject):
                         pos=self.config.get("macro_positions",{}); pos.setdefault("zaaps",{})[name]=list(rel)
                         self.config.set("macro_positions",pos); self.config.save()
                         self.status.emit(f"✅ {name} calibré")
+                        self.overlay._inst_sig.emit(f"✅ Zaap calibré — {name}","Position enregistrée.","")
+                        time.sleep(0.5)
                 self.overlay._hide_sig.emit(); time.sleep(0.3)
 
             # If mode=='all', also do chat

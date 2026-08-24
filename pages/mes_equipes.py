@@ -9,7 +9,7 @@ from PyQt6.QtWidgets import (
 )
 from PyQt6.QtCore import Qt
 
-from theme import TEXT, MUT, BG2, BG3, ACC, BORDER, section_label, card, accent_btn, ghost_btn, make_avatar
+from theme import TEXT, MUT, BG2, BG3, ACC, BORDER, section_label, card, accent_btn, ghost_btn, make_avatar, ClickableAvatar
 
 MAX_SLOTS = 8
 
@@ -36,8 +36,11 @@ class TeamSlotCard(QFrame):
     reste la ligne détaillée avec actions ▲▼/leader/suppr) — ici juste un
     aperçu compact position + avatar + nom, pensé pour tenir en ligne."""
 
-    def __init__(self, name, classe, pos_num, parent=None):
+    def __init__(self, name, classe, pos_num, config=None, parent=None):
         super().__init__(parent)
+        self.name = name
+        self.classe = classe
+        self.config = config
         self.setFixedSize(96, 76)
         self.setStyleSheet(
             f"QFrame {{ background:{BG2}; border:1px solid {BORDER}; border-radius:8px; }}"
@@ -54,15 +57,15 @@ class TeamSlotCard(QFrame):
         top.addStretch()
         lay.addLayout(top)
 
-        av = QLabel()
+        av = ClickableAvatar()
         av.setFixedSize(32, 32)
         av.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        pix = make_avatar(classe or "", 30)
-        if pix:
-            av.setPixmap(pix)
-        else:
-            av.setText("?")
-            av.setStyleSheet(f"color:{MUT}; background:{BG3}; border-radius:16px;")
+        if self.config is not None:
+            av.setCursor(Qt.CursorShape.PointingHandCursor)
+            av.setToolTip("Clique pour changer le sexe de l'icône")
+            av.clicked.connect(self._toggle_sexe)
+        self.av = av
+        self._refresh_avatar()
         av_row = QHBoxLayout()
         av_row.addStretch()
         av_row.addWidget(av)
@@ -75,6 +78,21 @@ class TeamSlotCard(QFrame):
         fm = name_lbl.fontMetrics()
         name_lbl.setText(fm.elidedText(name, Qt.TextElideMode.ElideRight, 78))
         lay.addWidget(name_lbl)
+
+    def _refresh_avatar(self):
+        sexe = self.config.get("sexes",{}).get(self.name,"h") if self.config is not None else "h"
+        pix = make_avatar(self.classe or "", 30, sexe)
+        if pix:
+            self.av.setPixmap(pix)
+        else:
+            self.av.setText("?")
+            self.av.setStyleSheet(f"color:{MUT}; background:{BG3}; border-radius:16px;")
+
+    def _toggle_sexe(self):
+        sexes = self.config.get("sexes",{})
+        sexes[self.name] = "f" if sexes.get(self.name,"h")=="h" else "h"
+        self.config.set("sexes",sexes); self.config.save()
+        self._refresh_avatar()
 
 
 class _EmptySlot(QFrame):
@@ -234,7 +252,7 @@ class MesEquipesPage(QWidget):
         for i in range(MAX_SLOTS):
             if i < len(order):
                 name = order[i]
-                self.slots_lay.addWidget(TeamSlotCard(name, classes.get(name, ""), i + 1))
+                self.slots_lay.addWidget(TeamSlotCard(name, classes.get(name, ""), i + 1, self.config))
             else:
                 self.slots_lay.addWidget(_EmptySlot(i + 1))
         self.slots_lay.addStretch()

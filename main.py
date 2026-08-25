@@ -637,9 +637,9 @@ class MiniToolbar(QWidget):
 
         lay.addWidget(sep())
 
-        self.b_leader=mkb("👑","Aller au chef",GOLD,icon_pixmap=crown_icon(16,"#0f1115"))
-        self.b_hsac=mkb("🏠","Havre-sac + Zaap\n1. Appuie H sur tous les persos\n2. Clique zaap calibré sur tous",GOLD,icon_file="havre-sac.png",icon_size=22)
-        self.b_zaap=mkb("⚡","Automatisation Zaap\nOuvre havre-sac + zaap et lance la séquence calibrée (phase 1)",GOLD,icon_file="icon_zaap.png",size=(40,30),icon_size=28)
+        self.b_leader=mkb("👑","Aller au chef",BG,icon_pixmap=crown_icon(16,GOLD))
+        self.b_hsac=mkb("🏠","Havre-sac + Zaap\n1. Appuie H sur tous les persos\n2. Clique zaap calibré sur tous",BG,icon_file="havre-sac.png",icon_size=22)
+        self.b_zaap=mkb("⚡","Zaap favoris ⭐\nOuvre havre-sac + zaap puis colle/valide directement la destination favorite sur tous les persos",BG,icon_file="icon_zaap.png",size=(40,30),icon_size=28)
         self.b_more=mkb("⋯","Plus d'actions")
         self.b_leader.clicked.connect(lambda: self.logic.switch_to_leader() if self.logic else None)
         self.b_hsac.clicked.connect(self._quick_hsac)
@@ -659,7 +659,7 @@ class MiniToolbar(QWidget):
         lay.addWidget(self.b_min); lay.addWidget(self.b_close)
 
         # Secondaires — repliés derrière "⋯"
-        self.b_paste=mkb("📋","Coller + valider sur tous les persos\nCtrl+V + Entrée un par un, puis retour au chef\n(copie la destination d'abord !)",GOLD)
+        self.b_paste=mkb("📋","Coller + valider sur tous les persos\nCtrl+V + Entrée un par un, puis retour au chef\n(copie la destination d'abord !)",BG)
         self.b_spam=mkb("🖱","Spam Click",ck=True)
         self.b_paste.clicked.connect(self._quick_paste)
         self.b_spam.toggled.connect(self._toggle_spam)
@@ -712,11 +712,10 @@ class MiniToolbar(QWidget):
 
     def update_focus(self,name): self.focus_lbl.setText(name[:10] if name else "—")
     def _quick_zaap(self):
-        if not PYAUTOGUI_OK or not self.logic: return
-        try:
-            from zaap_macro import ZaapExecutor
-            ZaapExecutor(self.config,self.logic,on_status=lambda m:print(f"[zaap]{m}")).start()
-        except: pass
+        """Clic sur ⚡ Zaap → liste des favoris (menu identique à l'ancien clic
+        droit sur 🏠) : sélectionner un favori ouvre tout + colle/valide la
+        destination directement, sans étape manuelle de copier-coller."""
+        self._show_zaap_menu()
 
     def _quick_hsac(self):
         if not PYAUTOGUI_OK or not self.logic: return

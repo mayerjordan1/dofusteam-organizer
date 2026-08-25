@@ -42,7 +42,6 @@ ZAAPS = [
     {"name": "Village d'Amakna",               "region": "Amakna",                 "coords": [-2, 0]},
     {"name": "Village de Pandala",              "region": "Île de Pandala",         "coords": [20, -29]},
     {"name": "Village de la Canopée",           "region": "Île d'Otomaï",           "coords": [-54, 16]},
-    {"name": "Village des Brigandins",          "region": "Plaines de Cania",       "coords": [-16, -24]},
     {"name": "Village des Dopeuls",             "region": "Plaines de Cania",       "coords": [-34, -8]},
     {"name": "Village des Éleveurs",            "region": "Montagne des Koalaks",   "coords": [-16, 1]},
     {"name": "Village des Kanigs",              "region": "Plaines de Cania",       "coords": [0, -56]},

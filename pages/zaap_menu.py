@@ -69,7 +69,7 @@ class ZaapMenuPage(QWidget):
 
         lay.addWidget(_make_header(
             "Zaap",
-            "Consulte les 43 zaaps et marque tes favoris ⭐ — utilisés ensuite d'un "
+            "Consulte les 42 zaaps et marque tes favoris ⭐ — utilisés ensuite d'un "
             "clic droit sur la barre flottante pour lancer la macro de téléportation.",
         ))
 

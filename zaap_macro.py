@@ -181,9 +181,16 @@ class ZaapExecutor:
 
             self._status(f"Phase 1 [{i+1}/{len(accounts)}] — {name}")
 
-            # Focus fenêtre
+            # Focus fenêtre — on attend la confirmation réelle du focus
+            # (sinon on peut cliquer/taper sur la fenêtre précédente si le
+            # switch est lent, ex: rendu jeu, fenêtre minimisée).
             self.logic.focus_window(hwnd)
-            time.sleep(_jitter(0.3))
+            for _ in range(15):
+                try:
+                    if win32gui.GetForegroundWindow() == hwnd: break
+                except: pass
+                time.sleep(0.1)
+            time.sleep(_jitter(0.08))
 
             # Ouvrir le havre-sac : clic sur l'icône calibrée si dispo
             # (fallback si la touche H ne marche pas), sinon touche H
@@ -243,7 +250,12 @@ class ZaapExecutor:
             self._status(f"Phase 3 [{i+1}/{len(accounts)}] — {name}")
 
             self.logic.focus_window(hwnd)
-            time.sleep(_jitter(0.3))
+            for _ in range(15):
+                try:
+                    if win32gui.GetForegroundWindow() == hwnd: break
+                except: pass
+                time.sleep(0.1)
+            time.sleep(_jitter(0.08))
 
             # Coller dans le champ de recherche du zaap
             pyautogui.hotkey("ctrl", "a")
@@ -365,10 +377,10 @@ def quick_paste_zaap(config, logic, on_status=None):
     """
     import time, threading, random
     try:
-        import pyautogui
+        import pyautogui, win32gui
         pyautogui.FAILSAFE = False
     except ImportError:
-        if on_status: on_status("❌ pyautogui manquant")
+        if on_status: on_status("❌ pyautogui/win32gui manquant")
         return
 
     def _run():
@@ -379,7 +391,6 @@ def quick_paste_zaap(config, logic, on_status=None):
         paste_delay = float(config.get("zaap_paste_delay", 0.35))
 
         try:
-            import win32gui
             original_fg_hwnd = win32gui.GetForegroundWindow()
         except Exception:
             original_fg_hwnd = None
@@ -390,12 +401,21 @@ def quick_paste_zaap(config, logic, on_status=None):
         try:
             if on_status: on_status("📋 Collage de la destination...")
             for i,acc in enumerate(accounts):
-                logic.focus_window(acc["hwnd"])
-                time.sleep(0.2)
+                hwnd = acc["hwnd"]
+                logic.focus_window(hwnd)
+                # Attend la confirmation réelle du focus avant de coller —
+                # sinon un switch lent fait coller/valider sur le mauvais
+                # perso ("saute des fenêtres").
+                for _ in range(15):
+                    try:
+                        if win32gui.GetForegroundWindow() == hwnd: break
+                    except: pass
+                    time.sleep(0.1)
+                time.sleep(_jitter(0.08))
                 pyautogui.hotkey("ctrl","v")
-                time.sleep(0.08)
+                time.sleep(_jitter(0.1))
                 pyautogui.press("enter")
-                time.sleep(random.uniform(0.07, 0.13))  # délai aléatoire anti-détection
+                time.sleep(max(paste_delay, _jitter(0.15)))
                 if on_status: on_status(f"📋 {i+1}/{len(accounts)} — {acc['name']}")
         finally:
             # Retour au chef de groupe (ou à la fenêtre d'origine à défaut) —

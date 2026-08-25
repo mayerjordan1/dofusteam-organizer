@@ -154,7 +154,7 @@ class ZaapFavoritesDialog(QDialog):
 
         # Tabs: Favoris / Tous
         tab_row = QHBoxLayout()
-        self.tab_favs = QPushButton("★ Favoris"); self.tab_all = QPushButton("Tous (43)")
+        self.tab_favs = QPushButton("★ Favoris"); self.tab_all = QPushButton("Tous (42)")
         for b in (self.tab_favs, self.tab_all):
             b.setStyleSheet(f"background:{BG3};border:1px solid rgba(255,255,255,0.07);border-radius:6px;padding:5px 16px;")
         self.tab_favs.clicked.connect(lambda: self._show_tab("favs"))

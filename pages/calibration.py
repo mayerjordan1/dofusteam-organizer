@@ -6,10 +6,10 @@ un lien enfoui dans "Automatisations de zaap" — rien n'affichait l'état actue
 des positions enregistrées. Réutilise CalibrationManager (calibrator.py) sans
 réécriture, comme AutomatisationsZaapPage/FenetresScanPage le font déjà.
 """
-from PyQt6.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout, QLabel, QScrollArea, QFrame
+from PyQt6.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout, QLabel, QScrollArea, QFrame, QPushButton
 from PyQt6.QtCore import Qt, pyqtSignal
 
-from theme import TEXT, MUT, BG2, BG3, GREEN, RED, BORDER, section_label, card, accent_btn, ghost_btn, make_avatar
+from theme import TEXT, MUT, BG2, BG3, GREEN, RED, ACC, BORDER, section_label, card, accent_btn, ghost_btn, make_avatar
 
 
 def _make_header(title, subtitle):
@@ -29,6 +29,8 @@ def _make_header(title, subtitle):
 
 
 class _CharStatusRow(QFrame):
+    recalibrate = pyqtSignal(str)
+
     def __init__(self, name, classe, zaap_ok, parent=None):
         super().__init__(parent)
         self.setObjectName("CharStatusRow")
@@ -54,12 +56,20 @@ class _CharStatusRow(QFrame):
         status.setStyleSheet(f"color:{GREEN if zaap_ok else RED}; font-size:11px; font-weight:600; background:transparent; border:none;")
         lay.addWidget(status)
 
+        recal = QPushButton("🎯 Recalibrer" if zaap_ok else "🎯 Calibrer")
+        recal.setStyleSheet(
+            f"background:rgba(255,138,30,0.1);color:{ACC};border:1px solid rgba(255,138,30,0.25);"
+            f"border-radius:5px;padding:3px 10px;font-size:11px;font-weight:700;"
+        )
+        recal.clicked.connect(lambda: self.recalibrate.emit(name))
+        lay.addWidget(recal)
+
 
 class CalibrationPage(QWidget):
     """Page pleine largeur — statut de calibration par personnage + lancement
     des deux calibrations (Havre-sac + Zaap, Chat)."""
 
-    open_calibration = pyqtSignal(str)
+    open_calibration = pyqtSignal(str, str)  # mode, nom du personnage cible ("" = tous)
 
     def __init__(self, config, logic, parent=None):
         super().__init__(parent)
@@ -121,7 +131,7 @@ class CalibrationPage(QWidget):
         desc.setWordWrap(True)
         desc.setStyleSheet(f"color:{MUT}; font-size:11px; background:transparent;")
         lay.addWidget(desc)
-        lay.addWidget(accent_btn("🧭 Lancer la calibration", lambda: self.open_calibration.emit("zaap")))
+        lay.addWidget(accent_btn("🧭 Lancer la calibration", lambda: self.open_calibration.emit("zaap", "")))
 
         lay.addSpacing(10)
         lay.addWidget(section_label("Chat"))
@@ -129,7 +139,7 @@ class CalibrationPage(QWidget):
         desc2.setWordWrap(True)
         desc2.setStyleSheet(f"color:{MUT}; font-size:11px; background:transparent;")
         lay.addWidget(desc2)
-        lay.addWidget(ghost_btn("💬 Calibrer le chat", lambda: self.open_calibration.emit("chat")))
+        lay.addWidget(ghost_btn("💬 Calibrer le chat", lambda: self.open_calibration.emit("chat", "")))
 
         lay.addStretch()
 
@@ -156,7 +166,9 @@ class CalibrationPage(QWidget):
             self.rows_lay.addWidget(empty)
         else:
             for name in order:
-                self.rows_lay.addWidget(_CharStatusRow(name, classes.get(name, ""), name in zaaps))
+                row = _CharStatusRow(name, classes.get(name, ""), name in zaaps)
+                row.recalibrate.connect(lambda n: self.open_calibration.emit("zaap", n))
+                self.rows_lay.addWidget(row)
         self.rows_lay.addStretch()
 
         calibrated = len([n for n in order if n in zaaps])

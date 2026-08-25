@@ -139,7 +139,6 @@ class DofusLogic:
                 ctypes.windll.user32.AttachThreadInput(fg_tid, cur_tid, True)
             ctypes.windll.user32.AllowSetForegroundWindow(0xFFFFFFFF)
             win32gui.SetForegroundWindow(hwnd)
-            win32gui.BringWindowToTop(hwnd)
             if fg_tid != cur_tid:
                 ctypes.windll.user32.AttachThreadInput(fg_tid, cur_tid, False)
         except Exception as e:
@@ -536,18 +535,23 @@ class PresetEditor(QDialog):
         ordered=[n for n in preset_order if n in all_known]+[n for n in all_known if n not in preset_order]
         self.checks={}
         for name in ordered:
-            row=QWidget(); rl=QHBoxLayout(row); rl.setContentsMargins(4,2,4,2); rl.setSpacing(6)
+            row=QWidget(); rl=QHBoxLayout(row); rl.setContentsMargins(8,6,8,6); rl.setSpacing(10)
             chk=QCheckBox(); chk.setChecked(name in preset_order); rl.addWidget(chk)
-            av=QLabel(); av.setFixedSize(24,24)
-            pix=make_avatar(self.config.get("classes",{}).get(name,""),24)
+            av=QLabel(); av.setFixedSize(28,28)
+            av.setStyleSheet("background:transparent;border:none;")
+            pix=make_avatar(self.config.get("classes",{}).get(name,""),28)
             if pix: av.setPixmap(pix)
             rl.addWidget(av)
-            lbl=QLabel(name); lbl.setStyleSheet(f"font-weight:600;color:{TEXT};"); rl.addWidget(lbl)
+            lbl=QLabel(name); lbl.setStyleSheet(f"font-weight:600;color:{TEXT};background:transparent;border:none;"); rl.addWidget(lbl)
             rl.addStretch()
             self.checks[name]=chk
             item=QListWidgetItem()
             item.setData(Qt.ItemDataRole.UserRole,name)
-            item.setSizeHint(row.sizeHint())
+            # row.sizeHint() sous-estime la hauteur tant que le widget n'a pas
+            # encore été layouté dans la liste — on force une hauteur minimale
+            # explicite pour éviter que l'avatar/checkbox soient écrasés.
+            hint=row.sizeHint()
+            item.setSizeHint(QSize(hint.width(),max(hint.height(),40)))
             self.list.addItem(item)
             self.list.setItemWidget(item,row)
 
@@ -606,9 +610,13 @@ class MiniToolbar(QWidget):
         lay.addWidget(grip)
 
         egg=load_icon("logo.png",18)
-        logo=QLabel()
-        if egg: logo.setPixmap(egg.pixmap(18,18))
-        logo.setStyleSheet("background:transparent;")
+        logo=QPushButton()
+        logo.setFixedSize(24,24)
+        logo.setCursor(Qt.CursorShape.PointingHandCursor)
+        logo.setToolTip("Réafficher la fenêtre principale de DofusTeam")
+        if egg: logo.setIcon(egg); logo.setIconSize(QSize(18,18))
+        logo.setStyleSheet("QPushButton{background:transparent;border:none;}QPushButton:hover{background:rgba(255,255,255,0.08);border-radius:5px;}")
+        logo.clicked.connect(lambda: self.on_show())
         lay.addWidget(logo)
 
         self.mode_btn=QPushButton()
@@ -766,6 +774,18 @@ class MiniToolbar(QWidget):
             if item.widget():
                 item.widget().deleteLater()
         self._char_btns = []
+        # Défensif : un même hwnd ne doit apparaître qu'une fois (évite un
+        # doublon si un scan renvoie deux fois la même fenêtre).
+        seen_hwnds = set()
+        deduped = []
+        for acc in accounts:
+            h = acc.get("hwnd")
+            if h is not None and h in seen_hwnds:
+                continue
+            if h is not None:
+                seen_hwnds.add(h)
+            deduped.append(acc)
+        accounts = deduped
         self._char_sep.setVisible(bool(accounts))
 
         for acc in accounts:
@@ -1148,14 +1168,16 @@ class MainWindow(QMainWindow):
         if 0 <= self.logic._idx < len(lst): current = lst[self.logic._idx]["name"]
         self._char_selector.show_for(accounts, current)
 
-    def _open_calib(self): self._open_calib_mode("zaap")
+    def _open_calib(self): self._open_calib_mode("zaap","")
 
-    def _open_calib_mode(self, mode):
+    def _open_calib_mode(self, mode, target_name=""):
         from calibrator import CalibrationManager
         label = {"zaap":"Zaap","chat":"Chat"}.get(mode, mode)
+        if target_name:
+            label = f"{label} — {target_name}"
         if not self.logic.scan_slots():
             QMessageBox.warning(self,f"Calibration {label}","Aucune fenêtre Dofus.\nOuvrez Dofus et scannez d'abord."); return
-        self._calib_mgr=CalibrationManager(self.config,self.logic,self,mode=mode)
+        self._calib_mgr=CalibrationManager(self.config,self.logic,self,mode=mode,target_name=target_name or None)
         self._calib_mgr.status.connect(lambda m: self.scan_msg.setText(m[:60]))
         def _done():
             self.scan_msg.setText(f"✅  {label} calibré")

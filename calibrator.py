@@ -86,9 +86,10 @@ class CalibrationManager(QObject):
     finished=pyqtSignal()
     status=pyqtSignal(str)
 
-    def __init__(self,config,logic,parent=None,mode='all'):
+    def __init__(self,config,logic,parent=None,mode='all',target_name=None):
         super().__init__(parent)
         self.config=config; self.logic=logic; self.mode=mode; self._running=False
+        self.target_name=target_name
         self.overlay=CalibOverlay()
 
     def start(self):
@@ -103,6 +104,11 @@ class CalibrationManager(QObject):
             accounts=self.logic.get_cycle_list()
             if not accounts:
                 self.status.emit("⚠ Aucun compte — scannez d'abord."); self.finished.emit(); return
+
+            if self.target_name and self.mode!='chat':
+                accounts=[a for a in accounts if a["name"]==self.target_name]
+                if not accounts:
+                    self.status.emit(f"⚠ {self.target_name} introuvable — rescannez."); self.finished.emit(); return
 
             if self.mode=='chat':
                 self._do_chat(accounts); return

@@ -973,6 +973,11 @@ class MainWindow(QMainWindow):
             if sel_key:
                 try: keyboard.add_hotkey(sel_key,self._open_char_selector)
                 except: pass
+            # Raccourcis suivant/précédent/chef/etc. (HotkeyManager) — activés par
+            # défaut au démarrage, comme les autres raccourcis ci-dessus. Avant, il
+            # fallait cliquer manuellement sur "Raccourcis : désactivés" à chaque
+            # lancement, sinon Tab/< ne faisaient rien silencieusement.
+            self._toggle_hk()
 
     def _build_ui(self):
         from pages.mes_equipes import MesEquipesPage

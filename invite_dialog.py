@@ -15,6 +15,7 @@ from theme import BG, BG2, BG3, ACC, RED, TEXT, MUT as MUTED, GOLD, STYLE, make_
 
 class InviteDialog(QDialog):
     _status_sig = pyqtSignal(str)
+    _done_sig = pyqtSignal()
 
     def __init__(self, config, logic, parent=None):
         super().__init__(parent)
@@ -24,6 +25,7 @@ class InviteDialog(QDialog):
         self.setFixedSize(420, 500)
         self.setStyleSheet(STYLE)
         self._status_sig.connect(lambda m: self.status_lbl.setText(m))
+        self._done_sig.connect(lambda: QTimer.singleShot(900, self.close))
         self._build()
 
     def _build(self):
@@ -193,5 +195,6 @@ class InviteDialog(QDialog):
                 pyautogui.hotkey("ctrl", "v"); pyautogui.press("enter")
                 time.sleep(0.5)
             self._status_sig.emit(f"✅ {total} invitation(s) envoyée(s) !")
+            self._done_sig.emit()
 
         threading.Thread(target=_do, daemon=True).start()

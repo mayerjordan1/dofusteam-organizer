@@ -210,11 +210,14 @@ class DofusLogic:
             if self.leader_hwnd: self.focus_window(self.leader_hwnd)
         threading.Thread(target=_s, daemon=True).start()
 
+    def close_window(self, hwnd):
+        try:
+            _, pid = win32process.GetWindowThreadProcessId(hwnd)
+            h = ctypes.windll.kernel32.OpenProcess(1, False, pid)
+            ctypes.windll.kernel32.TerminateProcess(h, 0)
+            ctypes.windll.kernel32.CloseHandle(h)
+        except: pass
+
     def close_all(self):
         for acc in self.get_cycle_list():
-            try:
-                _, pid = win32process.GetWindowThreadProcessId(acc["hwnd"])
-                h = ctypes.windll.kernel32.OpenProcess(1, False, pid)
-                ctypes.windll.kernel32.TerminateProcess(h, 0)
-                ctypes.windll.kernel32.CloseHandle(h)
-            except: pass
+            self.close_window(acc["hwnd"])

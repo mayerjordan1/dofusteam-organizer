@@ -15,14 +15,19 @@ except Exception:
 
 from PIL import Image, ImageTk
 
-BG_SLICE = "#1b2130"
-BG_ACTIVE = "#21324a"
-BG_HOVER = "#ff8a1e"
+from theme import BG, BG2, BG3, BG4, ACC, TEXT as THEME_TEXT
+
+# Couleurs alignées sur theme.py (Tkinter Canvas ne supporte que des couleurs
+# pleines, pas de rgba — BORDER ci-dessous est donc une approximation solide
+# de theme.BORDER qui, lui, est semi-transparent).
+BG_SLICE = BG3
+BG_ACTIVE = BG4
+BG_HOVER = ACC
 BORDER = "#2a303a"
-BORDER_HOVER = "#ff8a1e"
-TEXT = "#f3f4f6"
-TEXT_HOVER = "#0f1115"
-CENTER_BG = "#151922"
+BORDER_HOVER = ACC
+TEXT = THEME_TEXT
+TEXT_HOVER = BG
+CENTER_BG = BG2
 
 
 class RadialMenu:
@@ -55,7 +60,7 @@ class RadialMenu:
         logo_path = self.skin_dir / "logo.png"
         if logo_path.exists():
             try:
-                img = Image.open(str(logo_path)).resize((40, 40), Image.Resampling.LANCZOS)
+                img = Image.open(str(logo_path)).resize((56, 56), Image.Resampling.LANCZOS)
                 self._logo_image = ImageTk.PhotoImage(img)
             except Exception:
                 self._logo_image = None

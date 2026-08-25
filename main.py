@@ -3,7 +3,7 @@
 DofusTeam — Beta V1.01
 Gestionnaire multi-compte Dofus Unity
 """
-import sys, json, threading, time, ctypes, random
+import sys, json, threading, time, ctypes, random, math
 from pathlib import Path
 import tkinter as tk
 
@@ -21,7 +21,7 @@ except: PYAUTOGUI_OK = False
 from paths import APP_DIR, SKIN_DIR, SOUNDS_DIR, SETTINGS_PATH
 from theme import (BG, BG2, BG3, BG4, ACC, RED, GREEN, GOLD, BLUE, TEXT, MUT, BORDER,
                     STYLE, SIDEBAR_STYLE, mono, section_label, card, accent_btn, ghost_btn, make_avatar,
-                    ClickableAvatar)
+                    ClickableAvatar, load_icon, crown_icon)
 from sidebar import Sidebar
 
 APP_NAME = "DofusTeam"
@@ -226,20 +226,28 @@ class DofusLogic:
             except: pass
 
     def paste_active(self):
-        """Colle + valide (Ctrl+V, Entrée) sur la fenêtre Dofus actuellement au premier plan,
-        après un clic sur la position de chat calibrée. Ne fait rien si la fenêtre active
-        n'est pas un compte Dofus connu (évite tout effet de bord ailleurs)."""
+        """Colle + valide (clic position chat calibrée, Ctrl+V, Entrée x2) sur le
+        chef de groupe — utilisable depuis N'IMPORTE QUELLE fenêtre (ex: un site
+        web de chasse au trésor où on vient de copier des coordonnées) : bascule
+        automatiquement vers le chef avant de coller, pas besoin d'être déjà sur
+        une fenêtre Dofus. Sans chef défini, se rabat sur la fenêtre Dofus active.
+        Double Entrée : la 1ère valide l'autocomplétion Dofus (ex: /travel), la
+        2e envoie réellement le message."""
         if not WINDOWS or not PYAUTOGUI_OK: return
-        try:
-            fg=win32gui.GetForegroundWindow()
-        except Exception: return
-        if not any(a["hwnd"]==fg for a in self.all_accounts): return
         cp=self.config.get("macro_positions",{}).get("chat_position")
         if not cp: return
+        target_hwnd=self.leader_hwnd
+        if not target_hwnd:
+            try: fg=win32gui.GetForegroundWindow()
+            except Exception: fg=None
+            if not any(a["hwnd"]==fg for a in self.all_accounts): return
+            target_hwnd=fg
         def _do():
             try:
+                self.focus_window(target_hwnd); time.sleep(0.2)
                 pyautogui.click(cp[0],cp[1]); time.sleep(0.15)
                 pyautogui.hotkey("ctrl","v"); time.sleep(0.08)
+                pyautogui.press("enter"); time.sleep(0.15)
                 pyautogui.press("enter")
             except Exception as e:
                 print(f"[paste_active] {e}")
@@ -247,13 +255,27 @@ class DofusLogic:
 
 # ── Hotkeys ───────────────────────────────────────────────────────────────────
 class HotkeyManager:
-    def __init__(self,config,logic): self.config=config; self.logic=logic; self.active=False
+    # next_key/prev_key restent enregistrées via add_hotkey classique pour que
+    # l'appui simple reste instantané (déclenché par le hook clavier, pas par un
+    # polling) — un _poll_hold séparé et rapide vient juste EN PLUS pour détecter
+    # le maintien de la touche et faire défiler en boucle sans devoir relâcher/
+    # rappuyer à chaque changement de fenêtre (le focus steal de focus_window()
+    # vers la fenêtre Dofus casse le ré-armement normal de add_hotkey en continu).
+    _HOLD_INITIAL_DELAY = 0.38   # secondes avant que la répétition démarre
+    _HOLD_REPEAT_INTERVAL = 0.14  # secondes entre deux répétitions
+    _POLL_MS = 15
+
+    def __init__(self,config,logic):
+        self.config=config; self.logic=logic; self.active=False
+        self._hold_keys={}; self._hold_state={}
+        self._poll_timer=QTimer(); self._poll_timer.timeout.connect(self._poll_hold)
     def enable(self):
         if not KEYBOARD_OK or self.active: return
-        self.active=True; self._reg_all()
+        self.active=True; self._reg_all(); self._poll_timer.start(self._POLL_MS)
     def disable(self):
         if not self.active: return
         self.active=False
+        self._poll_timer.stop(); self._hold_state={}
         try: keyboard.unhook_all_hotkeys()
         except: pass
     def reload(self): was=self.active; self.disable(); was and self.enable()
@@ -263,18 +285,40 @@ class HotkeyManager:
             except Exception as e: print(f"[HK] {key}: {e}")
     def _reg_all(self):
         c=self.config
-        self._reg(c.get("next_key"),self.logic.switch_next)
-        self._reg(c.get("prev_key"),self.logic.switch_prev)
+        self._hold_keys={"next":c.get("next_key"),"prev":c.get("prev_key")}
+        self._hold_state={}
         self._reg(c.get("leader_key"),self.logic.switch_to_leader)
         self._reg(c.get("refresh_key"),self.logic.refresh_all)
         self._reg(c.get("sort_taskbar_key"),self.logic.sort_taskbar)
         self._reg(c.get("paste_active_key"),self.logic.paste_active)
+        # appui simple : instantané, géré par le hook clavier (pas le polling)
+        self._reg(c.get("next_key"),self.logic.switch_next)
+        self._reg(c.get("prev_key"),self.logic.switch_prev)
         for i,b in enumerate(c.get("cycle_row_binds",[])):
             self._reg(b,lambda idx=i: self.logic.switch_to_index(idx))
 
+    def _poll_hold(self):
+        # Ne gère QUE la répétition sur maintien — le premier déclenchement est
+        # déjà fait par add_hotkey ci-dessus, donc on ne tire rien ici tant que
+        # le délai initial n'est pas écoulé.
+        now=time.time()
+        for action,key in self._hold_keys.items():
+            if not key: continue
+            fn=self.logic.switch_next if action=="next" else self.logic.switch_prev
+            st=self._hold_state.get(key)
+            try: down=keyboard.is_pressed(key)
+            except Exception: down=False
+            if down:
+                if st is None:
+                    self._hold_state[key]={"t0":now,"last":now}
+                elif now-st["t0"]>=self._HOLD_INITIAL_DELAY and now-st["last"]>=self._HOLD_REPEAT_INTERVAL:
+                    fn(); st["last"]=now
+            elif st is not None:
+                self._hold_state.pop(key,None)
+
 # ── Account Row ───────────────────────────────────────────────────────────────
 class AccountRow(QFrame):
-    sig_remove=pyqtSignal(str); sig_up=pyqtSignal(str); sig_down=pyqtSignal(str); sig_leader=pyqtSignal(str)
+    sig_remove=pyqtSignal(str); sig_up=pyqtSignal(str); sig_down=pyqtSignal(str); sig_leader=pyqtSignal(str); sig_close=pyqtSignal(str)
 
     def __init__(self,acc,config,pos_num=0,parent=None):
         super().__init__(parent)
@@ -353,6 +397,19 @@ class AccountRow(QFrame):
         self.star = icon_btn("★", "Définir comme chef", active=is_leader, active_color=GOLD)
         self.star.clicked.connect(lambda: self.sig_leader.emit(name)); lay.addWidget(self.star)
 
+        # Close window — ferme juste la fenêtre Dofus de ce compte (process kill),
+        # sans le retirer de la liste — plus rapide qu'un clic droit > Fermer.
+        close = QPushButton("⏻")
+        close.setFixedSize(26,24)
+        close.setEnabled(live)
+        close.setToolTip("Fermer cette fenêtre Dofus" if live else "Aucune fenêtre détectée pour ce compte")
+        close.setStyleSheet(
+            f"QPushButton{{background:transparent;color:{RED if live else '#3a4050'};border:none;border-radius:5px;font-size:12px;font-weight:700;}}"
+            f"QPushButton:hover{{background:rgba(224,85,85,0.14);}}"
+            f"QPushButton:disabled{{background:transparent;}}"
+        )
+        close.clicked.connect(lambda: self.sig_close.emit(name)); lay.addWidget(close)
+
         # Remove
         rm = icon_btn("✕", "Retirer de la liste", size=(26,24))
         rm.clicked.connect(lambda: self.sig_remove.emit(name)); lay.addWidget(rm)
@@ -415,7 +472,8 @@ class PresetPanel(QWidget):
             empty.setStyleSheet(f"color:{MUT};font-size:11px;"); self.vlay.insertWidget(0,empty); return
         for i,p in enumerate(presets):
             row=QWidget(); rl=QHBoxLayout(row); rl.setContentsMargins(8,4,8,4); rl.setSpacing(8)
-            row.setStyleSheet(f"background:{BG2};border-radius:6px;")
+            row.setObjectName(f"PresetRow{i}")
+            row.setStyleSheet(f"QWidget#PresetRow{i}{{background:{BG2};border-radius:6px;}}")
             name_lbl=QLabel(p["name"]); name_lbl.setStyleSheet(f"font-weight:700;font-size:12px;color:{TEXT};"); rl.addWidget(name_lbl)
             count=QLabel(f"{len(p.get('order',[]))} persos"); count.setStyleSheet(f"color:{MUT};font-size:10px;"); rl.addWidget(count)
             rl.addStretch()
@@ -456,13 +514,13 @@ class PresetEditor(QDialog):
         lay=QVBoxLayout(self); lay.setContentsMargins(16,16,16,16); lay.setSpacing(12)
         lay.addWidget(QLabel("Nom du preset :"))
         self.name_inp=QLineEdit(self.preset.get("name","")); self.name_inp.setPlaceholderText("Ex: Farm Abysse"); lay.addWidget(self.name_inp)
-        lay.addWidget(QLabel("Ordre des personnages (▲▼ pour réordonner) :"))
+        lay.addWidget(QLabel("Ordre des personnages (glisser-déposer pour réordonner) :"))
 
-        # List of all known chars with checkboxes + reorder
-        self.scroll=QScrollArea(); self.scroll.setWidgetResizable(True)
-        self.container=QWidget(); self.vlay=QVBoxLayout(self.container)
-        self.vlay.setContentsMargins(0,0,0,0); self.vlay.setSpacing(3)
-        self.scroll.setWidget(self.container); lay.addWidget(self.scroll)
+        # Liste des personnages connus, avec cases à cocher + drag & drop pour réordonner
+        self.list=QListWidget()
+        self.list.setDragDropMode(QAbstractItemView.DragDropMode.InternalMove)
+        self.list.setStyleSheet(f"QListWidget{{background:{BG3};border:none;border-radius:6px;}}QListWidget::item{{border:none;}}")
+        lay.addWidget(self.list)
         self._build_char_list()
 
         btns=QHBoxLayout()
@@ -471,14 +529,12 @@ class PresetEditor(QDialog):
         lay.addLayout(btns)
 
     def _build_char_list(self):
-        while self.vlay.count():
-            item=self.vlay.takeAt(0)
-            if item.widget(): item.widget().deleteLater()
+        self.list.clear()
         all_known=self.config.get("custom_order",[])
         preset_order=self.preset.get("order",[])
         # Show preset order first, then unselected
         ordered=[n for n in preset_order if n in all_known]+[n for n in all_known if n not in preset_order]
-        self.rows=[]
+        self.checks={}
         for name in ordered:
             row=QWidget(); rl=QHBoxLayout(row); rl.setContentsMargins(4,2,4,2); rl.setSpacing(6)
             chk=QCheckBox(); chk.setChecked(name in preset_order); rl.addWidget(chk)
@@ -488,26 +544,22 @@ class PresetEditor(QDialog):
             rl.addWidget(av)
             lbl=QLabel(name); lbl.setStyleSheet(f"font-weight:600;color:{TEXT};"); rl.addWidget(lbl)
             rl.addStretch()
-            for sym,d in [("▲",-1),("▼",1)]:
-                b=QPushButton(sym); b.setFixedSize(20,20); b.setStyleSheet(f"background:{BG3};border:none;border-radius:3px;color:{MUT};font-size:8px;")
-                b.clicked.connect(lambda _,n=name,dv=d: self._move(n,dv)); rl.addWidget(b)
-            self.vlay.addWidget(row)
-            self.rows.append((name,chk,row))
-
-    def _move(self,name,d):
-        names=[r[0] for r in self.rows]; idx=names.index(name); new=idx+d
-        if 0<=new<len(self.rows):
-            self.rows[idx],self.rows[new]=self.rows[new],self.rows[idx]
-            # Rebuild visually
-            for _,_,w in self.rows:
-                self.vlay.removeWidget(w)
-            for _,_,w in self.rows:
-                self.vlay.addWidget(w)
+            self.checks[name]=chk
+            item=QListWidgetItem()
+            item.setData(Qt.ItemDataRole.UserRole,name)
+            item.setSizeHint(row.sizeHint())
+            self.list.addItem(item)
+            self.list.setItemWidget(item,row)
 
     def _save(self):
         name=self.name_inp.text().strip()
         if not name: return
-        order=[r[0] for r in self.rows if r[1].isChecked()]
+        order=[]
+        for i in range(self.list.count()):
+            item=self.list.item(i)
+            n=item.data(Qt.ItemDataRole.UserRole)
+            if self.checks[n].isChecked():
+                order.append(n)
         preset={"name":name,"order":order}
         presets=self.config.get("presets",[])
         if self.idx>=0 and self.idx<len(presets): presets[self.idx]=preset
@@ -517,21 +569,69 @@ class PresetEditor(QDialog):
 
 # ── Mini Toolbar ──────────────────────────────────────────────────────────────
 class MiniToolbar(QWidget):
-    def __init__(self,config,logic,on_show):
+    """Barre flottante — inspirée du style overlay de DoFrame (capture fournie par
+    l'utilisateur) : poignée + logo + libellé de mode à gauche, bande d'avatars des
+    personnages détectés au centre (pastille de statut), actions rapides à droite
+    (chef/havre-sac/zaap/plus), puis réduire/fermer. « Réduire » replie la barre en
+    une petite pastille (self.nub) — même geste que le second aperçu de la capture."""
+
+    def __init__(self,config,logic,on_show,on_navigate=None):
         super().__init__(None,Qt.WindowType.Tool|Qt.WindowType.FramelessWindowHint|Qt.WindowType.WindowStaysOnTopHint)
-        self.config=config; self.logic=logic; self.on_show=on_show; self._spam=False; self._drag=None
+        self.config=config; self.logic=logic; self.on_show=on_show; self.on_navigate=on_navigate; self._spam=False; self._drag=None
+        self._collapsed=False
         self.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground)
-        bar=QWidget(self); bar.setObjectName("b")
-        bar.setStyleSheet(f"QWidget#b{{background:{BG};border:1px solid rgba(255,138,30,0.35);border-radius:10px;}}")
-        lay=QHBoxLayout(bar); lay.setContentsMargins(10,7,10,7); lay.setSpacing(6)
-        def mkb(icon,tip,color=BG3,ck=False):
-            b=QPushButton(icon); b.setFixedSize(36,34); b.setToolTip(tip); b.setCheckable(ck)
-            b.setStyleSheet(f"QPushButton{{background:{color};color:white;border:none;border-radius:6px;font-size:15px;}}QPushButton:checked{{background:{ACC};color:#0f1115;}}")
+
+        def mkb(icon,tip,color=BG3,ck=False,icon_file=None,icon_pixmap=None,size=(32,30),icon_size=18):
+            b=QPushButton("" if (icon_file or icon_pixmap) else icon); b.setFixedSize(*size); b.setToolTip(tip); b.setCheckable(ck)
+            b.setStyleSheet(f"QPushButton{{background:{color};color:white;border:none;border-radius:6px;font-size:14px;}}QPushButton:checked{{background:{ACC};color:#0f1115;}}")
+            if icon_file:
+                ic=load_icon(icon_file,icon_size)
+                if ic: b.setIcon(ic); b.setIconSize(QSize(icon_size,icon_size))
+            elif icon_pixmap is not None:
+                b.setIcon(QIcon(icon_pixmap)); b.setIconSize(icon_pixmap.size())
             return b
-        # Primaires — visibles en permanence dans la barre
-        self.b_leader=mkb("⭐","Aller au chef",GOLD)
-        self.b_hsac=mkb("🏠","Havre-sac + Zaap\n1. Appuie H sur tous les persos\n2. Clique zaap calibré sur tous",GOLD)
-        self.b_zaap=mkb("⚡","Automatisation Zaap\nOuvre havre-sac + zaap et lance la séquence calibrée (phase 1)",GOLD)
+        def sep():
+            s=QFrame(); s.setFrameShape(QFrame.Shape.VLine)
+            s.setStyleSheet("color:rgba(255,255,255,0.1);"); s.setFixedHeight(24); s.setFixedWidth(1)
+            return s
+
+        # ── Barre complète ──────────────────────────────────────────────
+        bar=QWidget(self); bar.setObjectName("b")
+        bar.setStyleSheet(f"QWidget#b{{background:{BG};border:1px solid rgba(255,138,30,0.35);border-radius:12px;}}")
+        lay=QHBoxLayout(bar); lay.setContentsMargins(10,6,8,6); lay.setSpacing(6)
+        self.bar=bar; self._inner_lay=lay
+
+        grip=QLabel("⋮⋮"); grip.setFixedWidth(10)
+        grip.setStyleSheet(f"color:{MUT};font-size:11px;letter-spacing:-2px;background:transparent;")
+        lay.addWidget(grip)
+
+        egg=load_icon("logo.png",18)
+        logo=QLabel()
+        if egg: logo.setPixmap(egg.pixmap(18,18))
+        logo.setStyleSheet("background:transparent;")
+        lay.addWidget(logo)
+
+        self.mode_btn=QPushButton()
+        self.mode_btn.setStyleSheet(f"QPushButton{{background:transparent;color:{TEXT};border:none;font-size:12px;font-weight:700;padding:0 4px;}}QPushButton:hover{{color:{ACC};}}")
+        self.mode_btn.clicked.connect(self._show_mode_menu)
+        self._refresh_mode_label()
+        lay.addWidget(self.mode_btn)
+
+        # Bande d'avatars — peuplée par _rebuild_char_icons(), séparateur affiché
+        # seulement quand des comptes sont détectés (garde l'aspect « replié » avant scan).
+        self._char_sep=sep(); self._char_sep.setVisible(False)
+        lay.addWidget(self._char_sep)
+        self._char_container=QWidget()
+        self._char_lay=QHBoxLayout(self._char_container)
+        self._char_lay.setContentsMargins(0,0,0,0); self._char_lay.setSpacing(6)
+        lay.addWidget(self._char_container)
+        self._char_btns=[]
+
+        lay.addWidget(sep())
+
+        self.b_leader=mkb("👑","Aller au chef",GOLD,icon_pixmap=crown_icon(16,"#0f1115"))
+        self.b_hsac=mkb("🏠","Havre-sac + Zaap\n1. Appuie H sur tous les persos\n2. Clique zaap calibré sur tous",GOLD,icon_file="havre-sac.png",icon_size=22)
+        self.b_zaap=mkb("⚡","Automatisation Zaap\nOuvre havre-sac + zaap et lance la séquence calibrée (phase 1)",GOLD,icon_file="icon_zaap.png",size=(40,30),icon_size=28)
         self.b_more=mkb("⋯","Plus d'actions")
         self.b_leader.clicked.connect(lambda: self.logic.switch_to_leader() if self.logic else None)
         self.b_hsac.clicked.connect(self._quick_hsac)
@@ -542,23 +642,65 @@ class MiniToolbar(QWidget):
         self.b_more.clicked.connect(self._show_more_menu)
         for w in (self.b_leader,self.b_hsac,self.b_zaap,self.b_more): lay.addWidget(w)
 
-        # Secondaires — repliés derrière "⋯" (QMenu), boutons mkb() réutilisés tels quels
-        self.b_show=mkb("🥚","Afficher DofusTeam")
-        self.b_prev=mkb("◀","Perso précédent")
-        self.b_next=mkb("▶","Perso suivant")
-        self.b_paste=mkb("📋","Coller destination zaap\nCtrl+A + Ctrl+V + Entrée sur tous les persos\n(copie la destination d'abord !)")
+        lay.addWidget(sep())
+
+        self.b_min=mkb("–","Réduire",size=(26,30))
+        self.b_close=mkb("✕","Fermer la barre (revenir à DofusTeam)",size=(26,30))
+        self.b_min.clicked.connect(self._toggle_collapse)
+        self.b_close.clicked.connect(lambda:(self.hide(),self.on_show()))
+        lay.addWidget(self.b_min); lay.addWidget(self.b_close)
+
+        # Secondaires — repliés derrière "⋯"
+        self.b_paste=mkb("📋","Coller + valider sur tous les persos\nCtrl+V + Entrée un par un, puis retour au chef\n(copie la destination d'abord !)",GOLD)
         self.b_spam=mkb("🖱","Spam Click",ck=True)
-        self.b_show.clicked.connect(lambda:(self.hide(),self.on_show()))
-        self.b_prev.clicked.connect(lambda: self.logic.switch_prev() if self.logic else None)
-        self.b_next.clicked.connect(lambda: self.logic.switch_next() if self.logic else None)
         self.b_paste.clicked.connect(self._quick_paste)
         self.b_spam.toggled.connect(self._toggle_spam)
-        self._secondary_btns=(self.b_show,self.b_prev,self.b_next,self.b_paste,self.b_spam)
+        self._secondary_btns=(self.b_paste,self.b_spam)
 
-        self._inner_lay = lay  # store ref for char icons
-        self._char_btns = []; self._char_sep = None
-        bar.adjustSize(); self.resize(bar.sizeHint().width()+20,bar.sizeHint().height()+14); bar.move(10,7)
+        bar.adjustSize(); bar.move(0,0)
+
+        # ── Pastille repliée (état « minimisé ») ────────────────────────
+        nub=QWidget(self); nub.setObjectName("n")
+        nub.setStyleSheet(f"QWidget#n{{background:{BG};border:1px solid rgba(255,138,30,0.35);border-radius:18px;}}")
+        nlay=QHBoxLayout(nub); nlay.setContentsMargins(6,4,6,4); nlay.setSpacing(4)
+        nub_logo=QLabel()
+        if egg: nub_logo.setPixmap(egg.pixmap(18,18))
+        nub_logo.setStyleSheet("background:transparent;")
+        nlay.addWidget(nub_logo)
+        expand=QPushButton("»"); expand.setFixedSize(20,20)
+        expand.setStyleSheet(f"QPushButton{{background:transparent;color:{MUT};border:none;font-size:13px;font-weight:700;}}QPushButton:hover{{color:{ACC};}}")
+        expand.clicked.connect(self._toggle_collapse)
+        nlay.addWidget(expand)
+        nub.adjustSize(); nub.hide()
+        self.nub=nub
+
+        self.resize(bar.sizeHint().width(),bar.sizeHint().height())
         self.move(config.get("mini_toolbar_x",100),config.get("mini_toolbar_y",100))
+
+    def _refresh_mode_label(self):
+        self.mode_btn.setText(f"{self.config.get('current_mode','ALL')}  ⌄")
+
+    def _show_mode_menu(self):
+        menu=QMenu(self)
+        menu.setStyleSheet(f"""
+            QMenu{{background:#151922;color:#f3f4f6;border:1px solid rgba(255,138,30,0.3);border-radius:8px;padding:4px;}}
+            QMenu::item{{padding:6px 18px;border-radius:5px;font-size:12px;}}
+            QMenu::item:selected{{background:#1b2130;color:#ff8a1e;}}
+        """)
+        for m in ("ALL","Team 1","Team 2","Team 3","Team 4"):
+            menu.addAction(m).triggered.connect(lambda _,mm=m: self._set_mode(mm))
+        menu.exec(self.mode_btn.mapToGlobal(self.mode_btn.rect().bottomLeft()))
+
+    def _set_mode(self,m):
+        self.config.set("current_mode",m); self.config.save()
+        self._refresh_mode_label()
+
+    def _toggle_collapse(self):
+        self._collapsed = not self._collapsed
+        self.bar.setVisible(not self._collapsed)
+        self.nub.setVisible(self._collapsed)
+        target = self.nub if self._collapsed else self.bar
+        self.resize(target.sizeHint().width(), target.sizeHint().height())
 
     def update_focus(self,name): self.focus_lbl.setText(name[:10] if name else "—")
     def _quick_zaap(self):
@@ -596,11 +738,15 @@ class MiniToolbar(QWidget):
         menu.exec(self.b_hsac.mapToGlobal(self.b_hsac.rect().bottomLeft()))
 
     def _open_fav_manager(self):
+        if self.on_navigate:
+            self.on_show()
+            self.on_navigate("zaap_menu")
+            return
         from zaap_favorites import ZaapFavoritesDialog
         ZaapFavoritesDialog(self.config, self).exec()
 
     def _show_more_menu(self):
-        """Clic sur "⋯" → menu des actions secondaires (b_show/b_prev/b_next/b_paste/b_spam),
+        """Clic sur "⋯" → menu des actions secondaires (coller+valider / spam click),
         boutons mkb() réutilisés tels quels via QWidgetAction (garde style + checkable + connexions)."""
         menu = QMenu(self)
         menu.setStyleSheet(f"""
@@ -613,35 +759,40 @@ class MiniToolbar(QWidget):
         menu.exec(self.b_more.mapToGlobal(self.b_more.rect().bottomLeft()))
 
     def _rebuild_char_icons(self, accounts):
-        """Rebuild character icon strip after scan."""
-        # Remove old char buttons
-        for b in getattr(self, '_char_btns', []):
-            b.deleteLater()
+        """Rebuild character icon strip after scan — avatars ronds + pastille de statut
+        (style bande d'avatars DoFrame), peuplés dans self._char_lay (voir __init__)."""
+        while self._char_lay.count():
+            item = self._char_lay.takeAt(0)
+            if item.widget():
+                item.widget().deleteLater()
         self._char_btns = []
-        # Remove old separator
-        if hasattr(self, '_char_sep') and self._char_sep:
-            self._char_sep.deleteLater(); self._char_sep = None
-
-        if not accounts or not hasattr(self, '_inner_lay'): return
-
-        # Add separator
-        sep = QFrame(); sep.setFrameShape(QFrame.Shape.VLine)
-        sep.setStyleSheet("color:rgba(255,255,255,0.1); max-height:30px;")
-        sep.setFixedHeight(30)
-        self._inner_lay.addWidget(sep); self._char_sep = sep
+        self._char_sep.setVisible(bool(accounts))
 
         for acc in accounts:
-            b = QPushButton(); b.setFixedSize(34,34); b.setToolTip(acc["name"])
-            pix = make_avatar(acc.get("classe",""), 28)
-            if pix: b.setIcon(QIcon(pix)); b.setIconSize(QSize(28,28))
+            stack = QWidget(); stack.setFixedSize(32, 32)
+            b = QPushButton(stack); b.setGeometry(0, 0, 32, 32); b.setToolTip(acc["name"])
+            pix = make_avatar(acc.get("classe", ""), 28)
+            if pix: b.setIcon(QIcon(pix)); b.setIconSize(QSize(28, 28))
             b.setStyleSheet(
-                f"QPushButton{{background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.08);border-radius:6px;}}"
+                f"QPushButton{{background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.08);border-radius:16px;}}"
                 f"QPushButton:hover{{background:rgba(255,138,30,0.15);border-color:#ff8a1e;}}"
             )
             b.clicked.connect(lambda _, n=acc["name"]: self.logic.switch_to_name(n) if self.logic else None)
-            self._inner_lay.addWidget(b); self._char_btns.append(b)
+            dot = QLabel(stack); dot.setGeometry(22, 22, 9, 9)
+            dot.setStyleSheet(f"background:{GREEN}; border-radius:4px; border:2px solid {BG};")
+            self._char_lay.addWidget(stack)
+            self._char_btns.append(b)
 
-        # Timer to highlight currently focused character
+        # La fenêtre a une taille fixe posée au __init__ — sans ce ré-ajustement,
+        # les icônes de personnages ajoutées ci-dessus sont coupées par le bord de la fenêtre.
+        # Le conteneur d'avatars a sa propre layout imbriquée : il faut l'activer avant
+        # celle de la barre, sinon adjustSize() lit un sizeHint pas encore recalculé.
+        self._char_lay.activate()
+        self._char_container.adjustSize()
+        self.bar.layout().activate()
+        self.bar.adjustSize()
+        self.resize(self.bar.width(), self.bar.height())
+
         if not hasattr(self, '_focus_timer'):
             self._focus_timer = QTimer(); self._focus_timer.timeout.connect(self._update_focus_highlight)
             self._focus_timer.start(500)
@@ -657,7 +808,7 @@ class MiniToolbar(QWidget):
             if i < len(accounts):
                 is_active = (accounts[i]["name"] == fg_name)
                 b.setStyleSheet(
-                    f"QPushButton{{background:{'rgba(255,138,30,0.2)' if is_active else 'rgba(255,255,255,0.05)'};border:{'2px solid #ff8a1e' if is_active else '1px solid rgba(255,255,255,0.08)'};border-radius:6px;}}"
+                    f"QPushButton{{background:{'rgba(255,138,30,0.2)' if is_active else 'rgba(255,255,255,0.05)'};border:{'2px solid #ff8a1e' if is_active else '1px solid rgba(255,255,255,0.08)'};border-radius:16px;}}"
                     f"QPushButton:hover{{background:rgba(255,138,30,0.15);border-color:#ff8a1e;}}"
                 )
 
@@ -688,13 +839,84 @@ class ScanThread(QThread):
     def run(self): self.done.emit(self.logic.scan_slots())
 
 # ── Main Window ───────────────────────────────────────────────────────────────
+class _BackgroundWidget(QWidget):
+    """Widget racine peignant le fond décoratif DofusTeam : une base statique
+    mise en cache (vignette + étoiles, skin/bg_app_base.jpg) + 3 halos orange
+    qui dérivent très lentement en direct — version allégée du fond animé du
+    site (BackgroundFX.tsx). Repaint à ~7 fps seulement (le mouvement est lent,
+    58-84s par boucle) et coupé quand la fenêtre est cachée, pour ne pas peser
+    sur le CPU pendant que Dofus tourne en multi-compte à côté."""
+
+    FLOWS = [
+        dict(sx=-0.35, sy=0.22, ex=1.35, ey=0.60, speed=1/58000, r=0.40, alpha=0.055, elong=2.8),
+        dict(sx=1.35, sy=0.72, ex=-0.25, ey=0.28, speed=1/72000, r=0.34, alpha=0.042, elong=2.5),
+        dict(sx=0.05, sy=1.18, ex=0.88, ey=-0.08, speed=1/84000, r=0.30, alpha=0.038, elong=2.2),
+    ]
+
+    def __init__(self,parent=None):
+        super().__init__(parent)
+        p=SKIN_DIR/"bg_app_base.jpg"
+        self._base=QPixmap(str(p)) if p.exists() else None
+        self._scaled_base=None
+        self._clock=QElapsedTimer(); self._clock.start()
+        self._timer=QTimer(self); self._timer.setInterval(140); self._timer.timeout.connect(self.update)
+        self._timer.start()
+
+    def hideEvent(self,ev):
+        self._timer.stop(); super().hideEvent(ev)
+
+    def showEvent(self,ev):
+        self._timer.start(); super().showEvent(ev)
+
+    def resizeEvent(self,ev):
+        self._scaled_base=None; super().resizeEvent(ev)
+
+    def paintEvent(self,ev):
+        painter=QPainter(self)
+        painter.setRenderHint(QPainter.RenderHint.Antialiasing)
+        w,h=self.width(),self.height()
+        if self._base and not self._base.isNull():
+            if self._scaled_base is None or self._scaled_base.size()!=self.size():
+                scaled=self._base.scaled(self.size(),Qt.AspectRatioMode.KeepAspectRatioByExpanding,Qt.TransformationMode.SmoothTransformation)
+                x=(scaled.width()-w)//2; y=(scaled.height()-h)//2
+                self._scaled_base=scaled.copy(x,y,w,h)
+            painter.drawPixmap(0,0,self._scaled_base)
+        else:
+            painter.fillRect(self.rect(),QColor(BG))
+
+        elapsed=self._clock.elapsed()
+        for f in self.FLOWS:
+            t=(elapsed*f["speed"])%1.0
+            px=(f["sx"]+(f["ex"]-f["sx"])*t)*w
+            py=(f["sy"]+(f["ey"]-f["sy"])*t)*h
+            angle=math.degrees(math.atan2((f["ey"]-f["sy"])*h,(f["ex"]-f["sx"])*w))
+            r=f["r"]*min(w,h)
+            painter.save()
+            painter.translate(px,py)
+            painter.rotate(angle)
+            painter.scale(f["elong"],1)
+            outer=QRadialGradient(0,0,r)
+            outer.setColorAt(0.0,QColor(255,138,30,int(f["alpha"]*255)))
+            outer.setColorAt(0.42,QColor(255,138,30,int(f["alpha"]*0.28*255)))
+            outer.setColorAt(1.0,QColor(255,138,30,0))
+            painter.setPen(Qt.PenStyle.NoPen); painter.setBrush(outer)
+            painter.drawEllipse(QPointF(0,0),r,r)
+            inner=QRadialGradient(0,0,r*0.28)
+            inner.setColorAt(0.0,QColor(255,180,80,int(f["alpha"]*1.5*255)))
+            inner.setColorAt(1.0,QColor(255,138,30,0))
+            painter.setBrush(inner)
+            painter.drawEllipse(QPointF(0,0),r*0.28,r*0.28)
+            painter.restore()
+        super().paintEvent(ev)
+
+
 class MainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
         self.config=Config(); self.logic=DofusLogic(self.config)
         self.hk=HotkeyManager(self.config,self.logic)
         self._hk=False; self._spam=False
-        self.mini=MiniToolbar(self.config,self.logic,self._show_self)
+        self.mini=MiniToolbar(self.config,self.logic,self._show_self,on_navigate=self._navigate)
         self.setWindowTitle(f"{APP_NAME}  {VERSION}")
         self.setMinimumWidth(700); self.setMinimumHeight(560)
         self.setStyleSheet(STYLE + SIDEBAR_STYLE)
@@ -721,35 +943,42 @@ class MainWindow(QMainWindow):
         from pages.presets import PresetsPage
         from pages.raccourcis import RaccourcisPage
         from pages.chasse_tresor import ChasseTresorPage
+        from pages.zaap_menu import ZaapMenuPage
         from pages.automatisations_zaap import AutomatisationsZaapPage
         from pages.fenetres_scan import FenetresScanPage
+        from pages.calibration import CalibrationPage
 
-        root=QWidget(); self.setCentralWidget(root)
+        root=_BackgroundWidget(); self.setCentralWidget(root)
         vl=QVBoxLayout(root); vl.setContentsMargins(0,0,0,0); vl.setSpacing(0)
         vl.addWidget(self._mk_header())
 
         # Corps : sidebar de navigation | pile de pages
-        body=QWidget(); bl=QHBoxLayout(body); bl.setContentsMargins(0,0,0,0); bl.setSpacing(0)
+        body=QWidget(); body.setStyleSheet("background:transparent;")
+        bl=QHBoxLayout(body); bl.setContentsMargins(0,0,0,0); bl.setSpacing(0)
 
         self.sidebar=Sidebar(VERSION)
         self.sidebar.sig_navigate.connect(self._navigate)
         bl.addWidget(self.sidebar)
 
-        self.stack=QStackedWidget()
+        self.stack=QStackedWidget(); self.stack.setStyleSheet("background:transparent;")
         self.page_mes_equipes=MesEquipesPage(self.config,self.logic)
         self.page_presets=PresetsPage(self.config,self.logic)
         self.page_raccourcis=RaccourcisPage(self.config,self.logic)
         self.page_chasse_tresor=ChasseTresorPage(self.config,self.logic)
+        self.page_zaap_menu=ZaapMenuPage(self.config,self.logic)
         self.page_automatisations_zaap=AutomatisationsZaapPage(self.config,self.logic)
         self.page_fenetres_scan=FenetresScanPage(self.config,self.logic)
+        self.page_calibration=CalibrationPage(self.config,self.logic)
 
         self.pages={
             "mes_equipes":self.page_mes_equipes,
             "presets":self.page_presets,
             "raccourcis":self.page_raccourcis,
             "chasse_tresor":self.page_chasse_tresor,
+            "zaap_menu":self.page_zaap_menu,
             "automatisations_zaap":self.page_automatisations_zaap,
             "fenetres_scan":self.page_fenetres_scan,
+            "calibration":self.page_calibration,
         }
         for page in self.pages.values(): self.stack.addWidget(page)
         bl.addWidget(self.stack, 1)
@@ -760,11 +989,16 @@ class MainWindow(QMainWindow):
         # Inter-pages : rester découplées, MainWindow fait le lien via signaux
         self.page_presets.preset_applied.connect(self.page_mes_equipes.refresh)
         self.page_fenetres_scan.accounts_changed.connect(self._on_accounts_changed)
-        self.page_automatisations_zaap.open_calibration.connect(self._open_calib_zaap)
+        self.page_automatisations_zaap.open_calibration.connect(lambda: self._open_calib_mode("zaap"))
+        self.page_calibration.open_calibration.connect(self._open_calib_mode)
 
         self._navigate("mes_equipes")
 
     def _navigate(self,page_key):
+        from sidebar import NON_PAGE_KEYS
+        if page_key in NON_PAGE_KEYS:
+            if page_key=="parametres": self._settings()
+            return
         page=self.pages.get(page_key)
         if page is None: return
         self.stack.setCurrentWidget(page)
@@ -772,7 +1006,7 @@ class MainWindow(QMainWindow):
 
     # ── Header ────────────────────────────────────────────────────────────────
     def _mk_header(self):
-        w=QWidget(); w.setStyleSheet(f"background:{BG2};border-bottom:1px solid rgba(255,255,255,0.06);"); w.setFixedHeight(70)
+        w=QWidget(); w.setObjectName("Header"); w.setStyleSheet(f"QWidget#Header{{background:{BG2};border-bottom:1px solid rgba(255,255,255,0.06);}}"); w.setFixedHeight(70)
         lay=QHBoxLayout(w); lay.setContentsMargins(20,0,20,0); lay.setSpacing(12)
 
         # Logo
@@ -783,17 +1017,19 @@ class MainWindow(QMainWindow):
         lay.addWidget(logo)
 
         # Title
-        tl=QLabel(APP_NAME); tl.setFont(mono(18,True)); tl.setStyleSheet(f"color:{TEXT};letter-spacing:-0.5px;")
+        tl=QLabel(f"<span style='color:{TEXT};'>Dofus</span><span style='color:{ACC};'>Team</span>")
+        tl.setStyleSheet(
+            "font-family:'Poppins','Trebuchet MS','Century Gothic','Segoe UI',sans-serif;"
+            "font-size:21px;font-weight:800;letter-spacing:-0.5px;background:transparent;"
+        )
         lay.addWidget(tl)
-        vl=QLabel(VERSION); vl.setStyleSheet(f"color:{MUT};font-size:10px;margin-top:8px;"); lay.addWidget(vl)
-        lay.addStretch()
 
-        # Status badge
-        self.status_badge=QLabel("○ OFFLINE")
-        self.status_badge.setFont(mono(9))
-        self.status_badge.setFixedHeight(24)
-        self.status_badge.setStyleSheet(f"background:rgba(255,255,255,0.04);color:{MUT};border:1px solid rgba(255,255,255,0.08);border-radius:5px;padding:2px 10px;")
-        lay.addWidget(self.status_badge)
+        vl=QLabel(f"{VERSION} · À jour")
+        vl.setFont(mono(9))
+        vl.setFixedHeight(22)
+        vl.setStyleSheet(f"background:rgba(63,185,80,0.12);color:{GREEN};border:1px solid rgba(63,185,80,0.25);border-radius:5px;padding:2px 10px;margin-top:2px;")
+        lay.addWidget(vl)
+        lay.addStretch()
 
         # Raccourcis — un seul bouton bascule, l'état est porté par sa couleur/texte
         self.hk_btn = QPushButton("Raccourcis : désactivés")
@@ -809,15 +1045,72 @@ class MainWindow(QMainWindow):
         return w
 
     # ── Status Bar ────────────────────────────────────────────────────────────
+    def _sb_sep(self):
+        line=QFrame(); line.setFrameShape(QFrame.Shape.VLine)
+        line.setStyleSheet("background:rgba(255,255,255,0.08);border:none;")
+        line.setFixedWidth(1); line.setFixedHeight(14)
+        return line
+
     def _mk_status_bar(self):
-        w=QWidget(); w.setStyleSheet(f"background:{BG};border-top:1px solid rgba(255,255,255,0.05);"); w.setFixedHeight(34)
-        lay=QHBoxLayout(w); lay.setContentsMargins(20,0,20,0); lay.setSpacing(16)
+        w=QWidget(); w.setObjectName("StatusBar"); w.setStyleSheet(f"QWidget#StatusBar{{background:{BG};border-top:1px solid rgba(255,255,255,0.05);}}"); w.setFixedHeight(34)
+        lay=QHBoxLayout(w); lay.setContentsMargins(20,0,14,0); lay.setSpacing(10)
+
+        self._sb_dot=QLabel("●"); self._sb_dot.setStyleSheet(f"color:{MUT};font-size:8px;")
+        lay.addWidget(self._sb_dot)
+        self._sb_conn=QLabel("Dofus non détecté"); self._sb_conn.setFont(mono(9)); self._sb_conn.setStyleSheet(f"color:{MUT};")
+        lay.addWidget(self._sb_conn)
+        lay.addWidget(self._sb_sep())
+
+        self._sb_wincount=QLabel("0 fenêtre(s) détectée(s)"); self._sb_wincount.setFont(mono(9)); self._sb_wincount.setStyleSheet(f"color:{MUT};")
+        lay.addWidget(self._sb_wincount)
+        lay.addWidget(self._sb_sep())
+
         self.scan_msg=QLabel("Prêt — Lance un scan pour détecter les personnages")
         self.scan_msg.setFont(mono(9)); self.scan_msg.setStyleSheet(f"color:{MUT};")
-        lay.addWidget(self.scan_msg); lay.addStretch()
+        lay.addWidget(self.scan_msg)
+
+        lay.addStretch()
+
+        self._sb_last_scan=QLabel("Aucun scan encore"); self._sb_last_scan.setFont(mono(9)); self._sb_last_scan.setStyleSheet(f"color:{MUT};")
+        lay.addWidget(self._sb_last_scan)
+
+        refresh=QPushButton("⟳"); refresh.setFixedSize(22,22); refresh.setToolTip("Relancer un scan des fenêtres")
+        refresh.setCursor(Qt.CursorShape.PointingHandCursor)
+        refresh.setStyleSheet(f"background:transparent;color:{MUT};border:none;font-size:13px;")
+        refresh.clicked.connect(lambda: self.page_fenetres_scan._scan())
+        lay.addWidget(refresh)
+        lay.addWidget(self._sb_sep())
+
+        self._sb_clock=QLabel(""); self._sb_clock.setFont(mono(9)); self._sb_clock.setStyleSheet(f"color:{MUT};")
+        lay.addWidget(self._sb_clock)
+        lay.addWidget(self._sb_sep())
+
         hide=QPushButton("Mini-toolbar  ↓"); hide.setStyleSheet(f"background:transparent;color:{MUT};border:none;font-size:11px;")
         hide.clicked.connect(self._hide_to_mini); lay.addWidget(hide)
+
+        self._last_scan_ts=None
+        self._sb_timer=QTimer(self); self._sb_timer.setInterval(1000); self._sb_timer.timeout.connect(self._tick_status_bar)
+        self._sb_timer.start()
+        self._tick_status_bar()
         return w
+
+    def _tick_status_bar(self):
+        self._sb_clock.setText(time.strftime("%H:%M"))
+        accounts=self.logic.all_accounts or []
+        live=len([a for a in accounts if a.get("hwnd")])
+        connected=live>0
+        self._sb_dot.setStyleSheet(f"color:{GREEN if connected else MUT};font-size:8px;")
+        self._sb_conn.setText("Dofus connecté" if connected else "Dofus non détecté")
+        self._sb_conn.setStyleSheet(f"color:{TEXT};font-weight:600;" if connected else f"color:{MUT};")
+        self._sb_wincount.setText(f"{live} fenêtre(s) détectée(s)")
+        if self._last_scan_ts is None:
+            self._sb_last_scan.setText("Aucun scan encore")
+        else:
+            secs=int(time.time()-self._last_scan_ts)
+            if secs<60: txt=f"il y a {secs}s"
+            elif secs<3600: txt=f"il y a {secs//60} min"
+            else: txt=f"il y a {secs//3600} h"
+            self._sb_last_scan.setText(f"Dernier scan : {txt}")
 
     # ── Account management ────────────────────────────────────────────────────
     def _on_accounts_changed(self,accounts):
@@ -825,6 +1118,8 @@ class MainWindow(QMainWindow):
         et les autres pages à jour sans dépendance directe entre elles."""
         self.mini._rebuild_char_icons(accounts)
         self.page_mes_equipes.refresh()
+        self._last_scan_ts=time.time()
+        self._tick_status_bar()
 
     # ── Actions ───────────────────────────────────────────────────────────────
     def _toggle_hk(self):
@@ -853,24 +1148,20 @@ class MainWindow(QMainWindow):
         if 0 <= self.logic._idx < len(lst): current = lst[self.logic._idx]["name"]
         self._char_selector.show_for(accounts, current)
 
-    def _open_calib(self): self._open_calib_zaap()
+    def _open_calib(self): self._open_calib_mode("zaap")
 
-    def _open_calib_zaap(self):
+    def _open_calib_mode(self, mode):
         from calibrator import CalibrationManager
+        label = {"zaap":"Zaap","chat":"Chat"}.get(mode, mode)
         if not self.logic.scan_slots():
-            QMessageBox.warning(self,"Calibration Zaap","Aucune fenêtre Dofus.\nOuvrez Dofus et scannez d'abord."); return
-        self._calib_mgr=CalibrationManager(self.config,self.logic,self,mode="zaap")
+            QMessageBox.warning(self,f"Calibration {label}","Aucune fenêtre Dofus.\nOuvrez Dofus et scannez d'abord."); return
+        self._calib_mgr=CalibrationManager(self.config,self.logic,self,mode=mode)
         self._calib_mgr.status.connect(lambda m: self.scan_msg.setText(m[:60]))
-        self._calib_mgr.finished.connect(lambda:(self.scan_msg.setText("✅  Zaap calibré"),self.page_fenetres_scan._refresh()))
-        self._calib_mgr.start()
-
-    def _open_calib_chat(self):
-        from calibrator import CalibrationManager
-        if not self.logic.scan_slots():
-            QMessageBox.warning(self,"Calibration Chat","Aucune fenêtre Dofus.\nOuvrez Dofus et scannez d'abord."); return
-        self._calib_mgr=CalibrationManager(self.config,self.logic,self,mode="chat")
-        self._calib_mgr.status.connect(lambda m: self.scan_msg.setText(m[:60]))
-        self._calib_mgr.finished.connect(lambda:(self.scan_msg.setText("✅  Chat calibré"),self.page_fenetres_scan._refresh()))
+        def _done():
+            self.scan_msg.setText(f"✅  {label} calibré")
+            self.page_fenetres_scan._refresh()
+            self.page_calibration.refresh()
+        self._calib_mgr.finished.connect(_done)
         self._calib_mgr.start()
 
     def _settings(self):
@@ -912,8 +1203,17 @@ class AppTray(QSystemTrayIcon):
 
 # ── Entry ─────────────────────────────────────────────────────────────────────
 def main():
+    if sys.platform == "win32":
+        # Sans AppUserModelID explicite, Windows regroupe le process sous une
+        # icône générique dans la barre des tâches (le systray, lui, s'affiche
+        # correctement car QSystemTrayIcon fixe son icône indépendamment).
+        try:
+            ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID(f"DofusTeam.Organizer.{VERSION}")
+        except Exception:
+            pass
     tk_root=tk.Tk(); tk_root.withdraw()
     app=QApplication(sys.argv); app.setApplicationName(APP_NAME); app.setQuitOnLastWindowClosed(False)
+    if (SKIN_DIR/"logo.png").exists(): app.setWindowIcon(QIcon(str(SKIN_DIR/"logo.png")))
     window=MainWindow(); window.show(); tray=AppTray(app,window)
 
     from radial_menu import RadialMenuController

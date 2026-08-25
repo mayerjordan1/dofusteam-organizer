@@ -19,12 +19,19 @@ GROUPS = [
     ]),
     ("OUTILS", [
         ("chasse_tresor", "🗺  Chasse au trésor"),
+        ("zaap_menu", "⭐  Zaap"),
         ("automatisations_zaap", "⚡  Automatisations de zaap"),
     ]),
     ("SYSTÈME", [
-        ("fenetres_scan", "🖥  Fenêtres & scan"),
+        ("fenetres_scan", "🖥  Fenêtres && scan"),
+        ("calibration", "🎯  Calibration"),
+        ("parametres", "⚙  Paramètres"),
     ]),
 ]
+
+# Entrées qui ne correspondent à aucune page du QStackedWidget — MainWindow
+# les intercepte dans _navigate() pour ouvrir un dialog à la place.
+NON_PAGE_KEYS = {"parametres"}
 
 
 class Sidebar(QWidget):

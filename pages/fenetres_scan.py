@@ -204,6 +204,7 @@ class FenetresScanPage(QWidget):
         classes = self.config.get("classes", {})
         teams = self.config.get("accounts_team", {})
         leader = self.config.get("leader_name", "")
+        hwnds = {a.get("name"): a.get("hwnd") for a in (self.logic.all_accounts or [])}
 
         while self.rows_lay.count():
             item = self.rows_lay.takeAt(0)
@@ -219,12 +220,14 @@ class FenetresScanPage(QWidget):
                 "classe": classes.get(name, ""),
                 "team": teams.get(name, ""),
                 "leader": name == leader,
+                "hwnd": hwnds.get(name),
             }
             row = AccountRow(acc, self.config, pos_num=i + 1)
             row.sig_remove.connect(self._remove)
             row.sig_up.connect(lambda n: self._move(n, -1))
             row.sig_down.connect(lambda n: self._move(n, 1))
             row.sig_leader.connect(self._set_leader)
+            row.sig_close.connect(self._close_account)
             self.rows_lay.addWidget(row)
             self._rows[name] = row
         self.rows_lay.addStretch()
@@ -324,6 +327,12 @@ class FenetresScanPage(QWidget):
 
     def _sort_taskbar(self):
         self.logic.sort_taskbar()
+
+    def _close_account(self, name):
+        acc = next((a for a in (self.logic.all_accounts or []) if a.get("name") == name), None)
+        if acc and acc.get("hwnd"):
+            self.logic.close_window(acc["hwnd"])
+            self._rescan_refresh()
 
     def _close_team(self):
         r = QMessageBox.question(

@@ -29,9 +29,10 @@ class CharCell(QPushButton):
         """)
         lay = QVBoxLayout(self); lay.setContentsMargins(6,8,6,4); lay.setSpacing(3)
         av = QLabel(); av.setAlignment(Qt.AlignmentFlag.AlignCenter); av.setFixedHeight(46)
+        av.setStyleSheet("background:transparent;border:none;")
         pix = make_avatar(acc.get("classe",""), 46)
         if pix: av.setPixmap(pix)
-        else: av.setText("?"); av.setStyleSheet(f"color:{MUT};font-size:18px;")
+        else: av.setText("?"); av.setStyleSheet(f"color:{MUT};font-size:18px;background:transparent;border:none;")
         lay.addWidget(av)
         nl = QLabel(acc["name"][:9]); nl.setAlignment(Qt.AlignmentFlag.AlignCenter)
         nl.setStyleSheet(f"color:{ACC if is_current else TEXT};font-size:10px;font-weight:{'700' if is_current else '600'};background:transparent;")
@@ -53,8 +54,9 @@ class LogoCell(QWidget):
         if logo_path.exists():
             pix = QPixmap(str(logo_path)).scaled(52,52,Qt.AspectRatioMode.KeepAspectRatio,Qt.TransformationMode.SmoothTransformation)
             logo.setPixmap(pix)
+            logo.setStyleSheet("background:transparent;border:none;")
         else:
-            logo.setText("🥚"); logo.setStyleSheet(f"font-size:32px;")
+            logo.setText("🥚"); logo.setStyleSheet(f"font-size:32px;background:transparent;border:none;")
         lay.addWidget(logo)
         lbl = QLabel("DofusTeam"); lbl.setAlignment(Qt.AlignmentFlag.AlignCenter)
         lbl.setStyleSheet(f"color:{ACC};font-size:9px;font-family:'Space Mono';font-weight:700;background:transparent;")
@@ -87,7 +89,10 @@ class CharSelector(QWidget):
         total = CELL * 3 + GAP * 2 + PAD * 2
         self.setFixedSize(total + 4, total + 4)
         self.container = QWidget(self)
-        self.container.setStyleSheet(f"QWidget{{background:{BG};border:1px solid rgba(255,138,30,0.3);border-radius:14px;}}")
+        self.container.setObjectName("CharSelectorContainer")
+        self.container.setStyleSheet(
+            f"QWidget#CharSelectorContainer{{background:{BG};border:1px solid rgba(255,138,30,0.3);border-radius:14px;}}"
+        )
         self.container.setGeometry(2, 2, total, total)
         lay = QVBoxLayout(self.container); lay.setContentsMargins(PAD, PAD, PAD, PAD); lay.setSpacing(4)
 

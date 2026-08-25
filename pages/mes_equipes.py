@@ -5,13 +5,15 @@ ScanThread, PresetEditor, InviteDialog) sans réécriture — cette page assembl
 des widgets autour d'elle, tout le calcul reste dans main.py/dofus_logic.
 """
 from PyQt6.QtWidgets import (
-    QWidget, QVBoxLayout, QHBoxLayout, QLabel, QPushButton, QScrollArea, QFrame,
+    QWidget, QVBoxLayout, QHBoxLayout, QGridLayout, QLabel, QPushButton, QScrollArea,
 )
-from PyQt6.QtCore import Qt
+from PyQt6.QtCore import Qt, pyqtSignal
 
-from theme import TEXT, MUT, BG2, BG3, ACC, BORDER, section_label, card, accent_btn, ghost_btn, make_avatar, ClickableAvatar
+from theme import TEXT, MUT, BG, BG2, BG3, ACC, GREEN, GOLD, BORDER, section_label, glass_card, accent_btn, ghost_btn, make_avatar, ClickableAvatar, crown_icon
 
 MAX_SLOTS = 8
+CARD_W, CARD_H = 84, 100
+AVATAR_SIZE = 60
 
 
 def _make_header(title, subtitle):
@@ -30,63 +32,81 @@ def _make_header(title, subtitle):
     return header
 
 
-class TeamSlotCard(QFrame):
-    """Carte compacte horizontale = une position dans l'ordre d'initiative
-    (config["custom_order"]). Volontairement distincte de AccountRow (qui
-    reste la ligne détaillée avec actions ▲▼/leader/suppr) — ici juste un
-    aperçu compact position + avatar + nom, pensé pour tenir en ligne."""
+class TeamSlotCard(QWidget):
+    """Une position dans l'ordre d'initiative (config["custom_order"]), affichée
+    dans une seule ligne de 8. Volontairement distincte de AccountRow (qui reste
+    la ligne détaillée avec actions ▲▼/équipe/suppr) — ici un aperçu minimal :
+    numéro, avatar avec pastille en ligne, nom. Élection du chef : la tuile
+    n'a plus de bouton dédié — elle passe en mode « sélection » (armé depuis
+    le bouton « Définir le chef » du panneau Groupe) et un clic dessus émet
+    sig_leader ; un badge couronne (crown_icon) marque la tuile du chef actuel."""
 
-    def __init__(self, name, classe, pos_num, config=None, parent=None):
+    sig_leader = pyqtSignal(str)
+
+    def __init__(self, name, classe, pos_num, config=None, live=False, is_leader=False, parent=None):
         super().__init__(parent)
         self.name = name
         self.classe = classe
         self.config = config
-        self.setFixedSize(96, 76)
-        self.setStyleSheet(
-            f"QFrame {{ background:{BG2}; border:1px solid {BORDER}; border-radius:8px; }}"
-        )
+        self.is_leader = is_leader
+        self._select_mode = False
+        self.setFixedSize(CARD_W, CARD_H)
         lay = QVBoxLayout(self)
-        lay.setContentsMargins(8, 8, 8, 6)
-        lay.setSpacing(4)
+        lay.setContentsMargins(2, 0, 2, 0)
+        lay.setSpacing(3)
 
-        top = QHBoxLayout()
-        top.setSpacing(4)
-        pos_lbl = QLabel(str(pos_num))
-        pos_lbl.setStyleSheet(f"color:{ACC}; font-weight:700; font-size:11px; background:transparent;")
-        top.addWidget(pos_lbl)
-        top.addStretch()
-        lay.addLayout(top)
+        num = QLabel(str(pos_num))
+        num.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        num.setStyleSheet(f"color:{MUT}; font-size:11px; font-weight:700; background:transparent;")
+        lay.addWidget(num)
 
-        av = ClickableAvatar()
-        av.setFixedSize(32, 32)
+        stack = QWidget()
+        stack.setFixedSize(AVATAR_SIZE, AVATAR_SIZE)
+        av = ClickableAvatar(stack)
+        av.setGeometry(0, 0, AVATAR_SIZE, AVATAR_SIZE)
         av.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        av.setStyleSheet(f"background:{BG3}; border-radius:{AVATAR_SIZE//2}px;")
         if self.config is not None:
             av.setCursor(Qt.CursorShape.PointingHandCursor)
             av.setToolTip("Clique pour changer le sexe de l'icône")
-            av.clicked.connect(self._toggle_sexe)
+            av.clicked.connect(self._on_avatar_click)
         self.av = av
         self._refresh_avatar()
+
+        dot = QLabel(stack)
+        dot.setGeometry(AVATAR_SIZE - 14, AVATAR_SIZE - 14, 12, 12)
+        dot.setStyleSheet(
+            f"background:{GREEN if live else '#3a4152'}; border-radius:6px; border:2px solid {BG};"
+        )
+
+        if is_leader:
+            crown = QLabel(stack)
+            crown.setPixmap(crown_icon(16, GOLD))
+            crown.setGeometry(-3, -3, 18, 18)
+            crown.setStyleSheet("background:transparent;")
+            crown.setToolTip("Chef de groupe")
+
         av_row = QHBoxLayout()
         av_row.addStretch()
-        av_row.addWidget(av)
+        av_row.addWidget(stack)
         av_row.addStretch()
         lay.addLayout(av_row)
 
         name_lbl = QLabel()
         name_lbl.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        name_lbl.setStyleSheet(f"color:{TEXT}; font-size:10px; font-weight:600; background:transparent;")
+        name_lbl.setStyleSheet(f"color:{TEXT}; font-size:11.5px; font-weight:600; background:transparent;")
         fm = name_lbl.fontMetrics()
-        name_lbl.setText(fm.elidedText(name, Qt.TextElideMode.ElideRight, 78))
+        name_lbl.setText(fm.elidedText(name, Qt.TextElideMode.ElideRight, CARD_W))
         lay.addWidget(name_lbl)
 
     def _refresh_avatar(self):
         sexe = self.config.get("sexes",{}).get(self.name,"h") if self.config is not None else "h"
-        pix = make_avatar(self.classe or "", 30, sexe)
+        pix = make_avatar(self.classe or "", AVATAR_SIZE - 6, sexe)
         if pix:
             self.av.setPixmap(pix)
         else:
             self.av.setText("?")
-            self.av.setStyleSheet(f"color:{MUT}; background:{BG3}; border-radius:16px;")
+            self.av.setStyleSheet(f"color:{MUT}; font-size:20px; background:transparent;")
 
     def _toggle_sexe(self):
         sexes = self.config.get("sexes",{})
@@ -94,30 +114,59 @@ class TeamSlotCard(QFrame):
         self.config.set("sexes",sexes); self.config.save()
         self._refresh_avatar()
 
+    def _on_avatar_click(self):
+        if self._select_mode:
+            self.sig_leader.emit(self.name)
+        else:
+            self._toggle_sexe()
 
-class _EmptySlot(QFrame):
+    def mousePressEvent(self, e):
+        if self._select_mode and e.button() == Qt.MouseButton.LeftButton:
+            self.sig_leader.emit(self.name)
+            return
+        super().mousePressEvent(e)
+
+    def set_select_mode(self, on):
+        self._select_mode = on
+        self.setCursor(Qt.CursorShape.PointingHandCursor if on else Qt.CursorShape.ArrowCursor)
+        self.setStyleSheet(
+            f"background:rgba(255,138,30,0.08); border:1px dashed {ACC}; border-radius:8px;" if on else ""
+        )
+
+
+class _EmptySlot(QWidget):
     def __init__(self, pos_num, parent=None):
         super().__init__(parent)
-        self.setFixedSize(96, 76)
-        self.setStyleSheet(
-            f"QFrame {{ background:transparent; border:1px dashed {BORDER}; border-radius:8px; }}"
-        )
+        self.setFixedSize(CARD_W, CARD_H)
         lay = QVBoxLayout(self)
-        lay.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        lbl = QLabel(str(pos_num))
-        lbl.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        lbl.setStyleSheet(f"color:{MUT}; font-size:11px; background:transparent;")
-        lay.addWidget(lbl)
+        lay.setContentsMargins(2, 0, 2, 0)
+        lay.setSpacing(3)
+        num = QLabel(str(pos_num))
+        num.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        num.setStyleSheet(f"color:{MUT}; font-size:11px; font-weight:700; background:transparent;")
+        lay.addWidget(num)
+        circle = QLabel("+")
+        circle.setFixedSize(AVATAR_SIZE, AVATAR_SIZE)
+        circle.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        circle.setStyleSheet(
+            f"color:{MUT}; font-size:18px; background:transparent; border:1px dashed {BORDER}; border-radius:{AVATAR_SIZE//2}px;"
+        )
+        row = QHBoxLayout(); row.addStretch(); row.addWidget(circle); row.addStretch()
+        lay.addLayout(row)
+        lay.addStretch()
 
 
 class _PresetPill(QPushButton):
-    def __init__(self, name, count, parent=None):
-        super().__init__(f"{name}  ·  {count}", parent)
+    def __init__(self, name, subtitle, active=False, parent=None):
+        super().__init__(parent)
         self.setCursor(Qt.CursorShape.PointingHandCursor)
+        self.setText(f"{name}\n{subtitle}" if subtitle else name)
+        border = f"2px solid {ACC}" if active else f"1px solid {BORDER}"
+        fg = TEXT if active else MUT
         self.setStyleSheet(
-            f"QPushButton {{ background:{BG3}; color:{MUT}; border:1px solid {BORDER};"
-            f"border-radius:14px; padding:6px 14px; font-size:11.5px; font-weight:600; }}"
-            f"QPushButton:hover {{ background:rgba(255,138,30,0.14); color:{ACC}; border-color:{ACC}; }}"
+            f"QPushButton {{ background:{BG2}; color:{fg}; border:none; border-bottom:{border};"
+            f"border-radius:0px; padding:6px 16px; font-size:12px; font-weight:700; text-align:left; }}"
+            f"QPushButton:hover {{ color:{ACC}; }}"
         )
 
 
@@ -129,6 +178,8 @@ class MesEquipesPage(QWidget):
         self.config = config
         self.logic = logic
         self._scan_thread = None
+        self._select_mode = False
+        self._slot_cards = []
         self._build()
         self.refresh()
 
@@ -144,17 +195,19 @@ class MesEquipesPage(QWidget):
         ))
 
         body = QWidget()
+        body.setStyleSheet("background:transparent;")
         body_lay = QHBoxLayout(body)
         body_lay.setContentsMargins(24, 18, 24, 18)
         body_lay.setSpacing(16)
 
         body_lay.addWidget(self._build_left(), stretch=1)
-        body_lay.addWidget(self._build_right(), stretch=0)
+        body_lay.addWidget(self._build_right(), stretch=0, alignment=Qt.AlignmentFlag.AlignTop)
 
         lay.addWidget(body, stretch=1)
 
     def _build_left(self):
         left = QWidget()
+        left.setStyleSheet("background:transparent;")
         llay = QVBoxLayout(left)
         llay.setContentsMargins(0, 0, 0, 0)
         llay.setSpacing(18)
@@ -175,55 +228,98 @@ class MesEquipesPage(QWidget):
 
         # Ordre d'initiative
         order_header = QHBoxLayout()
+        order_header.setSpacing(6)
         order_header.addWidget(section_label("Ordre d'initiative"))
+        info = QLabel("ⓘ")
+        info.setStyleSheet(f"color:{MUT};font-size:11px;background:transparent;")
+        info.setToolTip("Ordre dans lequel les personnages sont ciblés au tour par tour (touches Suivant/Précédent).")
+        order_header.addWidget(info)
         order_header.addStretch()
         order_header.addWidget(ghost_btn("✏ Modifier l'ordre", self._edit_order))
         llay.addLayout(order_header)
 
-        slots_scroll = QScrollArea()
-        slots_scroll.setWidgetResizable(True)
-        slots_scroll.setFixedHeight(96)
-        slots_scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAsNeeded)
-        slots_scroll.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+        # Une seule ligne de 8 — CARD_W=84 * 8 + espacements tient dans la largeur restante
         slots_container = QWidget()
-        self.slots_lay = QHBoxLayout(slots_container)
+        self.slots_lay = QGridLayout(slots_container)
         self.slots_lay.setContentsMargins(2, 2, 2, 2)
-        self.slots_lay.setSpacing(8)
-        slots_scroll.setWidget(slots_container)
-        llay.addWidget(slots_scroll)
+        self.slots_lay.setSpacing(10)
+        llay.addWidget(slots_container)
 
         llay.addStretch()
         return left
 
     def _build_right(self):
-        right = card(QWidget())
+        right = QWidget()
         right.setFixedWidth(220)
+        right.setStyleSheet("background:transparent;")
         rlay = QVBoxLayout(right)
-        rlay.setContentsMargins(16, 16, 16, 16)
-        rlay.setSpacing(10)
+        rlay.setContentsMargins(0, 0, 0, 0)
+        rlay.setSpacing(16)
 
-        rlay.addWidget(section_label("Fenêtres"))
-        rlay.addWidget(ghost_btn("🔍 Scanner les fenêtres", self._scan))
-        rlay.addWidget(ghost_btn("📊 Trier la barre Windows", self._sort_taskbar))
-
-        rlay.addSpacing(6)
-        rlay.addWidget(section_label("Groupe"))
-        rlay.addWidget(accent_btn("👥 Invitation de groupe", self._open_invite))
-
+        rlay.addWidget(self._window_card())
+        rlay.addWidget(self._group_card())
         rlay.addStretch()
+        return right
+
+    def _window_card(self):
+        c = glass_card(QWidget())
+        clay = QVBoxLayout(c)
+        clay.setContentsMargins(16, 14, 16, 14)
+        clay.setSpacing(10)
+
+        clay.addWidget(section_label("🖥 Fenêtre"))
+        clay.addWidget(ghost_btn("🔍 Scanner les fenêtres", self._scan))
+        clay.addWidget(ghost_btn("📊 Trier la barre Windows", self._sort_taskbar))
 
         self.status_lbl = QLabel("—")
         self.status_lbl.setWordWrap(True)
         self.status_lbl.setStyleSheet(f"color:{MUT}; font-size:11px; background:transparent;")
-        rlay.addWidget(self.status_lbl)
+        clay.addWidget(self.status_lbl)
 
-        return right
+        return c
+
+    def _group_card(self):
+        c = glass_card(QWidget())
+        clay = QVBoxLayout(c)
+        clay.setContentsMargins(16, 14, 16, 14)
+        clay.setSpacing(10)
+
+        clay.addWidget(section_label("👥 Groupe"))
+        clay.addWidget(accent_btn("Invitation de groupe", self._open_invite, icon_file="icon_group.png"))
+
+        self.chef_btn = ghost_btn("👑 Définir le chef", self._arm_leader_select)
+        clay.addWidget(self.chef_btn)
+
+        self.leader_row = QWidget()
+        lr = QHBoxLayout(self.leader_row)
+        lr.setContentsMargins(4, 2, 4, 2)
+        lr.setSpacing(8)
+
+        self.leader_av = ClickableAvatar()
+        self.leader_av.setFixedSize(26, 26)
+        self.leader_av.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self.leader_av.setStyleSheet(f"background:{BG3}; border-radius:13px;")
+        lr.addWidget(self.leader_av)
+
+        self.leader_crown = QLabel()
+        self.leader_crown.setFixedSize(14, 14)
+        self.leader_crown.setStyleSheet("background:transparent;")
+        lr.addWidget(self.leader_crown)
+
+        self.leader_name_lbl = QLabel("Aucun chef désigné")
+        self.leader_name_lbl.setStyleSheet(f"color:{MUT}; font-size:11.5px; font-weight:600; background:transparent;")
+        lr.addWidget(self.leader_name_lbl, stretch=1)
+
+        clay.addWidget(self.leader_row)
+
+        return c
 
     # ── rafraîchissement ────────────────────────────────────────────────
     def refresh(self):
         self._refresh_pills()
         self._refresh_slots()
         self._refresh_status()
+        self._refresh_leader_display()
 
     def _refresh_pills(self):
         while self.pills_lay.count():
@@ -236,8 +332,10 @@ class MesEquipesPage(QWidget):
             empty.setStyleSheet(f"color:{MUT}; font-size:11px; background:transparent;")
             self.pills_lay.addWidget(empty)
         else:
-            for p in presets:
-                pill = _PresetPill(p.get("name", "?"), len(p.get("order", [])))
+            for i, p in enumerate(presets):
+                p_order = p.get("order", [])
+                subtitle = f"{len(p_order)} position(s)"
+                pill = _PresetPill(p.get("name", "?"), subtitle, active=(i == 0))
                 pill.clicked.connect(lambda _, pp=p: self._apply_preset(pp))
                 self.pills_lay.addWidget(pill)
         self.pills_lay.addStretch()
@@ -247,24 +345,76 @@ class MesEquipesPage(QWidget):
             item = self.slots_lay.takeAt(0)
             if item.widget():
                 item.widget().deleteLater()
+        self._slot_cards = []
         order = self.config.get("custom_order", [])
         classes = self.config.get("classes", {})
+        live_names = {a.get("name") for a in (self.logic.all_accounts or []) if a.get("hwnd")}
+        leader_name = self.config.get("leader_name", "")
         for i in range(MAX_SLOTS):
             if i < len(order):
                 name = order[i]
-                self.slots_lay.addWidget(TeamSlotCard(name, classes.get(name, ""), i + 1, self.config))
+                slot = TeamSlotCard(name, classes.get(name, ""), i + 1, self.config,
+                                     live=name in live_names, is_leader=(name == leader_name))
+                slot.sig_leader.connect(self._set_leader)
+                slot.set_select_mode(self._select_mode)
+                self.slots_lay.addWidget(slot, 0, i)
+                self._slot_cards.append(slot)
             else:
-                self.slots_lay.addWidget(_EmptySlot(i + 1))
-        self.slots_lay.addStretch()
+                self.slots_lay.addWidget(_EmptySlot(i + 1), 0, i)
 
     def _refresh_status(self):
         order = self.config.get("custom_order", [])
         live = len([a for a in (self.logic.all_accounts or []) if a.get("hwnd")])
         self.status_lbl.setText(f"{len(order)} compte(s) configuré(s) · {live} fenêtre(s) détectée(s)")
 
+    def _refresh_leader_display(self):
+        name = self.config.get("leader_name", "")
+        if not name:
+            self.leader_av.clear()
+            self.leader_av.setStyleSheet(f"background:{BG3}; border-radius:13px;")
+            self.leader_crown.clear()
+            self.leader_name_lbl.setText("Aucun chef désigné")
+            self.leader_name_lbl.setStyleSheet(f"color:{MUT}; font-size:11.5px; font-weight:600; background:transparent;")
+            return
+        classes = self.config.get("classes", {})
+        sexe = self.config.get("sexes", {}).get(name, "h")
+        pix = make_avatar(classes.get(name, ""), 24, sexe)
+        if pix:
+            self.leader_av.setPixmap(pix)
+        self.leader_crown.setPixmap(crown_icon(14, GOLD))
+        self.leader_name_lbl.setText(name)
+        self.leader_name_lbl.setStyleSheet(f"color:{TEXT}; font-size:11.5px; font-weight:600; background:transparent;")
+
     # ── actions ─────────────────────────────────────────────────────────
     def _apply_preset(self, preset):
         self.logic.apply_preset(preset.get("order", []))
+        self.refresh()
+
+    def _arm_leader_select(self):
+        self._select_mode = not self._select_mode
+        for slot in self._slot_cards:
+            slot.set_select_mode(self._select_mode)
+        if self._select_mode:
+            self.chef_btn.setText("👑 Clique un personnage…")
+            self.chef_btn.setStyleSheet(
+                f"background:rgba(255,138,30,0.15); color:{ACC}; border:1px solid rgba(255,138,30,0.35);"
+                f"border-radius:6px; padding:5px 12px; font-size:12px; font-weight:700;"
+            )
+        else:
+            self.chef_btn.setText("👑 Définir le chef")
+            self.chef_btn.setStyleSheet(
+                f"background:transparent; color:{MUT}; border:1px solid {BORDER};"
+                f"border-radius:6px; padding:5px 12px; font-size:12px;"
+            )
+
+    def _set_leader(self, name):
+        self.logic.set_leader(name)
+        self._select_mode = False
+        self.chef_btn.setText("👑 Définir le chef")
+        self.chef_btn.setStyleSheet(
+            f"background:transparent; color:{MUT}; border:1px solid {BORDER};"
+            f"border-radius:6px; padding:5px 12px; font-size:12px;"
+        )
         self.refresh()
 
     def _edit_order(self):

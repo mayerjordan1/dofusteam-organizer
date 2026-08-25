@@ -378,21 +378,35 @@ def quick_paste_zaap(config, logic, on_status=None):
 
         paste_delay = float(config.get("zaap_paste_delay", 0.35))
 
+        try:
+            import win32gui
+            original_fg_hwnd = win32gui.GetForegroundWindow()
+        except Exception:
+            original_fg_hwnd = None
+
         try: import ctypes; ctypes.windll.user32.BlockInput(True)
         except: pass
 
-        if on_status: on_status("📋 Collage de la destination...")
-        for i,acc in enumerate(accounts):
-            logic.focus_window(acc["hwnd"])
-            time.sleep(0.2)
-            pyautogui.hotkey("ctrl","v")
-            time.sleep(0.08)
-            pyautogui.press("enter")
-            time.sleep(random.uniform(0.07, 0.13))  # délai aléatoire anti-détection
-            if on_status: on_status(f"📋 {i+1}/{len(accounts)} — {acc['name']}")
-
-        try: import ctypes; ctypes.windll.user32.BlockInput(False)
-        except: pass
+        try:
+            if on_status: on_status("📋 Collage de la destination...")
+            for i,acc in enumerate(accounts):
+                logic.focus_window(acc["hwnd"])
+                time.sleep(0.2)
+                pyautogui.hotkey("ctrl","v")
+                time.sleep(0.08)
+                pyautogui.press("enter")
+                time.sleep(random.uniform(0.07, 0.13))  # délai aléatoire anti-détection
+                if on_status: on_status(f"📋 {i+1}/{len(accounts)} — {acc['name']}")
+        finally:
+            # Retour au chef de groupe (ou à la fenêtre d'origine à défaut) —
+            # évite de rester bloqué sur le dernier perso collé.
+            leader_hwnd = getattr(logic, "leader_hwnd", None)
+            if leader_hwnd:
+                logic.focus_window(leader_hwnd)
+            elif original_fg_hwnd:
+                logic.focus_window(original_fg_hwnd)
+            try: import ctypes; ctypes.windll.user32.BlockInput(False)
+            except: pass
 
         if on_status: on_status("✅ Destination collée sur tous les persos !")
 

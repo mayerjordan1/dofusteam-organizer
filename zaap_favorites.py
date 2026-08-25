@@ -136,7 +136,8 @@ class ZaapFavoritesDialog(QDialog):
         lay = QVBoxLayout(self); lay.setContentsMargins(0,0,0,0)
 
         # Header
-        hdr = QWidget(); hdr.setStyleSheet(f"background:{BG2};border-bottom:1px solid rgba(255,255,255,0.06);"); hdr.setFixedHeight(52)
+        hdr = QWidget(); hdr.setObjectName("FavHeader")
+        hdr.setStyleSheet(f"QWidget#FavHeader{{background:{BG2};border-bottom:1px solid rgba(255,255,255,0.06);}}"); hdr.setFixedHeight(52)
         hl = QHBoxLayout(hdr); hl.setContentsMargins(16,0,16,0)
         title = QLabel("⚡  Zaap Favoris")
         title.setStyleSheet(f"font-size:15px;font-weight:700;font-family:'Space Mono';color:{TEXT};")
@@ -208,7 +209,8 @@ class ZaapFavoritesDialog(QDialog):
 
     def _add_row(self, z, is_fav):
         from zaap_data import toggle_favorite
-        row = QWidget(); row.setStyleSheet(f"background:{BG2};border-radius:6px;")
+        row = QWidget(); row.setObjectName(f"FavRow{id(z)}")
+        row.setStyleSheet(f"QWidget#FavRow{id(z)}{{background:{BG2};border-radius:6px;}}")
         rl = QHBoxLayout(row); rl.setContentsMargins(10,6,10,6); rl.setSpacing(10)
 
         # Star toggle

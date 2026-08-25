@@ -21,8 +21,10 @@ from theme import (TEXT, MUT, BG2, BG3, BORDER, ACC, GOLD, section_label,
 from hunt import (DIRECTIONS, HintSearchThread, ZaapSearchThread,
                    REQUESTS_OK, CLIPBOARD_OK, PYAUTOGUI_OK)
 
-# Flèche + position dans la grille 3x3 (compas) pour chaque direction DofusDB
-_DIR_ARROWS = {0: ("→", 1, 2), 1: ("↓", 2, 1), 2: ("←", 1, 0), 3: ("↑", 0, 1)}
+# Flèche + position dans la grille 3x3 (compas) pour chaque direction DofusDB.
+# Codes API réels (vérifiés en direct) : 0=Est, 2=Sud, 4=Ouest, 6=Nord —
+# PAS 0/1/2/3 consécutifs, les codes impairs (1/3/5/7) renvoient une 404.
+_DIR_ARROWS = {0: ("→", 1, 2), 2: ("↓", 2, 1), 4: ("←", 1, 0), 6: ("↑", 0, 1)}
 
 
 def _make_header(title, subtitle):

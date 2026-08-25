@@ -41,16 +41,23 @@ class InviteDialog(QDialog):
         cp_frame = QFrame(); cp_frame.setStyleSheet(f"QFrame{{background:{BG2};border:1px solid rgba(255,255,255,0.07);border-radius:8px;}}")
         cpl = QHBoxLayout(cp_frame); cpl.setContentsMargins(12,8,12,8); cpl.setSpacing(8)
         cpl.addWidget(QLabel("Position chat :"))
-        cp = self.config.get("macro_positions", {}).get("chat_position") or [794, 2025]
-        self.cx = QSpinBox(); self.cx.setRange(0,9999); self.cx.setValue(cp[0] if cp else 794)
-        self.cy = QSpinBox(); self.cy.setRange(0,9999); self.cy.setValue(cp[1] if cp else 2025)
+        cp = self.config.get("macro_positions", {}).get("chat_position")
+        default_cp = cp or [794, 2025]
+        self.cx = QSpinBox(); self.cx.setRange(0,9999); self.cx.setValue(default_cp[0])
+        self.cy = QSpinBox(); self.cy.setRange(0,9999); self.cy.setValue(default_cp[1])
         cpl.addWidget(QLabel("X:")); cpl.addWidget(self.cx)
         cpl.addWidget(QLabel("Y:")); cpl.addWidget(self.cy)
         cpl.addStretch()
-        # Calibration status
-        cp_status = QLabel("✅" if cp else "❌ Non calibré")
-        cp_status.setStyleSheet(f"color:{'#27ae60' if cp else RED};font-size:11px;font-weight:600;")
-        cpl.addWidget(cp_status)
+        calib_btn = QPushButton("🎯 Calibrer")
+        calib_btn.setStyleSheet(f"background:{BG3};border-radius:6px;padding:4px 10px;font-size:11px;")
+        calib_btn.clicked.connect(self._calibrate_chat)
+        cpl.addWidget(calib_btn)
+        # Calibration status — mis à jour en direct après une calibration.
+        # Basé sur la valeur BRUTE (pas le fallback par défaut de cx/cy),
+        # sinon le ✅ s'affichait toujours même sans calibration réelle.
+        self.cp_status = QLabel("✅" if cp else "❌ Non calibré")
+        self.cp_status.setStyleSheet(f"color:{'#27ae60' if cp else RED};font-size:11px;font-weight:600;")
+        cpl.addWidget(self.cp_status)
         cl.addWidget(cp_frame)
 
         # Account list — auto from detected accounts
@@ -134,6 +141,24 @@ class InviteDialog(QDialog):
             self.list_l.addWidget(row)
 
         self.list_l.addStretch()
+
+    def _calibrate_chat(self):
+        if not self.logic:
+            self._status_sig.emit("⚠ Aucune connexion au jeu.")
+            return
+        from calibrator import CalibrationManager
+        self._calib_mgr = CalibrationManager(self.config, self.logic, self, mode="chat")
+        self._calib_mgr.status.connect(lambda m: self._status_sig.emit(m))
+
+        def _done():
+            cp = self.config.get("macro_positions", {}).get("chat_position")
+            if cp:
+                self.cx.setValue(cp[0]); self.cy.setValue(cp[1])
+            self.cp_status.setText("✅" if cp else "❌ Non calibré")
+            self.cp_status.setStyleSheet(f"color:{'#27ae60' if cp else RED};font-size:11px;font-weight:600;")
+
+        self._calib_mgr.finished.connect(_done)
+        self._calib_mgr.start()
 
     def _invite_all(self):
         if not PYAUTOGUI_OK:

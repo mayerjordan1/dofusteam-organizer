@@ -21,7 +21,10 @@ try:
 except ImportError:
     PYAUTOGUI_OK = False
 
-DIRECTIONS = [("Est", 0), ("Sud", 1), ("Ouest", 2), ("Nord", 3)]
+# Codes acceptés par l'API DofusDB : seuls 0/2/4/6 sont valides (1/3/5/7
+# renvoient une 404 "Treasure Hunt not found") — vérifié en direct sur
+# l'API. Ce ne sont donc PAS des indices 0-3 consécutifs.
+DIRECTIONS = [("Est", 0), ("Sud", 2), ("Ouest", 4), ("Nord", 6)]
 API_HINTS = "https://api.dofusdb.fr/treasure-hunt"
 API_ZAAP = "https://api.dofusdb.fr/transport-from-maps"
 API_SUBAREA = "https://api.dofusdb.fr/subareas"

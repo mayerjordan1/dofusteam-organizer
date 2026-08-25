@@ -130,17 +130,34 @@ class DofusLogic:
         try:
             if win32gui.IsIconic(hwnd):
                 win32gui.ShowWindow(hwnd,win32con.SW_RESTORE)
-            # AttachThreadInput: proper focus steal, no Alt key = no Alt+Tab
+            # AttachThreadInput: proper focus steal, no Alt key = no Alt+Tab.
+            # Windows n'autorise SetForegroundWindow() que si le THREAD APPELANT
+            # est attaché au thread qui possède le focus courant — pas juste
+            # n'importe quels deux threads. Les macros tournent dans des threads
+            # Python en arrière-plan (threading.Thread), donc il faut attacher CE
+            # thread-là (win32api.GetCurrentThreadId()) au thread de la fenêtre
+            # au premier plan ET à celui de la fenêtre cible, sinon
+            # SetForegroundWindow échoue silencieusement (reste bloqué sur la
+            # même fenêtre) dès qu'on l'appelle depuis un thread de macro.
             fg = win32gui.GetForegroundWindow()
             if fg == hwnd: return  # already focused
-            fg_tid  = ctypes.windll.user32.GetWindowThreadProcessId(fg, None)
-            cur_tid = ctypes.windll.user32.GetWindowThreadProcessId(hwnd, None)
-            if fg_tid != cur_tid:
-                ctypes.windll.user32.AttachThreadInput(fg_tid, cur_tid, True)
-            ctypes.windll.user32.AllowSetForegroundWindow(0xFFFFFFFF)
-            win32gui.SetForegroundWindow(hwnd)
-            if fg_tid != cur_tid:
-                ctypes.windll.user32.AttachThreadInput(fg_tid, cur_tid, False)
+            cur_thread = win32api.GetCurrentThreadId()
+            fg_tid     = ctypes.windll.user32.GetWindowThreadProcessId(fg, None)
+            target_tid = ctypes.windll.user32.GetWindowThreadProcessId(hwnd, None)
+            attached_fg = attached_target = False
+            if fg_tid and fg_tid != cur_thread:
+                attached_fg = bool(ctypes.windll.user32.AttachThreadInput(cur_thread, fg_tid, True))
+            if target_tid and target_tid != cur_thread:
+                attached_target = bool(ctypes.windll.user32.AttachThreadInput(cur_thread, target_tid, True))
+            try:
+                ctypes.windll.user32.AllowSetForegroundWindow(0xFFFFFFFF)
+                win32gui.BringWindowToTop(hwnd)
+                win32gui.SetForegroundWindow(hwnd)
+            finally:
+                if attached_fg:
+                    ctypes.windll.user32.AttachThreadInput(cur_thread, fg_tid, False)
+                if attached_target:
+                    ctypes.windll.user32.AttachThreadInput(cur_thread, target_tid, False)
         except Exception as e:
             print(f"[focus] {e}")
             try: win32gui.BringWindowToTop(hwnd)

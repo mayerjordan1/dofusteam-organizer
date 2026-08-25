@@ -1138,6 +1138,7 @@ class MainWindow(QMainWindow):
         et les autres pages à jour sans dépendance directe entre elles."""
         self.mini._rebuild_char_icons(accounts)
         self.page_mes_equipes.refresh()
+        self.page_chasse_tresor._refresh_accounts()
         self._last_scan_ts=time.time()
         self._tick_status_bar()
 

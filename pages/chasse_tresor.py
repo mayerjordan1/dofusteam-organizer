@@ -11,9 +11,10 @@ import time
 
 from PyQt6.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QGridLayout, QLabel, QLineEdit, QComboBox,
-    QPushButton, QListWidget, QListWidgetItem, QCheckBox, QFrame,
+    QPushButton, QCheckBox, QFrame, QScrollArea,
 )
 from PyQt6.QtCore import Qt, QSize
+from PyQt6.QtGui import QIntValidator
 
 from theme import (TEXT, MUT, BG2, BG3, BORDER, ACC, GOLD, section_label,
                     glass_card, accent_btn, ghost_btn, load_icon, mono)
@@ -38,6 +39,43 @@ def _make_header(title, subtitle):
         s.setObjectName("PageSubtitle")
         lay.addWidget(s)
     return header
+
+
+class _HintRow(QFrame):
+    """Ligne cliquable du tableau de résultats (Indice / Nb de case / Coordonnées),
+    remplace l'ancien QListWidgetItem à texte concaténé."""
+
+    def __init__(self, hint, on_click, parent=None):
+        super().__init__(parent)
+        self.hint = hint
+        self._on_click = on_click
+        self.setObjectName("HintRow")
+        self.setCursor(Qt.CursorShape.PointingHandCursor)
+        self.setStyleSheet(
+            f"QFrame#HintRow{{background:{BG2}; border:1px solid {BORDER}; border-radius:6px;}}"
+            f"QFrame#HintRow:hover{{border-color:{ACC};}}"
+        )
+        lay = QHBoxLayout(self)
+        lay.setContentsMargins(10, 6, 10, 6)
+        lay.setSpacing(8)
+
+        name_lbl = QLabel(hint["name"])
+        name_lbl.setStyleSheet(f"color:{TEXT}; font-size:12px; font-weight:600; background:transparent;")
+        name_lbl.setWordWrap(True)
+        lay.addWidget(name_lbl, 1)
+
+        dist_lbl = QLabel(f"{hint['dist']} map(s)")
+        dist_lbl.setStyleSheet(f"color:{MUT}; font-size:11px; background:transparent;")
+        lay.addWidget(dist_lbl)
+
+        coord_lbl = QLabel(f"({hint['x']}, {hint['y']})")
+        coord_lbl.setStyleSheet(f"color:{MUT}; font-size:11px; background:transparent;")
+        lay.addWidget(coord_lbl)
+
+    def mousePressEvent(self, event):
+        if self._on_click:
+            self._on_click(self.hint)
+        super().mousePressEvent(event)
 
 
 class ChasseTresorPage(QWidget):
@@ -89,37 +127,120 @@ class ChasseTresorPage(QWidget):
             warn.setWordWrap(True)
             clay.addWidget(warn)
 
+        # Cadre englobant position + direction + bouton de recherche, pour que
+        # les critères de recherche forment un bloc visuel unique et net.
+        criteria = QWidget()
+        criteria.setObjectName("CriteriaBox")
+        criteria.setStyleSheet(f"QWidget#CriteriaBox{{background:{BG2}; border:1px solid {BORDER}; border-radius:10px;}}")
+        crit_lay = QVBoxLayout(criteria)
+        crit_lay.setContentsMargins(14, 14, 14, 14)
+        crit_lay.setSpacing(10)
+
         pos_row = QHBoxLayout()
-        pos_row.setSpacing(8)
+        pos_row.setSpacing(14)
         pos_lbl = QLabel("Position actuelle :")
         pos_lbl.setStyleSheet(f"color:{TEXT}; font-size:12px; background:transparent;")
         pos_row.addWidget(pos_lbl)
-        self.x_inp = QLineEdit(); self.x_inp.setPlaceholderText("X"); self.x_inp.setFixedWidth(60)
-        pos_row.addWidget(self.x_inp)
-        self.y_inp = QLineEdit(); self.y_inp.setPlaceholderText("Y"); self.y_inp.setFixedWidth(60)
-        pos_row.addWidget(self.y_inp)
+        self.x_inp = self._coord_field("X")
+        pos_row.addWidget(self.x_inp.parent_widget)
+        self.y_inp = self._coord_field("Y")
+        pos_row.addWidget(self.y_inp.parent_widget)
         pos_row.addStretch()
-        clay.addLayout(pos_row)
+        crit_lay.addLayout(pos_row)
 
         dir_lbl = QLabel("Direction de l'indice :")
         dir_lbl.setStyleSheet(f"color:{TEXT}; font-size:12px; background:transparent;")
-        clay.addWidget(dir_lbl)
+        crit_lay.addWidget(dir_lbl)
         self.direction = DIRECTIONS[0][1]
-        clay.addWidget(self._dir_pad())
+        crit_lay.addWidget(self._dir_pad())
 
         self.search_btn = accent_btn("🔍  Chercher les indices", self._search)
-        clay.addWidget(self.search_btn)
+        crit_lay.addWidget(self.search_btn)
+
+        clay.addWidget(criteria)
 
         self.status_lbl = QLabel("Entre ta position et lance la recherche.")
         self.status_lbl.setStyleSheet(f"color:{MUT}; font-size:11px; background:transparent;")
         self.status_lbl.setWordWrap(True)
         clay.addWidget(self.status_lbl)
 
-        self.results_list = QListWidget()
-        self.results_list.itemClicked.connect(self._select_hint)
-        clay.addWidget(self.results_list, 1)
+        clay.addLayout(self._results_header())
+
+        self.results_scroll = QScrollArea()
+        self.results_scroll.setWidgetResizable(True)
+        self.results_scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+        self.results_scroll.setStyleSheet("background:transparent; border:none;")
+        results_container = QWidget()
+        results_container.setStyleSheet("background:transparent;")
+        self.results_lay = QVBoxLayout(results_container)
+        self.results_lay.setContentsMargins(0, 0, 0, 0)
+        self.results_lay.setSpacing(4)
+        self.results_lay.addStretch()
+        self.results_scroll.setWidget(results_container)
+        clay.addWidget(self.results_scroll, 1)
 
         return c
+
+    def _coord_field(self, placeholder):
+        """Champ de coordonnée avec deux petites flèches haut/bas pour
+        incrémenter/décrémenter, plutôt qu'un simple champ texte."""
+        wrap = QWidget()
+        wrap.setStyleSheet("background:transparent;")
+        row = QHBoxLayout(wrap)
+        row.setContentsMargins(0, 0, 0, 0)
+        row.setSpacing(0)
+
+        inp = QLineEdit()
+        inp.setPlaceholderText(placeholder)
+        inp.setFixedWidth(52)
+        inp.setValidator(QIntValidator(-999, 999))
+        inp.setStyleSheet(
+            f"QLineEdit{{background:{BG3}; color:{TEXT}; border:1px solid {BORDER};"
+            f"border-top-left-radius:6px; border-bottom-left-radius:6px; padding:4px 6px;}}"
+        )
+        row.addWidget(inp)
+
+        arrows = QWidget()
+        arrows.setFixedWidth(20)
+        arrows.setStyleSheet("background:transparent;")
+        arr_lay = QVBoxLayout(arrows)
+        arr_lay.setContentsMargins(0, 0, 0, 0)
+        arr_lay.setSpacing(1)
+
+        def _step(delta):
+            try:
+                cur = int(inp.text().strip())
+            except ValueError:
+                cur = 0
+            inp.setText(str(cur + delta))
+
+        up = QPushButton("▲")
+        down = QPushButton("▼")
+        for btn, delta in ((up, 1), (down, -1)):
+            btn.setFixedSize(20, 12)
+            btn.setStyleSheet(
+                f"QPushButton{{background:{BG3};color:{MUT};border:1px solid {BORDER};font-size:7px;padding:0;}}"
+                f"QPushButton:hover{{color:{ACC};border-color:{ACC};}}"
+            )
+            btn.clicked.connect(lambda _, d=delta: _step(d))
+            arr_lay.addWidget(btn)
+        up.setStyleSheet(up.styleSheet() + "QPushButton{border-top-right-radius:6px;}")
+        down.setStyleSheet(down.styleSheet() + "QPushButton{border-bottom-right-radius:6px;}")
+        row.addWidget(arrows)
+
+        inp.parent_widget = wrap
+        return inp
+
+    def _results_header(self):
+        header = QHBoxLayout()
+        header.setContentsMargins(4, 4, 4, 0)
+        header.setSpacing(8)
+        cols = (("Indice", 1), ("Nb de case", 0), ("Coordonnées", 0))
+        for text, stretch in cols:
+            lbl = QLabel(text)
+            lbl.setStyleSheet(f"color:{MUT}; font-size:10px; font-weight:700; text-transform:uppercase; background:transparent;")
+            header.addWidget(lbl, stretch)
+        return header
 
     def _dir_pad(self):
         """Pavé façon boussole (3x3) : une flèche cliquable par direction DofusDB,
@@ -148,6 +269,7 @@ class ChasseTresorPage(QWidget):
         self._dir_btns[self.direction].setChecked(True)
 
         wrap = QHBoxLayout()
+        wrap.addStretch()
         wrap.addWidget(pad)
         wrap.addStretch()
         wrap_w = QWidget()
@@ -278,7 +400,7 @@ class ChasseTresorPage(QWidget):
             self.status_lbl.setStyleSheet("color:#ff5c5c; font-size:11px; background:transparent;")
             return
         direction = self.direction
-        self.results_list.clear()
+        self._clear_results()
         self._reset_zaap_box()
         self.copy_btn.setEnabled(False)
         self._travel_cmd = None
@@ -303,9 +425,14 @@ class ChasseTresorPage(QWidget):
         self.status_lbl.setText(f"{len(hints)} indice(s) trouvé(s) — sélectionne le tien.")
         self.status_lbl.setStyleSheet(f"color:{ACC}; font-size:11px; font-weight:600; background:transparent;")
         for h in hints:
-            item = QListWidgetItem(f"{h['name']}   ·   {h['dist']} map(s)   ·   ({h['x']}, {h['y']})")
-            item.setData(Qt.ItemDataRole.UserRole, h)
-            self.results_list.addItem(item)
+            row = _HintRow(h, self._select_hint)
+            self.results_lay.insertWidget(self.results_lay.count() - 1, row)
+
+    def _clear_results(self):
+        while self.results_lay.count() > 1:
+            item = self.results_lay.takeAt(0)
+            if item.widget():
+                item.widget().deleteLater()
 
     def _reset_zaap_box(self):
         self.zaap_placeholder.setText("Sélectionne un indice à gauche\npour voir le zaap le plus proche.")
@@ -313,8 +440,7 @@ class ChasseTresorPage(QWidget):
         self.zaap_result.setVisible(False)
         self.zaap_error_lbl.setVisible(False)
 
-    def _select_hint(self, item):
-        h = item.data(Qt.ItemDataRole.UserRole)
+    def _select_hint(self, h):
         if not h or not REQUESTS_OK:
             return
         self.zaap_placeholder.setText("Recherche du zaap le plus proche...")

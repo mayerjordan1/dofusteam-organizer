@@ -39,27 +39,16 @@ class InviteDialog(QDialog):
 
         content = QWidget(); cl = QVBoxLayout(content); cl.setContentsMargins(16,14,16,14); cl.setSpacing(12)
 
-        # Chat position
+        # Chat calibration — juste un bouton qui bascule en confirmation verte
+        # une fois calibré ; les coordonnées X/Y brutes n'intéressent personne.
         cp_frame = QFrame(); cp_frame.setStyleSheet(f"QFrame{{background:{BG2};border:1px solid rgba(255,255,255,0.07);border-radius:8px;}}")
         cpl = QHBoxLayout(cp_frame); cpl.setContentsMargins(12,8,12,8); cpl.setSpacing(8)
-        cpl.addWidget(QLabel("Position chat :"))
-        cp = self.config.get("macro_positions", {}).get("chat_position")
-        default_cp = cp or [794, 2025]
-        self.cx = QSpinBox(); self.cx.setRange(0,9999); self.cx.setValue(default_cp[0])
-        self.cy = QSpinBox(); self.cy.setRange(0,9999); self.cy.setValue(default_cp[1])
-        cpl.addWidget(QLabel("X:")); cpl.addWidget(self.cx)
-        cpl.addWidget(QLabel("Y:")); cpl.addWidget(self.cy)
+        cpl.addWidget(QLabel("Chat :"))
         cpl.addStretch()
-        calib_btn = QPushButton("🎯 Calibrer")
-        calib_btn.setStyleSheet(f"background:{BG3};border-radius:6px;padding:4px 10px;font-size:11px;")
-        calib_btn.clicked.connect(self._calibrate_chat)
-        cpl.addWidget(calib_btn)
-        # Calibration status — mis à jour en direct après une calibration.
-        # Basé sur la valeur BRUTE (pas le fallback par défaut de cx/cy),
-        # sinon le ✅ s'affichait toujours même sans calibration réelle.
-        self.cp_status = QLabel("✅" if cp else "❌ Non calibré")
-        self.cp_status.setStyleSheet(f"color:{'#27ae60' if cp else RED};font-size:11px;font-weight:600;")
-        cpl.addWidget(self.cp_status)
+        self.calib_btn = QPushButton()
+        self.calib_btn.clicked.connect(self._calibrate_chat)
+        cpl.addWidget(self.calib_btn)
+        self._update_calib_btn()
         cl.addWidget(cp_frame)
 
         # Account list — auto from detected accounts
@@ -105,6 +94,7 @@ class InviteDialog(QDialog):
 
         leader = self.config.get("leader_name", "")
         accounts = self.logic.all_accounts if self.logic else []
+        accounts = sorted(accounts, key=lambda a: a["name"] != leader)
 
         if not accounts:
             self.list_l.addWidget(QLabel("Aucun compte détecté — scannez d'abord."))
@@ -144,6 +134,19 @@ class InviteDialog(QDialog):
 
         self.list_l.addStretch()
 
+    def _update_calib_btn(self):
+        cp = self.config.get("macro_positions", {}).get("chat_position")
+        if cp:
+            self.calib_btn.setText("✅  Chat calibré")
+            self.calib_btn.setStyleSheet(
+                f"background:transparent;color:#27ae60;border:none;font-size:12px;font-weight:700;padding:4px 8px;"
+            )
+        else:
+            self.calib_btn.setText("🔍  Calibrer le chat")
+            self.calib_btn.setStyleSheet(
+                f"background:{BG3};color:{TEXT};border-radius:6px;padding:6px 12px;font-size:12px;font-weight:600;"
+            )
+
     def _calibrate_chat(self):
         if not self.logic:
             self._status_sig.emit("⚠ Aucune connexion au jeu.")
@@ -151,25 +154,17 @@ class InviteDialog(QDialog):
         from calibrator import CalibrationManager
         self._calib_mgr = CalibrationManager(self.config, self.logic, self, mode="chat")
         self._calib_mgr.status.connect(lambda m: self._status_sig.emit(m))
-
-        def _done():
-            cp = self.config.get("macro_positions", {}).get("chat_position")
-            if cp:
-                self.cx.setValue(cp[0]); self.cy.setValue(cp[1])
-            self.cp_status.setText("✅" if cp else "❌ Non calibré")
-            self.cp_status.setStyleSheet(f"color:{'#27ae60' if cp else RED};font-size:11px;font-weight:600;")
-
-        self._calib_mgr.finished.connect(_done)
+        self._calib_mgr.finished.connect(self._update_calib_btn)
         self._calib_mgr.start()
 
     def _invite_all(self):
         if not PYAUTOGUI_OK:
             QMessageBox.warning(self, "Erreur", "pyautogui non installé."); return
 
-        # Save chat position
-        pos = self.config.get("macro_positions", {})
-        pos["chat_position"] = [self.cx.value(), self.cy.value()]
-        self.config.set("macro_positions", pos); self.config.save()
+        cp = self.config.get("macro_positions", {}).get("chat_position")
+        if not cp:
+            self._status_sig.emit("⚠ Chat non calibré.")
+            return
 
         # Get selected accounts (those checked and not leader)
         leader = self.config.get("leader_name", "")
@@ -184,7 +179,6 @@ class InviteDialog(QDialog):
         if self.logic: self.logic.switch_to_leader()
         time.sleep(random.uniform(0.06, 0.14))
 
-        cp = [self.cx.value(), self.cy.value()]
         total = len(to_invite)
 
         def _do():

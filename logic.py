@@ -211,12 +211,29 @@ class DofusLogic:
         threading.Thread(target=_s, daemon=True).start()
 
     def close_window(self, hwnd):
+        """Ferme la fenêtre proprement (WM_CLOSE, comme un clic sur la croix) —
+        laisse le client Dofus fermer sa session normalement. Un TerminateProcess
+        immédiat coupait le process en plein rendu/réseau, ce qui pouvait
+        déstabiliser l'appli quand l'UI redessinait juste après. Si la fenêtre
+        n'a pas disparu au bout de 2s (popup de confirmation bloquante côté jeu
+        par ex.), on force via kill process en dernier recours."""
         try:
-            _, pid = win32process.GetWindowThreadProcessId(hwnd)
-            h = ctypes.windll.kernel32.OpenProcess(1, False, pid)
-            ctypes.windll.kernel32.TerminateProcess(h, 0)
-            ctypes.windll.kernel32.CloseHandle(h)
+            win32gui.PostMessage(hwnd, win32con.WM_CLOSE, 0, 0)
         except: pass
+
+        def _force_if_still_open():
+            try:
+                if not win32gui.IsWindow(hwnd):
+                    return
+                _, pid = win32process.GetWindowThreadProcessId(hwnd)
+                h = ctypes.windll.kernel32.OpenProcess(1, False, pid)
+                ctypes.windll.kernel32.TerminateProcess(h, 0)
+                ctypes.windll.kernel32.CloseHandle(h)
+            except: pass
+
+        t = threading.Timer(2.0, _force_if_still_open)
+        t.daemon = True
+        t.start()
 
     def close_all(self):
         for acc in self.get_cycle_list():

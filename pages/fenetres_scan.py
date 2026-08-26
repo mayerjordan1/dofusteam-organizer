@@ -11,7 +11,7 @@ from PyQt6.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QLabel, QPushButton, QScrollArea,
     QComboBox, QLineEdit, QMessageBox, QDialog,
 )
-from PyQt6.QtCore import Qt, pyqtSignal
+from PyQt6.QtCore import Qt, QTimer, pyqtSignal
 from PyQt6.QtGui import QPixmap
 
 import threading, time
@@ -119,9 +119,18 @@ class FenetresScanPage(QWidget):
         add_btn = ghost_btn("＋  Ajouter", self._add_account)
         add_btn.setFixedHeight(38)
         add_btn.setStyleSheet(add_btn.styleSheet() + "font-size:13px; padding:8px 18px; font-weight:700;")
+        close_team_btn = QPushButton("✕  Fermer team")
+        close_team_btn.setFixedHeight(38)
+        close_team_btn.setStyleSheet(
+            f"background:transparent;color:{RED};border:1px solid rgba(224,85,85,0.3);"
+            f"border-radius:6px;padding:8px 18px;font-size:13px;font-weight:700;"
+        )
+        close_team_btn.clicked.connect(self._close_team)
+
         actions_row.addWidget(scan_btn)
         actions_row.addWidget(add_btn)
         actions_row.addStretch()
+        actions_row.addWidget(close_team_btn)
         lay.addLayout(actions_row)
 
         self.scan_msg = QLabel("—")
@@ -199,15 +208,6 @@ class FenetresScanPage(QWidget):
         sort_btn.setFixedHeight(36)
         sort_btn.setStyleSheet(sort_btn.styleSheet() + "font-size:12.5px; padding:8px 12px; font-weight:600;")
         lay.addWidget(sort_btn)
-
-        close_btn = QPushButton("✕  Fermer la team")
-        close_btn.setFixedHeight(36)
-        close_btn.setStyleSheet(
-            f"background:transparent;color:{RED};border:1px solid rgba(248,81,73,0.3);"
-            f"border-radius:6px;padding:8px 12px;font-size:12.5px;font-weight:700;"
-        )
-        close_btn.clicked.connect(self._close_team)
-        lay.addWidget(close_btn)
 
         return c
 
@@ -340,7 +340,11 @@ class FenetresScanPage(QWidget):
         acc = next((a for a in (self.logic.all_accounts or []) if a.get("name") == name), None)
         if acc and acc.get("hwnd"):
             self.logic.close_window(acc["hwnd"])
-            self._rescan_refresh()
+            # Report différé : on est encore dans le handler de clic du bouton
+            # "⏻" de la ligne en train d'être fermée — reconstruire/détruire
+            # cette ligne maintenant (via _rescan_refresh -> _refresh) plantait
+            # l'appli. Même cause que le bug de drag&drop déjà corrigé.
+            QTimer.singleShot(0, self._rescan_refresh)
 
     def _close_team(self):
         r = QMessageBox.question(
@@ -349,6 +353,7 @@ class FenetresScanPage(QWidget):
         )
         if r == QMessageBox.StandardButton.Yes:
             self.logic.close_all()
+            QTimer.singleShot(0, self._rescan_refresh)
 
     def _toggle_spam(self, on):
         if not PYAUTOGUI_OK:

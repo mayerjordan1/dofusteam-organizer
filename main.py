@@ -25,7 +25,7 @@ from theme import (BG, BG2, BG3, BG4, ACC, RED, GREEN, GOLD, BLUE, TEXT, MUT, BO
 from sidebar import Sidebar
 
 APP_NAME = "DofusTeam"
-VERSION  = "V1.01"
+VERSION  = "V1.02"
 
 CLASSES = ["Cra","Ecaflip","Eliotrope","Eniripsa","Enutrof","Feca","Forgelance",
            "Huppermage","Iop","Osamodas","Ouginak","Pandawa","Roublard","Sacrieur",

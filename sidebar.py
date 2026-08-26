@@ -13,14 +13,16 @@ from theme import MUT, mono, load_icon
 # (page_key, label, icone optionnelle) groupés par section — l'ordre ici fixe
 # l'ordre affiché. L'icône (fichier dans skin/) remplace l'emoji générique
 # dans le libellé quand elle est fournie.
+ICON_SIZE = 20
+
 GROUPS = [
     ("ORGANISER", [
-        ("mes_equipes", "🏠  Mes équipes"),
-        ("presets", "🎯  Presets d'initiative"),
+        ("mes_equipes", "  Mes équipes", "icon_group.png"),
+        ("presets", "  Presets d'initiative", "ini.png"),
         ("raccourcis", "⌨  Raccourcis"),
     ]),
     ("OUTILS", [
-        ("chasse_tresor", "🗺  Chasse au trésor"),
+        ("chasse_tresor", "  Chasse au trésor", "carte.png"),
         ("zaap_menu", "  Zaap", "icon_zaap.png"),
     ]),
     ("SYSTÈME", [
@@ -63,10 +65,10 @@ class Sidebar(QWidget):
                 btn.setProperty("active", "false")
                 btn.setCursor(Qt.CursorShape.PointingHandCursor)
                 if icon_file:
-                    icon = load_icon(icon_file, 16)
+                    icon = load_icon(icon_file, ICON_SIZE)
                     if icon:
                         btn.setIcon(icon)
-                        btn.setIconSize(QSize(16, 16))
+                        btn.setIconSize(QSize(ICON_SIZE, ICON_SIZE))
                 btn.clicked.connect(lambda _, k=key: self.sig_navigate.emit(k))
                 lay.addWidget(btn)
                 self._items[key] = btn

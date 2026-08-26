@@ -3,7 +3,7 @@
 DofusTeam — Beta V1.01
 Gestionnaire multi-compte Dofus Unity
 """
-import sys, json, threading, time, ctypes, random, math
+import sys, json, threading, time, ctypes, random, math, queue
 from pathlib import Path
 import tkinter as tk
 
@@ -26,7 +26,7 @@ from sidebar import Sidebar
 from updater import UpdateCheckThread, UpdateDownloadThread, can_self_update, apply_update_and_restart
 
 APP_NAME = "DofusTeam"
-VERSION  = "V1.19"
+VERSION  = "V1.20"
 
 CLASSES = ["Cra","Ecaflip","Eliotrope","Eniripsa","Enutrof","Feca","Forgelance",
            "Huppermage","Iop","Osamodas","Ouginak","Pandawa","Roublard","Sacrieur",
@@ -65,11 +65,33 @@ class Config:
 
 # ── Logic ─────────────────────────────────────────────────────────────────────
 class DofusLogic:
-    _SWITCH_DEBOUNCE = 0.09  # secondes — voir switch_next/switch_prev
+    # Filtre uniquement les doubles-déclenchements d'un même appui physique
+    # (add_hotkey + poll_hold de HotkeyManager peuvent tous les deux se
+    # déclencher pour un seul appui) — volontairement très court pour ne
+    # jamais avaler un appui rapide voulu par l'utilisateur (macro qui spam
+    # Tab très vite doit avancer d'un cran par appui, sans rien perdre).
+    _SWITCH_DEBOUNCE = 0.025  # secondes
 
     def __init__(self,config):
         self.config=config; self.all_accounts=[]; self.leader_hwnd=None; self._idx=0
         self._last_switch_t=0.0
+        # File d'attente : chaque appui Tab est empilé instantanément (jamais
+        # bloquant pour le thread du hook clavier) et traité un par un par un
+        # thread dédié — même en spammant très vite, aucun appui n'est perdu
+        # et les switches restent dans l'ordre, contrairement à l'ancien
+        # système qui exécutait focus_window() directement dans le callback
+        # du hotkey (bloquant le thread pendant le switch = appuis loupés).
+        self._switch_queue=queue.Queue()
+        threading.Thread(target=self._switch_worker,daemon=True).start()
+
+    def _switch_worker(self):
+        while True:
+            direction=self._switch_queue.get()
+            lst=self.get_cycle_list()
+            if not lst: continue
+            self._resync_idx(lst)
+            self._idx=(self._idx+direction)%len(lst)
+            self.focus_window(lst[self._idx]["hwnd"])
 
     def scan_slots(self):
         if not WINDOWS: return []
@@ -188,17 +210,15 @@ class DofusLogic:
         except Exception: pass
 
     def switch_next(self):
+        # Empile juste la demande — ne bloque jamais l'appelant (thread du
+        # hook clavier / timer de poll_hold) pendant qu'un switch précédent
+        # est encore en train de se faire, sinon les appuis rapprochés
+        # risquent d'être ratés par le hook.
         if not self._switch_debounced(): return
-        lst=self.get_cycle_list()
-        if not lst: return
-        self._resync_idx(lst)
-        self._idx=(self._idx+1)%len(lst); self.focus_window(lst[self._idx]["hwnd"])
+        self._switch_queue.put(1)
     def switch_prev(self):
         if not self._switch_debounced(): return
-        lst=self.get_cycle_list()
-        if not lst: return
-        self._resync_idx(lst)
-        self._idx=(self._idx-1)%len(lst); self.focus_window(lst[self._idx]["hwnd"])
+        self._switch_queue.put(-1)
     def switch_to_leader(self):
         if self.leader_hwnd: self.focus_window(self.leader_hwnd)
     def trigger_recall_potion(self):

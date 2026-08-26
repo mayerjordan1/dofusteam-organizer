@@ -119,15 +119,24 @@ def apply_update_and_restart(new_exe_path):
     old_exe = Path(sys.executable)
     new_exe = Path(new_exe_path)
     bat_path = APP_DIR / "_dofusteam_update.bat"
+    vbs_path = APP_DIR / "_dofusteam_update.vbs"
     bat_content = (
         "@echo off\r\n"
+        "set tries=0\r\n"
         ":wait\r\n"
         f'del /f /q "{old_exe}" >nul 2>&1\r\n'
         f'if exist "{old_exe}" (\r\n'
-        "    timeout /t 1 /nobreak >nul\r\n"
+        "    set /a tries+=1\r\n"
+        # Limite à 30 tentatives (~1 minute) : si l'ancien exe reste
+        # verrouillé au-delà (antivirus, sync cloud...), on abandonne la
+        # mise à jour et on relance l'ancienne version plutôt que de rester
+        # coincé dans une boucle infinie.
+        "    if %tries% GEQ 30 goto giveup\r\n"
+        "    ping -n 2 127.0.0.1 >nul\r\n"
         "    goto wait\r\n"
         ")\r\n"
         f'ren "{new_exe}" "{old_exe.name}"\r\n'
+        ":giveup\r\n"
         # Le nouvel exe (bootloader PyInstaller) vérifie au démarrage que son
         # processus parent est bien accessible. "start" lance l'exe de façon
         # indirecte (association shell) plutôt qu'un CreateProcess direct, ce
@@ -139,10 +148,22 @@ def apply_update_and_restart(new_exe_path):
         # avant de continuer, donc il reste garanti vivant tout du long.
         f'"{old_exe}"\r\n'
         'del /f /q "%~f0"\r\n'
+        f'del /f /q "{vbs_path}"\r\n'
     )
     bat_path.write_text(bat_content, encoding="utf-8")
+    # Lance le .bat via un wrapper VBScript (WScript.Shell, windowstyle=0)
+    # plutôt que directement : sur certaines configs Windows (Windows
+    # Terminal en terminal par défaut), le flag CREATE_NO_WINDOW seul ne
+    # suffit pas à empêcher la fenêtre cmd de s'afficher/clignoter à chaque
+    # itération de la boucle d'attente — WScript.Shell est la seule méthode
+    # fiable dans tous les cas pour une exécution totalement invisible.
+    vbs_content = (
+        'Set s = CreateObject("WScript.Shell")\r\n'
+        f's.Run """{bat_path}""", 0, False\r\n'
+    )
+    vbs_path.write_text(vbs_content, encoding="utf-8")
     subprocess.Popen(
-        ["cmd", "/c", str(bat_path)],
+        ["wscript", "//B", str(vbs_path)],
         creationflags=subprocess.CREATE_NO_WINDOW | subprocess.DETACHED_PROCESS,
         cwd=str(APP_DIR),
     )

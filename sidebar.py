@@ -6,11 +6,13 @@ vers le QStackedWidget. objectNames/style déjà prêts dans theme.SIDEBAR_STYLE
 (#Sidebar/#SidebarGroupLabel/#SidebarItem + attribut dynamique active=true).
 """
 from PyQt6.QtWidgets import QWidget, QVBoxLayout, QPushButton, QLabel
-from PyQt6.QtCore import pyqtSignal, Qt
+from PyQt6.QtCore import pyqtSignal, Qt, QSize
 
-from theme import MUT, mono
+from theme import MUT, mono, load_icon
 
-# (page_key, label) groupés par section — l'ordre ici fixe l'ordre affiché.
+# (page_key, label, icone optionnelle) groupés par section — l'ordre ici fixe
+# l'ordre affiché. L'icône (fichier dans skin/) remplace l'emoji générique
+# dans le libellé quand elle est fournie.
 GROUPS = [
     ("ORGANISER", [
         ("mes_equipes", "🏠  Mes équipes"),
@@ -19,11 +21,10 @@ GROUPS = [
     ]),
     ("OUTILS", [
         ("chasse_tresor", "🗺  Chasse au trésor"),
-        ("zaap_menu", "⭐  Zaap"),
-        ("automatisations_zaap", "⚡  Automatisations de zaap"),
+        ("zaap_menu", "  Zaap", "icon_zaap.png"),
     ]),
     ("SYSTÈME", [
-        ("fenetres_scan", "🖥  Fenêtres && scan"),
+        ("fenetres_scan", "🖥  Gestion"),
         ("calibration", "🎯  Calibration"),
         ("parametres", "⚙  Paramètres"),
     ]),
@@ -54,11 +55,18 @@ class Sidebar(QWidget):
             gl = QLabel(group_label)
             gl.setObjectName("SidebarGroupLabel")
             lay.addWidget(gl)
-            for key, label in entries:
+            for entry in entries:
+                key, label = entry[0], entry[1]
+                icon_file = entry[2] if len(entry) > 2 else None
                 btn = QPushButton(label)
                 btn.setObjectName("SidebarItem")
                 btn.setProperty("active", "false")
                 btn.setCursor(Qt.CursorShape.PointingHandCursor)
+                if icon_file:
+                    icon = load_icon(icon_file, 16)
+                    if icon:
+                        btn.setIcon(icon)
+                        btn.setIconSize(QSize(16, 16))
                 btn.clicked.connect(lambda _, k=key: self.sig_navigate.emit(k))
                 lay.addWidget(btn)
                 self._items[key] = btn

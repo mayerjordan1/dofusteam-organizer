@@ -32,10 +32,12 @@ def _make_header(title, subtitle):
 
 DEFS = [
     ("Précédent", "prev_key", "⏮"), ("Suivant", "next_key", "⏭"), ("Rafraîchir", "refresh_key", "🔄"),
-    ("Chef", "leader_key", "★"), ("Afficher/Cacher", "toggle_app_key", "👁"), ("Havre-sac", "game_haven_key", "🏠"),
+    ("Afficher/Cacher", "toggle_app_key", "👁"), ("Havre-sac", "game_haven_key", "🏠"),
     ("Sélecteur", "selector_key", "🎯"), ("Calibrer", "calib_key", "🎚"), ("Inviter", "invite_group_key", "👥"),
     ("Coller+Valider", "paste_active_key", "📋"),
     ("Potion de rappel", "recall_key", "🧪"),
+    ("Inventaire", "inventaire_key", "🎒"),
+    ("Spam clic", "spam_click_key", "🖱"),
 ]
 
 
@@ -115,7 +117,7 @@ class RaccourcisPage(QWidget):
             grid.addWidget(self._tile(label, key, icon), r, c)
         body_lay.addLayout(grid)
 
-        hint = QLabel("💡 Potion de rappel : ce raccourci doit être exactement le même que celui bind côté jeu (Dofus détecte tout seul la potion — pas de calibration nécessaire).")
+        hint = QLabel("💡 Potion de rappel / Inventaire : ces raccourcis doivent être exactement les mêmes que ceux bind côté jeu — pas de calibration nécessaire.")
         hint.setStyleSheet(f"color:{MUT};font-size:11px;")
         hint.setWordWrap(True)
         body_lay.addWidget(hint)

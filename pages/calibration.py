@@ -7,7 +7,7 @@ des positions enregistrées. Réutilise CalibrationManager (calibrator.py) sans
 réécriture, comme AutomatisationsZaapPage/FenetresScanPage le font déjà.
 """
 from PyQt6.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout, QLabel, QScrollArea, QFrame, QPushButton
-from PyQt6.QtCore import Qt, pyqtSignal
+from PyQt6.QtCore import Qt, pyqtSignal, QTimer
 
 from theme import TEXT, MUT, BG2, BG3, GREEN, RED, ACC, BORDER, section_label, card, accent_btn, ghost_btn, make_avatar
 
@@ -30,7 +30,7 @@ def _make_header(title, subtitle):
 
 
 class _CharStatusRow(QFrame):
-    recalibrate = pyqtSignal(str)
+    recalibrate = pyqtSignal(str, str)  # (mode, nom)
 
     def __init__(self, name, classe, zaap_ok, parent=None):
         super().__init__(parent)
@@ -62,8 +62,16 @@ class _CharStatusRow(QFrame):
             f"background:rgba(255,138,30,0.1);color:{ACC};border:1px solid rgba(255,138,30,0.25);"
             f"border-radius:5px;padding:3px 10px;font-size:11px;font-weight:700;"
         )
-        recal.clicked.connect(lambda: self.recalibrate.emit(name))
+        recal.clicked.connect(lambda _: self.recalibrate.emit("zaap", name))
         lay.addWidget(recal)
+
+    def flash_ok(self):
+        self.setStyleSheet(
+            f"QFrame#CharStatusRow {{ background:rgba(63,185,80,0.18); border:1px solid {GREEN}; border-radius:8px; }}"
+        )
+        QTimer.singleShot(1200, lambda: self.setStyleSheet(
+            f"QFrame#CharStatusRow {{ background:{BG2}; border:1px solid {BORDER}; border-radius:8px; }}"
+        ))
 
 
 class CalibrationPage(QWidget):
@@ -151,7 +159,7 @@ class CalibrationPage(QWidget):
 
         return side
 
-    def refresh(self):
+    def refresh(self, just_calibrated=""):
         while self.rows_lay.count():
             item = self.rows_lay.takeAt(0)
             if item.widget():
@@ -159,7 +167,8 @@ class CalibrationPage(QWidget):
 
         order = self.config.get("custom_order", [])
         classes = self.config.get("classes", {})
-        zaaps = self.config.get("macro_positions", {}).get("zaaps", {})
+        macro_pos = self.config.get("macro_positions", {})
+        zaaps = macro_pos.get("zaaps", {})
 
         if not order:
             empty = QLabel("Aucun compte — scanne d'abord depuis « Fenêtres & scan ».")
@@ -168,8 +177,10 @@ class CalibrationPage(QWidget):
         else:
             for name in order:
                 row = _CharStatusRow(name, classes.get(name, ""), name in zaaps)
-                row.recalibrate.connect(lambda n: self.open_calibration.emit("zaap", n))
+                row.recalibrate.connect(lambda mode, n: self.open_calibration.emit(mode, n))
                 self.rows_lay.addWidget(row)
+                if name == just_calibrated:
+                    row.flash_ok()
         self.rows_lay.addStretch()
 
         calibrated = len([n for n in order if n in zaaps])

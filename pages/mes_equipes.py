@@ -5,10 +5,10 @@ ScanThread, PresetEditor, InviteDialog) sans réécriture — cette page assembl
 des widgets autour d'elle, tout le calcul reste dans main.py/dofus_logic.
 """
 from PyQt6.QtWidgets import (
-    QWidget, QVBoxLayout, QHBoxLayout, QGridLayout, QLabel, QPushButton, QScrollArea,
+    QWidget, QVBoxLayout, QHBoxLayout, QGridLayout, QLabel, QPushButton, QScrollArea, QApplication,
 )
-from PyQt6.QtCore import Qt, QSize, pyqtSignal
-from PyQt6.QtGui import QIcon
+from PyQt6.QtCore import Qt, QSize, pyqtSignal, QMimeData
+from PyQt6.QtGui import QIcon, QDrag
 
 from theme import TEXT, MUT, BG, BG2, BG3, ACC, GREEN, GOLD, BORDER, section_label, glass_card, accent_btn, ghost_btn, make_avatar, ClickableAvatar, crown_icon
 
@@ -44,6 +44,9 @@ class TeamSlotCard(QWidget):
     sig_leader ; un badge couronne (crown_icon) marque la tuile du chef actuel."""
 
     sig_leader = pyqtSignal(str)
+    sig_reorder = pyqtSignal(str, str, bool)  # (nom glissé, nom cible, insérer après) — direct, sans passer par un preset
+    sig_drag_hover = pyqtSignal(str, str, bool)  # même tuple, émis en continu pendant le survol pour la prévisu live
+    sig_drag_end = pyqtSignal()  # fin du glissement (déposé ou annulé) — pour réinitialiser la prévisu si besoin
 
     def __init__(self, name, classe, pos_num, config=None, live=False, is_leader=False, parent=None):
         super().__init__(parent)
@@ -52,6 +55,8 @@ class TeamSlotCard(QWidget):
         self.config = config
         self.is_leader = is_leader
         self._select_mode = False
+        self._press_pos = None
+        self.setAcceptDrops(True)
         self.setFixedSize(CARD_W, CARD_H)
         lay = QVBoxLayout(self)
         lay.setContentsMargins(2, 0, 2, 0)
@@ -60,6 +65,7 @@ class TeamSlotCard(QWidget):
         num = QLabel(str(pos_num))
         num.setAlignment(Qt.AlignmentFlag.AlignCenter)
         num.setStyleSheet(f"color:{MUT}; font-size:11px; font-weight:700; background:transparent;")
+        self.num_lbl = num
         lay.addWidget(num)
 
         stack = QWidget()
@@ -101,6 +107,9 @@ class TeamSlotCard(QWidget):
         name_lbl.setText(fm.elidedText(name, Qt.TextElideMode.ElideRight, CARD_W))
         lay.addWidget(name_lbl)
 
+    def set_pos_num(self, n):
+        self.num_lbl.setText(str(n))
+
     def _refresh_avatar(self):
         sexe = self.config.get("sexes",{}).get(self.name,"h") if self.config is not None else "h"
         pix = make_avatar(self.classe or "", AVATAR_SIZE - 6, sexe)
@@ -126,13 +135,68 @@ class TeamSlotCard(QWidget):
         if self._select_mode and e.button() == Qt.MouseButton.LeftButton:
             self.sig_leader.emit(self.name)
             return
+        if e.button() == Qt.MouseButton.LeftButton:
+            self._press_pos = e.position().toPoint()
         super().mousePressEvent(e)
+
+    def mouseMoveEvent(self, e):
+        if self._select_mode or self._press_pos is None or not (e.buttons() & Qt.MouseButton.LeftButton):
+            super().mouseMoveEvent(e)
+            return
+        if (e.position().toPoint() - self._press_pos).manhattanLength() < QApplication.startDragDistance():
+            super().mouseMoveEvent(e)
+            return
+        drag = QDrag(self)
+        mime = QMimeData()
+        mime.setText(self.name)
+        drag.setMimeData(mime)
+        drag.setPixmap(self.grab())
+        drag.setHotSpot(e.position().toPoint())
+        self._press_pos = None
+        drag.exec(Qt.DropAction.MoveAction)
+        self.sig_drag_end.emit()
+
+    def dragEnterEvent(self, e):
+        if self._select_mode:
+            return
+        if e.mimeData().hasText() and e.mimeData().text() != self.name:
+            e.acceptProposedAction()
+            self.setStyleSheet(f"TeamSlotCard {{ background:rgba(255,138,30,0.1); border:2px solid {ACC}; border-radius:8px; }}")
+
+    def dragMoveEvent(self, e):
+        if self._select_mode:
+            return
+        src = e.mimeData().text() if e.mimeData().hasText() else ""
+        if not src or src == self.name:
+            return
+        e.acceptProposedAction()
+        # moitié gauche/droite de la tuile survolée → insérer avant/après elle,
+        # pour une prévisu live fidèle à l'endroit exact du dépôt.
+        after = e.position().x() > self.width() / 2
+        self.sig_drag_hover.emit(src, self.name, after)
+
+    def dragLeaveEvent(self, e):
+        self.set_select_mode(self._select_mode)
+
+    def dropEvent(self, e):
+        self.set_select_mode(self._select_mode)
+        src = e.mimeData().text()
+        if src and src != self.name:
+            after = e.position().x() > self.width() / 2
+            self.sig_reorder.emit(src, self.name, after)
+        e.acceptProposedAction()
 
     def set_select_mode(self, on):
         self._select_mode = on
         self.setCursor(Qt.CursorShape.PointingHandCursor if on else Qt.CursorShape.ArrowCursor)
+        # Sélecteur de classe (TeamSlotCard { ... }) plutôt qu'une déclaration
+        # nue : une déclaration sans sélecteur s'applique aussi à tous les
+        # enfants (labels, avatar...) et faisait apparaître plein de petits
+        # pointillés orange sur chaque sous-widget de la tuile.
         self.setStyleSheet(
-            f"background:rgba(255,138,30,0.08); border:1px dashed {ACC}; border-radius:8px;" if on else ""
+            f"TeamSlotCard {{ background:rgba(255,138,30,0.08); border:1px dashed {ACC}; border-radius:8px; }}"
+            if on else
+            "TeamSlotCard { background:transparent; border:none; }"
         )
 
 
@@ -190,6 +254,9 @@ class MesEquipesPage(QWidget):
         self._scan_thread = None
         self._select_mode = False
         self._slot_cards = []
+        self._slot_widgets = {}
+        self._committed_order = []
+        self._preview_order = None
         self._build()
         self.refresh()
 
@@ -248,23 +315,14 @@ class MesEquipesPage(QWidget):
         order_header.addWidget(ghost_btn("✏ Modifier l'ordre", self._edit_order))
         llay.addLayout(order_header)
 
-        # Une seule ligne de 8 — CARD_W=84 * 8 + espacements peut dépasser la
-        # largeur restante à la taille minimale de la fenêtre → scroll horizontal
-        # (même pattern que pills_scroll ci-dessus) pour ne jamais rogner une carte.
-        slots_scroll = QScrollArea()
-        slots_scroll.setWidgetResizable(True)
-        slots_scroll.setFixedHeight(CARD_H + 14)
-        slots_scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAsNeeded)
-        slots_scroll.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
-        slots_scroll.setFrameShape(QScrollArea.Shape.NoFrame)
-        slots_scroll.setStyleSheet("background:transparent;")
+        # 2 lignes de 4 — tient dans la largeur minimale de la fenêtre sans
+        # scroll horizontal (CARD_W=84 * 4 + espacements reste confortable).
         slots_container = QWidget()
         slots_container.setStyleSheet("background:transparent;")
         self.slots_lay = QGridLayout(slots_container)
         self.slots_lay.setContentsMargins(2, 2, 2, 2)
         self.slots_lay.setSpacing(10)
-        slots_scroll.setWidget(slots_container)
-        llay.addWidget(slots_scroll)
+        llay.addWidget(slots_container)
 
         llay.addStretch()
         return left
@@ -369,7 +427,10 @@ class MesEquipesPage(QWidget):
             if item.widget():
                 item.widget().deleteLater()
         self._slot_cards = []
+        self._slot_widgets = {}
         order = self.config.get("custom_order", [])
+        self._committed_order = list(order)
+        self._preview_order = None
         classes = self.config.get("classes", {})
         live_names = {a.get("name") for a in (self.logic.all_accounts or []) if a.get("hwnd")}
         leader_name = self.config.get("leader_name", "")
@@ -379,11 +440,15 @@ class MesEquipesPage(QWidget):
                 slot = TeamSlotCard(name, classes.get(name, ""), i + 1, self.config,
                                      live=name in live_names, is_leader=(name == leader_name))
                 slot.sig_leader.connect(self._set_leader)
+                slot.sig_reorder.connect(self._on_slot_reorder)
+                slot.sig_drag_hover.connect(self._on_slot_hover)
+                slot.sig_drag_end.connect(self._on_drag_end)
                 slot.set_select_mode(self._select_mode)
-                self.slots_lay.addWidget(slot, 0, i)
+                self.slots_lay.addWidget(slot, i // 4, i % 4)
                 self._slot_cards.append(slot)
+                self._slot_widgets[name] = slot
             else:
-                self.slots_lay.addWidget(_EmptySlot(i + 1), 0, i)
+                self.slots_lay.addWidget(_EmptySlot(i + 1), i // 4, i % 4)
 
     def _refresh_status(self):
         order = self.config.get("custom_order", [])
@@ -411,6 +476,61 @@ class MesEquipesPage(QWidget):
     # ── actions ─────────────────────────────────────────────────────────
     def _apply_preset(self, preset):
         self.logic.apply_preset(preset.get("order", []))
+        self.refresh()
+        self.order_changed.emit()
+
+    def _insert_order(self, src_name, dst_name, after):
+        """Calcule l'ordre résultant d'un déplacement de src_name juste avant/après
+        dst_name (insertion, pas un échange) — utilisé à la fois pour la prévisu
+        live pendant le survol et pour le dépôt final."""
+        order = list(self._committed_order)
+        if src_name not in order or dst_name not in order:
+            return None
+        order.remove(src_name)
+        idx = order.index(dst_name)
+        order.insert(idx + 1 if after else idx, src_name)
+        return order
+
+    def _on_slot_hover(self, src_name, dst_name, after):
+        """Survol pendant le glissement — déplace les tuiles en direct (sans
+        toucher à la config) pour prévisualiser où src_name atterrira."""
+        order = self._insert_order(src_name, dst_name, after)
+        if order is None or order == self._preview_order:
+            return
+        self._preview_order = order
+        self._apply_preview_order(order)
+
+    def _apply_preview_order(self, order):
+        for i, name in enumerate(order):
+            widget = self._slot_widgets.get(name)
+            if widget:
+                widget.set_pos_num(i + 1)
+                self.slots_lay.addWidget(widget, i // 4, i % 4)
+
+    def _on_drag_end(self):
+        """Fin du glissement (bouton relâché) — si aucun dépôt valide n'a eu
+        lieu (annulé, ou lâché hors d'une tuile), on revient à l'ordre réel."""
+        if self._preview_order is not None:
+            self._preview_order = None
+            self._apply_preview_order(self._committed_order)
+
+    def _on_slot_reorder(self, src_name, dst_name, after):
+        """Glisser-déposer direct dans la grille — insère src_name juste avant/
+        après dst_name dans custom_order sans passer par un preset nommé
+        (contrairement à « Modifier l'ordre », qui crée toujours un preset). Ne
+        trie pas la barre des tâches Windows automatiquement (ça resterait
+        perturbant à chaque glissement) — le bouton « Trier la barre Windows »
+        reste disponible pour ça séparément."""
+        order = self._insert_order(src_name, dst_name, after)
+        if order is None:
+            return
+        self.config.set("custom_order", order)
+        self.config.save()
+        if self.logic.all_accounts:
+            self.logic.all_accounts.sort(
+                key=lambda a: order.index(a["name"]) if a.get("name") in order else len(order)
+            )
+        self._preview_order = None
         self.refresh()
         self.order_changed.emit()
 

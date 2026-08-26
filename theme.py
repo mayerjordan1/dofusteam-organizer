@@ -7,7 +7,7 @@ fil des sessions. Tout le monde importe désormais ce module.
 """
 from PyQt6.QtWidgets import QPushButton, QLabel, QApplication
 from PyQt6.QtGui import QPixmap, QFont, QIcon
-from PyQt6.QtCore import Qt, QSize, pyqtSignal
+from PyQt6.QtCore import Qt, QSize, pyqtSignal, QByteArray, QBuffer, QIODevice
 from paths import SKIN_DIR
 
 # ── Palette (alignée sur dofus-team/app/globals.css) ───────────────────────────
@@ -142,7 +142,15 @@ _icon_cache = {}
 
 
 def load_icon(filename, size=18):
-    """Charge une icône PNG depuis skin/ (mise en cache, redimensionnée)."""
+    """Charge une icône PNG depuis skin/ (mise en cache, redimensionnée).
+
+    Recadre d'abord sur le contenu réellement visible : les fichiers source
+    n'ont pas tous la même marge transparente autour du dessin, et certains
+    ont en plus un halo/ombre à alpha quasi nul qui gonfle énormément la zone
+    "non-transparente" détectée (icon_group/icon_zaap) sans rien ajouter de
+    visible — un simple getbbox() (alpha>0) gardait donc encore tout ce vide
+    et l'icône ressortait beaucoup plus petite que les autres une fois mise
+    à l'échelle. On seuille l'alpha pour ignorer ce halo quasi invisible."""
     key = (filename, size)
     if key in _icon_cache:
         return _icon_cache[key]
@@ -152,6 +160,25 @@ def load_icon(filename, size=18):
     pix = QPixmap(str(p))
     if pix.isNull():
         return None
+    try:
+        from PIL import Image
+        import io
+        buf = pix.toImage()
+        ba = QByteArray()
+        qbuf = QBuffer(ba)
+        qbuf.open(QIODevice.OpenModeFlag.WriteOnly)
+        buf.save(qbuf, "PNG")
+        pil_im = Image.open(io.BytesIO(bytes(ba.data()))).convert("RGBA")
+        mask = pil_im.split()[-1].point(lambda a: 255 if a > 40 else 0)
+        bbox = mask.getbbox()
+        if bbox and bbox != (0, 0, pil_im.width, pil_im.height):
+            out = io.BytesIO()
+            pil_im.crop(bbox).save(out, format="PNG")
+            cropped = QPixmap()
+            if cropped.loadFromData(out.getvalue()):
+                pix = cropped
+    except Exception:
+        pass
     pix = pix.scaled(size, size, Qt.AspectRatioMode.KeepAspectRatio, Qt.TransformationMode.SmoothTransformation)
     icon = QIcon(pix)
     _icon_cache[key] = icon

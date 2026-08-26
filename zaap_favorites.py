@@ -130,7 +130,7 @@ def run_zaap_to_destination(config, logic, destination_name, on_status=None):
                     if win32gui.GetForegroundWindow() == leader_hwnd: break
                 except Exception: pass
                 time.sleep(0.1)
-            time.sleep(0.1)
+            time.sleep(random.uniform(0.28, 0.42))
             # Ctrl+W réactive l'autofollow (raccourci Dofus) une fois de retour
             # sur le chef, pour reprendre le suivi automatique du groupe.
             try: pyautogui.hotkey("ctrl", "w")

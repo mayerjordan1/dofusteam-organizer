@@ -26,7 +26,7 @@ from sidebar import Sidebar
 from updater import UpdateCheckThread, UpdateDownloadThread, can_self_update, apply_update_and_restart
 
 APP_NAME = "DofusTeam"
-VERSION  = "V1.11"
+VERSION  = "V1.12"
 
 CLASSES = ["Cra","Ecaflip","Eliotrope","Eniripsa","Enutrof","Feca","Forgelance",
            "Huppermage","Iop","Osamodas","Ouginak","Pandawa","Roublard","Sacrieur",
@@ -149,7 +149,6 @@ class DofusLogic:
                 attached_target = bool(ctypes.windll.user32.AttachThreadInput(cur_thread, target_tid, True))
             try:
                 ctypes.windll.user32.AllowSetForegroundWindow(0xFFFFFFFF)
-                win32gui.BringWindowToTop(hwnd)
                 win32gui.SetForegroundWindow(hwnd)
             finally:
                 if attached_fg:

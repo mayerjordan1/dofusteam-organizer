@@ -6,7 +6,7 @@ logique métier (aucune réécriture — juste config.get/set/save sur les même
 clés), déplacée dans une page dédiée pleine largeur et présentée en tuiles.
 """
 from PyQt6.QtWidgets import (
-    QWidget, QVBoxLayout, QHBoxLayout, QGridLayout, QLabel, QLineEdit, QPushButton, QScrollArea,
+    QWidget, QVBoxLayout, QHBoxLayout, QGridLayout, QLabel, QLineEdit, QPushButton, QScrollArea, QCheckBox,
 )
 from PyQt6.QtCore import Qt
 
@@ -59,12 +59,19 @@ class RaccourcisPage(QWidget):
         lay.setContentsMargins(12, 10, 12, 10)
         lay.setSpacing(6)
 
+        on = self.config.get(f"{key}_on", True)
+
         top = QHBoxLayout()
-        top.setSpacing(0)
+        top.setSpacing(4)
         ic = QLabel(icon)
         ic.setStyleSheet("font-size:18px;background:transparent;")
         top.addWidget(ic)
         top.addStretch()
+        chk = QCheckBox()
+        chk.setChecked(on)
+        chk.setToolTip("Activer / désactiver ce raccourci")
+        chk.setFixedSize(16, 16)
+        top.addWidget(chk)
         rm = QPushButton("✕")
         rm.setFixedSize(16, 16)
         rm.setToolTip("Effacer ce raccourci")
@@ -81,18 +88,30 @@ class RaccourcisPage(QWidget):
         inp.setFixedHeight(26)
         inp.setAlignment(Qt.AlignmentFlag.AlignCenter)
         inp.setPlaceholderText("—")
-        inp.setStyleSheet(
-            f"background:{BG};border:1px solid rgba(255,255,255,0.08);border-radius:5px;"
-            f"padding:2px 6px;font-size:11px;color:{ACC};font-family:'Space Mono';font-weight:700;"
-        )
+        inp.setStyleSheet(self._input_style(on))
         inp.textChanged.connect(lambda text, k=key: (self.config.set(k, text), self.config.save()))
         inp.editingFinished.connect(self._on_change)
         rm.clicked.connect(inp.clear)
         rm.clicked.connect(self._on_change)
         lay.addWidget(inp)
 
+        chk.toggled.connect(lambda checked, k=key, i=inp: self._on_toggle(k, checked, i))
+
         self._sc[key] = inp
         return t
+
+    def _input_style(self, on):
+        color = ACC if on else MUT
+        return (
+            f"background:{BG};border:1px solid rgba(255,255,255,0.08);border-radius:5px;"
+            f"padding:2px 6px;font-size:11px;color:{color};font-family:'Space Mono';font-weight:700;"
+        )
+
+    def _on_toggle(self, key, checked, inp):
+        self.config.set(f"{key}_on", checked)
+        self.config.save()
+        inp.setStyleSheet(self._input_style(checked))
+        self._on_change()
 
     def _on_change(self):
         if self.on_change:

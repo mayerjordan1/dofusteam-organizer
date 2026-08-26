@@ -2,7 +2,7 @@
 DofusTeam — zaap_favorites.py
 Gestion des zaap favoris + macro auto-zaap vers destination
 """
-import time, threading, random
+import time, threading, random, unicodedata
 from PyQt6.QtWidgets import *
 from PyQt6.QtCore import *
 from PyQt6.QtGui import *
@@ -22,6 +22,11 @@ except ImportError:
 
 from paths import SKIN_DIR
 from theme import BG, BG2, BG3, ACC, TEXT, MUT, GOLD, RED, STYLE
+
+
+def _norm(s):
+    """Retire les accents ("â" -> "a") pour une recherche insensible aux accents."""
+    return "".join(c for c in unicodedata.normalize("NFD", s) if unicodedata.category(c) != "Mn").lower()
 
 
 def run_zaap_to_destination(config, logic, destination_name, on_status=None):
@@ -149,8 +154,14 @@ class ZaapFavoritesDialog(QDialog):
         content = QWidget(); cl = QVBoxLayout(content); cl.setContentsMargins(12,10,12,12); cl.setSpacing(8)
 
         # Search
+        search_row = QHBoxLayout(); search_row.setSpacing(6)
         self.search = QLineEdit(); self.search.setPlaceholderText("🔍 Rechercher un territoire...")
-        self.search.textChanged.connect(self._filter); cl.addWidget(self.search)
+        self.search.textChanged.connect(self._filter); search_row.addWidget(self.search)
+        self.clear_search = QPushButton("✕"); self.clear_search.setFixedSize(26,26)
+        self.clear_search.setToolTip("Effacer la recherche")
+        self.clear_search.setStyleSheet(f"background:{BG3};color:{MUT};border:1px solid rgba(255,255,255,0.07);border-radius:6px;font-size:11px;")
+        self.clear_search.clicked.connect(self.search.clear); search_row.addWidget(self.clear_search)
+        cl.addLayout(search_row)
 
         # Tabs: Favoris / Tous
         tab_row = QHBoxLayout()
@@ -188,7 +199,7 @@ class ZaapFavoritesDialog(QDialog):
 
     def _filter(self):
         from zaap_data import ZAAPS, get_favorites
-        query = self.search.text().lower()
+        query = _norm(self.search.text())
         favs  = get_favorites(self.config)
 
         if self._current_tab == "favs":
@@ -197,7 +208,7 @@ class ZaapFavoritesDialog(QDialog):
             items = ZAAPS
 
         if query:
-            items = [z for z in items if query in z["name"].lower() or query in z["region"].lower()]
+            items = [z for z in items if query in _norm(z["name"]) or query in _norm(z["region"])]
 
         # Rebuild list
         while self.list_l.count() > 1:

@@ -26,7 +26,7 @@ from sidebar import Sidebar
 from updater import UpdateCheckThread, UpdateDownloadThread, can_self_update, apply_update_and_restart
 
 APP_NAME = "DofusTeam"
-VERSION  = "V1.06"
+VERSION  = "V1.07"
 
 CLASSES = ["Cra","Ecaflip","Eliotrope","Eniripsa","Enutrof","Feca","Forgelance",
            "Huppermage","Iop","Osamodas","Ouginak","Pandawa","Roublard","Sacrieur",
@@ -308,6 +308,15 @@ class DofusLogic:
                 print(f"[paste_active] {e}")
         threading.Thread(target=_do,daemon=True).start()
 
+def _typing_in_app():
+    """True si DofusTeam (et pas Dofus) a le focus OS et qu'un champ de saisie
+    y est actif — évite qu'une lettre tapée dans l'appli (ex: "i" dans un nom
+    de roster) déclenche un raccourci global (ex: touche Inventaire)."""
+    if QApplication.activeWindow() is None:
+        return False
+    w=QApplication.focusWidget()
+    return isinstance(w,(QLineEdit,QTextEdit,QPlainTextEdit))
+
 # ── Hotkeys ───────────────────────────────────────────────────────────────────
 class HotkeyManager:
     # next_key/prev_key restent enregistrées via add_hotkey classique pour que
@@ -336,21 +345,32 @@ class HotkeyManager:
     def reload(self): was=self.active; self.disable(); was and self.enable()
     def _reg(self,key,fn):
         if key:
-            try: keyboard.add_hotkey(key,fn,suppress=False)
+            def guarded(fn=fn):
+                if _typing_in_app(): return
+                fn()
+            try: keyboard.add_hotkey(key,guarded,suppress=False)
             except Exception as e: print(f"[HK] {key}: {e}")
     def _reg_all(self):
         c=self.config
-        self._hold_keys={"next":c.get("next_key"),"prev":c.get("prev_key")}
+        def on(name): return c.get(f"{name}_on",True)
+        self._hold_keys={
+            "next":c.get("next_key") if on("next_key") else "",
+            "prev":c.get("prev_key") if on("prev_key") else "",
+        }
         self._hold_state={}
-        self._reg(c.get("refresh_key"),self.logic.refresh_all)
+        self._reg(c.get("refresh_key") if on("refresh_key") else "",self.logic.refresh_all)
         self._reg(c.get("sort_taskbar_key"),self.logic.sort_taskbar)
-        self._reg(c.get("paste_active_key"),self.logic.paste_active)
-        self._reg(c.get("recall_key"),self.logic.trigger_recall_potion)
-        self._reg(c.get("inventaire_key"),self.logic.trigger_inventaire)
-        self._reg(c.get("spam_click_key"),self.logic.trigger_spam_click)
+        self._reg(c.get("paste_active_key") if on("paste_active_key") else "",self.logic.paste_active)
+        # recall_key / inventaire_key ne sont PAS des raccourcis globaux : ce sont
+        # les touches bind côté jeu, utilisées comme donnée par trigger_recall_potion/
+        # trigger_inventaire pour savoir quoi renvoyer aux fenêtres Dofus. Les
+        # enregistrer ici comme hotkey global faisait que taper "i" dans une
+        # simple conversation privée en jeu déclenchait la macro Inventaire —
+        # ces deux macros ne se lancent que via le bouton de la navbar (b_recall/b_inv).
+        self._reg(c.get("spam_click_key") if on("spam_click_key") else "",self.logic.trigger_spam_click)
         # appui simple : instantané, géré par le hook clavier (pas le polling)
-        self._reg(c.get("next_key"),self.logic.switch_next)
-        self._reg(c.get("prev_key"),self.logic.switch_prev)
+        self._reg(c.get("next_key") if on("next_key") else "",self.logic.switch_next)
+        self._reg(c.get("prev_key") if on("prev_key") else "",self.logic.switch_prev)
         for i,b in enumerate(c.get("cycle_row_binds",[])):
             self._reg(b,lambda idx=i: self.logic.switch_to_index(idx))
 
@@ -369,7 +389,8 @@ class HotkeyManager:
                 if st is None:
                     self._hold_state[key]={"t0":now,"last":now}
                 elif now-st["t0"]>=self._HOLD_INITIAL_DELAY and now-st["last"]>=self._HOLD_REPEAT_INTERVAL:
-                    fn(); st["last"]=now
+                    if not _typing_in_app(): fn()
+                    st["last"]=now
             elif st is not None:
                 self._hold_state.pop(key,None)
 
@@ -805,10 +826,10 @@ class MiniToolbar(QWidget):
 
         lay.addWidget(sep())
 
-        self.b_hsac=mkb("🏠","Havre-sac + Zaap\n1. Appuie H sur tous les persos\n2. Clique zaap calibré sur tous",BG,icon_file="havre-sac.png",icon_size=22)
+        self.b_hsac=mkb("🏠","Havre-sac + Zaap\n1. Appuie H sur tous les persos\n2. Clique zaap calibré sur tous",BG,icon_file="havre-sac.png",size=(40,30),icon_size=28)
         self.b_zaap=mkb("⚡","Zaap favoris ⭐\nOuvre havre-sac + zaap puis colle/valide directement la destination favorite sur tous les persos",BG,icon_file="icon_zaap.png",size=(40,30),icon_size=28)
-        self.b_recall=mkb("🧪","Potion de rappel\nSwitch de fenêtre + renvoie le raccourci de rappel sur tous les persos (déjà bind côté jeu)",BG,icon_file="potion-rappel.png",icon_size=20)
-        self.b_inv=mkb("🎒","Inventaire\nSwitch de fenêtre + renvoie le raccourci inventaire sur tous les persos (déjà bind côté jeu)",BG,icon_file="inventaire.png",icon_size=20)
+        self.b_recall=mkb("🧪","Potion de rappel\nSwitch de fenêtre + renvoie le raccourci de rappel sur tous les persos (déjà bind côté jeu)",BG,icon_file="potion-rappel.png",size=(40,30),icon_size=28)
+        self.b_inv=mkb("🎒","Inventaire\nSwitch de fenêtre + renvoie le raccourci inventaire sur tous les persos (déjà bind côté jeu)",BG,icon_file="inventaire.png",size=(40,30),icon_size=28)
         self.b_hsac.clicked.connect(self._quick_hsac)
         self.b_hsac.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
         self.b_hsac.customContextMenuRequested.connect(lambda: self._show_zaap_menu())
@@ -1065,14 +1086,19 @@ class MainWindow(QMainWindow):
         self._char_selector.char_selected.connect(self.logic.switch_to_name)
 
         if KEYBOARD_OK:
-            for key,fn in [(self.config.get("toggle_app_key"),self._toggle_vis),(self.config.get("calib_key","f4"),self._open_calib)]:
-                if key:
-                    try: keyboard.add_hotkey(key,fn)
+            def _guarded(fn):
+                def _f():
+                    if not _typing_in_app(): fn()
+                return _f
+            for cfg_key,default,fn in [("toggle_app_key","",self._toggle_vis),("calib_key","f4",self._open_calib)]:
+                key=self.config.get(cfg_key,default)
+                if key and self.config.get(f"{cfg_key}_on",True):
+                    try: keyboard.add_hotkey(key,_guarded(fn))
                     except: pass
             # Char selector key (configurable)
             sel_key = self.config.get("selector_key","")
-            if sel_key:
-                try: keyboard.add_hotkey(sel_key,self._open_char_selector)
+            if sel_key and self.config.get("selector_key_on",True):
+                try: keyboard.add_hotkey(sel_key,_guarded(self._open_char_selector))
                 except: pass
             # Raccourcis suivant/précédent/chef/etc. (HotkeyManager) — activés par
             # défaut au démarrage, comme les autres raccourcis ci-dessus. Avant, il
@@ -1212,11 +1238,13 @@ class MainWindow(QMainWindow):
         w=QWidget(); w.setObjectName("Header"); w.setStyleSheet(f"QWidget#Header{{background:{BG2};border-bottom:1px solid rgba(255,255,255,0.06);}}"); w.setFixedHeight(70)
         lay=QHBoxLayout(w); lay.setContentsMargins(20,0,20,0); lay.setSpacing(12)
 
-        # Logo
+        # Logo — load_icon() recadre la marge transparente du PNG source, sinon
+        # le logo ressort visiblement plus petit que les autres icônes une fois
+        # mis à l'échelle (même souci que les icônes de la mini-toolbar).
         logo=QLabel()
-        if (SKIN_DIR/"logo.png").exists():
-            pix=QPixmap(str(SKIN_DIR/"logo.png")).scaled(40,40,Qt.AspectRatioMode.KeepAspectRatio,Qt.TransformationMode.SmoothTransformation)
-            logo.setPixmap(pix)
+        icon=load_icon("logo.png",40)
+        if icon:
+            logo.setPixmap(icon.pixmap(40,40))
         lay.addWidget(logo)
 
         # Title
@@ -1442,7 +1470,8 @@ class AppTray(QSystemTrayIcon):
     def __init__(self,app,window):
         super().__init__(app); self.window=window
         pix=QPixmap(32,32); pix.fill(QColor(ACC))
-        if (SKIN_DIR/"logo.png").exists(): pix=QPixmap(str(SKIN_DIR/"logo.png")).scaled(32,32,Qt.AspectRatioMode.KeepAspectRatio)
+        icon=load_icon("logo.png",32)
+        if icon: pix=icon.pixmap(32,32)
         self.setIcon(QIcon(pix)); self.setToolTip(f"{APP_NAME} {VERSION}")
         menu=QMenu(); menu.setStyleSheet(STYLE)
         menu.addAction("▸  Afficher").triggered.connect(window._show_self)

@@ -7,6 +7,8 @@ tandis que la gestion complète (recherche + étoile) vit ici, dans l'appli
 principale, cohérente avec le reste des pages (Mes équipes, Chasse au
 trésor, ...).
 """
+import unicodedata
+
 from PyQt6.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QLabel, QLineEdit, QPushButton,
     QScrollArea,
@@ -15,6 +17,11 @@ from PyQt6.QtCore import Qt
 
 from theme import TEXT, MUT, ACC, GOLD, BG2, BORDER, glass_card, section_label, mono, load_icon
 from zaap_data import ZAAPS, get_favorites, toggle_favorite
+
+
+def _norm(s):
+    """Retire les accents ("â" -> "a") pour une recherche insensible aux accents."""
+    return "".join(c for c in unicodedata.normalize("NFD", s) if unicodedata.category(c) != "Mn").lower()
 
 # Largeurs de colonnes partagées entre l'en-tête et chaque ligne, pour que
 # Territoire / Région / Coordonnées restent alignées.
@@ -95,6 +102,15 @@ class ZaapMenuPage(QWidget):
         self.search.setPlaceholderText("🔍  Rechercher un zaap ou une région...")
         self.search.textChanged.connect(self._filter)
         rl.addWidget(self.search, 1)
+
+        self.clear_search = QPushButton("✕")
+        self.clear_search.setFixedSize(26, 26)
+        self.clear_search.setToolTip("Effacer la recherche")
+        self.clear_search.setStyleSheet(
+            f"background:{BG2};color:{MUT};border:1px solid {BORDER};border-radius:6px;font-size:11px;"
+        )
+        self.clear_search.clicked.connect(self.search.clear)
+        rl.addWidget(self.clear_search)
 
         self.favs_only = QPushButton("★  Favoris uniquement")
         self.favs_only.setCheckable(True)
@@ -178,7 +194,7 @@ class ZaapMenuPage(QWidget):
         return c
 
     def _filter(self):
-        query = self.search.text().strip().lower()
+        query = _norm(self.search.text().strip())
         favs = get_favorites(self.config)
         only_favs = self.favs_only.isChecked()
 
@@ -186,7 +202,7 @@ class ZaapMenuPage(QWidget):
         if only_favs:
             items = [z for z in items if z["name"] in favs]
         if query:
-            items = [z for z in items if query in z["name"].lower() or query in z["region"].lower()]
+            items = [z for z in items if query in _norm(z["name"]) or query in _norm(z["region"])]
 
         while self.list_l_rows.count() > 1:
             item = self.list_l_rows.takeAt(0)

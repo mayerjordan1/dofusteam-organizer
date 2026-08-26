@@ -493,12 +493,17 @@ class MesEquipesPage(QWidget):
 
     def _on_slot_hover(self, src_name, dst_name, after):
         """Survol pendant le glissement — déplace les tuiles en direct (sans
-        toucher à la config) pour prévisualiser où src_name atterrira."""
+        toucher à la config) pour prévisualiser où src_name atterrira.
+        Le réarrangement du QGridLayout est différé (comme pour _after_reorder)
+        car dragMoveEvent est appelé DEPUIS la boucle imbriquée de QDrag.exec() :
+        déplacer des widgets dans le layout à ce moment-là corrompt l'état
+        drag/drop de Qt de façon intermittente (curseur "interdit", drop qui ne
+        se prend pas en compte une fois sur deux)."""
         order = self._insert_order(src_name, dst_name, after)
         if order is None or order == self._preview_order:
             return
         self._preview_order = order
-        self._apply_preview_order(order)
+        QTimer.singleShot(0, lambda o=order: self._apply_preview_order(o) if o == self._preview_order else None)
 
     def _apply_preview_order(self, order):
         for i, name in enumerate(order):

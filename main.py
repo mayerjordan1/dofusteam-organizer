@@ -26,7 +26,7 @@ from sidebar import Sidebar
 from updater import UpdateCheckThread, UpdateDownloadThread, can_self_update, apply_update_and_restart
 
 APP_NAME = "DofusTeam"
-VERSION  = "V1.13"
+VERSION  = "V1.14"
 
 CLASSES = ["Cra","Ecaflip","Eliotrope","Eniripsa","Enutrof","Feca","Forgelance",
            "Huppermage","Iop","Osamodas","Ouginak","Pandawa","Roublard","Sacrieur",
@@ -964,7 +964,7 @@ class MiniToolbar(QWidget):
 
         if not hasattr(self, '_focus_timer'):
             self._focus_timer = QTimer(); self._focus_timer.timeout.connect(self._update_focus_highlight)
-            self._focus_timer.start(500)
+            self._focus_timer.start(100)
 
     def _update_focus_highlight(self):
         if not WINDOWS or not hasattr(self, '_char_btns'): return
@@ -1241,10 +1241,11 @@ class MainWindow(QMainWindow):
         # le logo ressort visiblement plus petit que les autres icônes une fois
         # mis à l'échelle (même souci que les icônes de la mini-toolbar).
         logo=QLabel()
-        icon=load_icon("logo.png",40)
+        icon=load_icon("logo.png",52)
         if icon:
-            logo.setPixmap(icon.pixmap(40,40))
-        lay.addWidget(logo)
+            logo.setPixmap(icon.pixmap(52,52))
+        lay.addWidget(logo,0,Qt.AlignmentFlag.AlignVCenter)
+        lay.addSpacing(4)
 
         # Title
         tl=QLabel(f"<span style='color:{TEXT};'>Dofus</span><span style='color:{ACC};'>Team</span>")
@@ -1252,7 +1253,7 @@ class MainWindow(QMainWindow):
             "font-family:'Poppins','Trebuchet MS','Century Gothic','Segoe UI',sans-serif;"
             "font-size:21px;font-weight:800;letter-spacing:-0.5px;background:transparent;"
         )
-        lay.addWidget(tl)
+        lay.addWidget(tl,0,Qt.AlignmentFlag.AlignVCenter)
 
         self.version_btn=QPushButton(f"{VERSION} · À jour")
         self.version_btn.setFont(mono(9))

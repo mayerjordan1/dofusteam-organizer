@@ -423,6 +423,16 @@ def quick_paste_zaap(config, logic, on_status=None):
             leader_hwnd = getattr(logic, "leader_hwnd", None)
             if leader_hwnd:
                 logic.focus_window(leader_hwnd)
+                for _ in range(15):
+                    try:
+                        if win32gui.GetForegroundWindow() == leader_hwnd: break
+                    except: pass
+                    time.sleep(0.1)
+                time.sleep(0.1)
+                # Ctrl+W réactive l'autofollow (raccourci Dofus) une fois de
+                # retour sur le chef, pour reprendre le suivi auto du groupe.
+                try: pyautogui.hotkey("ctrl", "w")
+                except Exception: pass
             elif original_fg_hwnd:
                 logic.focus_window(original_fg_hwnd)
             try: import ctypes; ctypes.windll.user32.BlockInput(False)

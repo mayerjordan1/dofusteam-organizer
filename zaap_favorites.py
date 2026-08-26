@@ -119,6 +119,23 @@ def run_zaap_to_destination(config, logic, destination_name, on_status=None):
             pyautogui.press("enter")
             time.sleep(random.uniform(0.1, 0.18))
 
+        # Revenir sur le chef de groupe une fois la macro finie, plutôt que de
+        # rester sur le dernier compte de la boucle (même comportement que
+        # les autres macros — recall/inventaire/spam clic — via switch_to_leader).
+        leader_hwnd = getattr(logic, "leader_hwnd", None)
+        logic.switch_to_leader()
+        if MACRO_OK and leader_hwnd:
+            for _ in range(15):
+                try:
+                    if win32gui.GetForegroundWindow() == leader_hwnd: break
+                except Exception: pass
+                time.sleep(0.1)
+            time.sleep(0.1)
+            # Ctrl+W réactive l'autofollow (raccourci Dofus) une fois de retour
+            # sur le chef, pour reprendre le suivi automatique du groupe.
+            try: pyautogui.hotkey("ctrl", "w")
+            except Exception: pass
+
         try: import ctypes; ctypes.windll.user32.BlockInput(False)
         except: pass
         if on_status: on_status(f"✅ Tous zaapés → {destination_name} !")

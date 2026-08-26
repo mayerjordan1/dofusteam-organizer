@@ -453,6 +453,17 @@ class ChasseTresorPage(QWidget):
     def _select_hint(self, h):
         if not h or not REQUESTS_OK:
             return
+        # Comme sur l'outil DofusDB : valider un indice fait de sa position la
+        # nouvelle position courante, prête pour la recherche du prochain
+        # indice. Avant ce fix, les champs X/Y restaient sur l'ancienne
+        # position tant qu'on ne les retapait pas à la main — une position
+        # oubliée/mal retapée faussait la recherche suivante (mauvaise liste
+        # d'indices) et donc la commande /travel copiée, ce qui faisait
+        # rater la chasse.
+        self.x_inp.setText(str(h["x"]))
+        self.y_inp.setText(str(h["y"]))
+        self.status_lbl.setText(f"📍  Position mise à jour : ({h['x']}, {h['y']}) — prêt pour le prochain indice.")
+        self.status_lbl.setStyleSheet(f"color:{ACC}; font-size:11px; font-weight:600; background:transparent;")
         self.zaap_placeholder.setText("Recherche du zaap le plus proche...")
         self.zaap_placeholder.setVisible(True)
         self.zaap_result.setVisible(False)

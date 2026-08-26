@@ -3,7 +3,11 @@ name: Build Windows executable
 on:
   push:
     branches: [main]
+    tags: ["V*"]
   workflow_dispatch:
+
+permissions:
+  contents: write
 
 jobs:
   build:
@@ -30,3 +34,9 @@ jobs:
         with:
           name: DofusTeam-windows
           path: dist/DofusTeam.exe
+
+      - name: Publish GitHub Release
+        if: startsWith(github.ref, 'refs/tags/V')
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release create "${{ github.ref_name }}" "dist/DofusTeam.exe" --title "${{ github.ref_name }}" --generate-notes

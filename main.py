@@ -23,9 +23,10 @@ from theme import (BG, BG2, BG3, BG4, ACC, RED, GREEN, GOLD, BLUE, TEXT, MUT, BO
                     STYLE, SIDEBAR_STYLE, mono, section_label, card, accent_btn, ghost_btn, make_avatar,
                     ClickableAvatar, load_icon)
 from sidebar import Sidebar
+from updater import UpdateCheckThread, UpdateDownloadThread, can_self_update, apply_update_and_restart
 
 APP_NAME = "DofusTeam"
-VERSION  = "V1.05"
+VERSION  = "V1.06"
 
 CLASSES = ["Cra","Ecaflip","Eliotrope","Eniripsa","Enutrof","Feca","Forgelance",
            "Huppermage","Iop","Osamodas","Ouginak","Pandawa","Roublard","Sacrieur",
@@ -1140,6 +1141,61 @@ class MainWindow(QMainWindow):
         self.page_calibration.open_calibration.connect(self._open_calib_mode)
 
         self._navigate("mes_equipes")
+        self._update_tag=""; self._update_url=""; self._new_exe_path=None
+        QTimer.singleShot(3000,self._check_update)
+
+    # ── Auto-update ──────────────────────────────────────────────────────────
+    def _check_update(self):
+        self._checker=UpdateCheckThread(VERSION)
+        self._checker.done.connect(self._on_update_checked)
+        self._checker.start()
+
+    def _on_update_checked(self,tag,url,size):
+        if not tag: return
+        self._update_tag=tag; self._update_url=url
+        if can_self_update():
+            self.version_btn.setText(f"⬇ {tag} disponible")
+            self._paint_version_btn(GOLD)
+            try: self.version_btn.clicked.disconnect()
+            except Exception: pass
+            self.version_btn.clicked.connect(self._start_update_download)
+        else:
+            self.version_btn.setText(f"⬇ {tag} disponible (git pull)")
+            self._paint_version_btn(GOLD)
+
+    def _start_update_download(self):
+        if not self._update_url: return
+        try: self.version_btn.clicked.disconnect()
+        except Exception: pass
+        self.version_btn.setText("⏳ Téléchargement… 0%")
+        self._paint_version_btn(BLUE)
+        dest=APP_DIR/"DofusTeam_new.exe"
+        self._downloader=UpdateDownloadThread(self._update_url,dest)
+        self._downloader.progress.connect(lambda p: self.version_btn.setText(f"⏳ Téléchargement… {p}%"))
+        self._downloader.done.connect(self._on_update_downloaded)
+        self._downloader.start()
+
+    def _on_update_downloaded(self,ok,err):
+        if not ok:
+            self.version_btn.setText(f"{VERSION} · À jour")
+            self._paint_version_btn(GREEN)
+            return
+        self._new_exe_path=APP_DIR/"DofusTeam_new.exe"
+        self.version_btn.setText(f"🔄 Redémarrer pour appliquer {self._update_tag}")
+        self._paint_version_btn(ACC)
+        self.version_btn.clicked.connect(self._apply_update)
+
+    def _apply_update(self):
+        if self._new_exe_path:
+            apply_update_and_restart(self._new_exe_path)
+
+    def _paint_version_btn(self,color):
+        self.version_btn.setStyleSheet(f"background:rgba({self._to_rgb(color)},0.12);color:{color};border:1px solid rgba({self._to_rgb(color)},0.3);border-radius:5px;padding:2px 10px;margin-top:2px;")
+
+    @staticmethod
+    def _to_rgb(hexcolor):
+        h=hexcolor.lstrip("#")
+        return ",".join(str(int(h[i:i+2],16)) for i in (0,2,4))
 
     def _navigate(self,page_key):
         from sidebar import NON_PAGE_KEYS
@@ -1171,11 +1227,12 @@ class MainWindow(QMainWindow):
         )
         lay.addWidget(tl)
 
-        vl=QLabel(f"{VERSION} · À jour")
-        vl.setFont(mono(9))
-        vl.setFixedHeight(22)
-        vl.setStyleSheet(f"background:rgba(63,185,80,0.12);color:{GREEN};border:1px solid rgba(63,185,80,0.25);border-radius:5px;padding:2px 10px;margin-top:2px;")
-        lay.addWidget(vl)
+        self.version_btn=QPushButton(f"{VERSION} · À jour")
+        self.version_btn.setFont(mono(9))
+        self.version_btn.setFixedHeight(22)
+        self.version_btn.setCursor(Qt.CursorShape.ArrowCursor)
+        self._paint_version_btn(GREEN)
+        lay.addWidget(self.version_btn)
         lay.addStretch()
 
         # Raccourcis — un seul bouton bascule, l'état est porté par sa couleur/texte

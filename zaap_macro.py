@@ -265,6 +265,21 @@ class ZaapExecutor:
             pyautogui.press("enter")
             time.sleep(_jitter(delay_p))
 
+        # Revenir sur le chef de groupe une fois la macro finie (même
+        # comportement que les autres macros zaap) + Ctrl+W pour réactiver
+        # l'autofollow une fois de retour sur le chef.
+        leader_hwnd = getattr(self.logic, "leader_hwnd", None)
+        if leader_hwnd:
+            self.logic.focus_window(leader_hwnd)
+            for _ in range(15):
+                try:
+                    if win32gui.GetForegroundWindow() == leader_hwnd: break
+                except Exception: pass
+                time.sleep(0.1)
+            time.sleep(0.1)
+            try: pyautogui.hotkey("ctrl", "w")
+            except Exception: pass
+
         unfreeze_mouse()
         self._status("✅ Auto-zaap terminé !")
         self._running = False

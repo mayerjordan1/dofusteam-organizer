@@ -119,7 +119,6 @@ def apply_update_and_restart(new_exe_path):
     old_exe = Path(sys.executable)
     new_exe = Path(new_exe_path)
     bat_path = APP_DIR / "_dofusteam_update.bat"
-    vbs_path = APP_DIR / "_dofusteam_update.vbs"
     bat_content = (
         "@echo off\r\n"
         "set tries=0\r\n"
@@ -130,7 +129,11 @@ def apply_update_and_restart(new_exe_path):
         # Limite à 30 tentatives (~1 minute) : si l'ancien exe reste
         # verrouillé au-delà (antivirus, sync cloud...), on abandonne la
         # mise à jour et on relance l'ancienne version plutôt que de rester
-        # coincé dans une boucle infinie.
+        # coincé dans une boucle infinie. "ping" (au lieu de "timeout") ne
+        # nécessite pas de console interactive — "timeout" échoue
+        # immédiatement ("Input redirection is not supported") quand il
+        # tourne sans console attachée, ce qui provoquait une boucle très
+        # rapide au lieu d'une vraie attente d'1s.
         "    if %tries% GEQ 30 goto giveup\r\n"
         "    ping -n 2 127.0.0.1 >nul\r\n"
         "    goto wait\r\n"
@@ -138,32 +141,23 @@ def apply_update_and_restart(new_exe_path):
         f'ren "{new_exe}" "{old_exe.name}"\r\n'
         ":giveup\r\n"
         # Le nouvel exe (bootloader PyInstaller) vérifie au démarrage que son
-        # processus parent est bien accessible. "start" lance l'exe de façon
-        # indirecte (association shell) plutôt qu'un CreateProcess direct, ce
-        # qui cassait ce lien parent/enfant et faisait échouer la vérification
-        # avec "Security Validation failure: failed to obtain executable path
-        # for parent process" (déjà tenté : juste retarder le "start" — ne
-        # suffisait pas). On lance l'exe directement (sans "start") : cmd.exe
-        # devient son vrai parent CreateProcess et attend qu'il se termine
-        # avant de continuer, donc il reste garanti vivant tout du long.
+        # processus parent est bien accessible. Lancer ce .bat via un
+        # intermédiaire (wscript/COM, "start", ...) casse cette chaîne
+        # parent/enfant et fait échouer la vérification avec "Security
+        # Validation failure: failed to obtain executable path for parent
+        # process" (déjà vu deux fois : une fois avec "start", une fois avec
+        # un wrapper WScript.Shell utilisé un temps pour cacher la fenêtre —
+        # les deux réintroduisaient le bug). Seul un CreateProcess direct et
+        # ininterrompu depuis Python (cmd.exe) -> bat -> exe est fiable ici.
+        # On lance l'exe directement (sans "start") : cmd.exe devient son
+        # vrai parent CreateProcess et attend qu'il se termine avant de
+        # continuer, donc il reste garanti vivant tout du long.
         f'"{old_exe}"\r\n'
         'del /f /q "%~f0"\r\n'
-        f'del /f /q "{vbs_path}"\r\n'
     )
     bat_path.write_text(bat_content, encoding="utf-8")
-    # Lance le .bat via un wrapper VBScript (WScript.Shell, windowstyle=0)
-    # plutôt que directement : sur certaines configs Windows (Windows
-    # Terminal en terminal par défaut), le flag CREATE_NO_WINDOW seul ne
-    # suffit pas à empêcher la fenêtre cmd de s'afficher/clignoter à chaque
-    # itération de la boucle d'attente — WScript.Shell est la seule méthode
-    # fiable dans tous les cas pour une exécution totalement invisible.
-    vbs_content = (
-        'Set s = CreateObject("WScript.Shell")\r\n'
-        f's.Run """{bat_path}""", 0, False\r\n'
-    )
-    vbs_path.write_text(vbs_content, encoding="utf-8")
     subprocess.Popen(
-        ["wscript", "//B", str(vbs_path)],
+        ["cmd", "/c", str(bat_path)],
         creationflags=subprocess.CREATE_NO_WINDOW | subprocess.DETACHED_PROCESS,
         cwd=str(APP_DIR),
     )

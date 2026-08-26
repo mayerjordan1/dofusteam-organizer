@@ -45,8 +45,6 @@ class TeamSlotCard(QWidget):
 
     sig_leader = pyqtSignal(str)
     sig_reorder = pyqtSignal(str, str, bool)  # (nom glissé, nom cible, insérer après) — direct, sans passer par un preset
-    sig_drag_hover = pyqtSignal(str, str, bool)  # même tuple, émis en continu pendant le survol pour la prévisu live
-    sig_drag_end = pyqtSignal()  # fin du glissement (déposé ou annulé) — pour réinitialiser la prévisu si besoin
 
     def __init__(self, name, classe, pos_num, config=None, live=False, is_leader=False, parent=None):
         super().__init__(parent)
@@ -154,7 +152,6 @@ class TeamSlotCard(QWidget):
         drag.setHotSpot(e.position().toPoint())
         self._press_pos = None
         drag.exec(Qt.DropAction.MoveAction)
-        self.sig_drag_end.emit()
 
     def dragEnterEvent(self, e):
         if self._select_mode:
@@ -169,11 +166,14 @@ class TeamSlotCard(QWidget):
         src = e.mimeData().text() if e.mimeData().hasText() else ""
         if not src or src == self.name:
             return
+        # Pas de déplacement live des tuiles ici : dragMoveEvent est appelé
+        # DEPUIS la boucle imbriquée de QDrag.exec(), et reparenter des widgets
+        # dans le QGridLayout à ce moment-là (même différé d'un QTimer.singleShot(0),
+        # qui tourne quand même dans cette même boucle imbriquée) corrompt l'état
+        # drag/drop de Qt : le drop finit par être silencieusement annulé et la
+        # tuile revient à sa place d'origine au relâchement. Le réordonnancement
+        # réel se fait uniquement dans dropEvent, une fois la boucle terminée.
         e.acceptProposedAction()
-        # moitié gauche/droite de la tuile survolée → insérer avant/après elle,
-        # pour une prévisu live fidèle à l'endroit exact du dépôt.
-        after = e.position().x() > self.width() / 2
-        self.sig_drag_hover.emit(src, self.name, after)
 
     def dragLeaveEvent(self, e):
         self.set_select_mode(self._select_mode)
@@ -256,7 +256,6 @@ class MesEquipesPage(QWidget):
         self._slot_cards = []
         self._slot_widgets = {}
         self._committed_order = []
-        self._preview_order = None
         self._build()
         self.refresh()
 
@@ -430,7 +429,6 @@ class MesEquipesPage(QWidget):
         self._slot_widgets = {}
         order = self.config.get("custom_order", [])
         self._committed_order = list(order)
-        self._preview_order = None
         classes = self.config.get("classes", {})
         live_names = {a.get("name") for a in (self.logic.all_accounts or []) if a.get("hwnd")}
         leader_name = self.config.get("leader_name", "")
@@ -441,8 +439,6 @@ class MesEquipesPage(QWidget):
                                      live=name in live_names, is_leader=(name == leader_name))
                 slot.sig_leader.connect(self._set_leader)
                 slot.sig_reorder.connect(self._on_slot_reorder)
-                slot.sig_drag_hover.connect(self._on_slot_hover)
-                slot.sig_drag_end.connect(self._on_drag_end)
                 slot.set_select_mode(self._select_mode)
                 self.slots_lay.addWidget(slot, i // 4, i % 4)
                 self._slot_cards.append(slot)
@@ -481,8 +477,7 @@ class MesEquipesPage(QWidget):
 
     def _insert_order(self, src_name, dst_name, after):
         """Calcule l'ordre résultant d'un déplacement de src_name juste avant/après
-        dst_name (insertion, pas un échange) — utilisé à la fois pour la prévisu
-        live pendant le survol et pour le dépôt final."""
+        dst_name (insertion, pas un échange)."""
         order = list(self._committed_order)
         if src_name not in order or dst_name not in order:
             return None
@@ -490,34 +485,6 @@ class MesEquipesPage(QWidget):
         idx = order.index(dst_name)
         order.insert(idx + 1 if after else idx, src_name)
         return order
-
-    def _on_slot_hover(self, src_name, dst_name, after):
-        """Survol pendant le glissement — déplace les tuiles en direct (sans
-        toucher à la config) pour prévisualiser où src_name atterrira.
-        Le réarrangement du QGridLayout est différé (comme pour _after_reorder)
-        car dragMoveEvent est appelé DEPUIS la boucle imbriquée de QDrag.exec() :
-        déplacer des widgets dans le layout à ce moment-là corrompt l'état
-        drag/drop de Qt de façon intermittente (curseur "interdit", drop qui ne
-        se prend pas en compte une fois sur deux)."""
-        order = self._insert_order(src_name, dst_name, after)
-        if order is None or order == self._preview_order:
-            return
-        self._preview_order = order
-        QTimer.singleShot(0, lambda o=order: self._apply_preview_order(o) if o == self._preview_order else None)
-
-    def _apply_preview_order(self, order):
-        for i, name in enumerate(order):
-            widget = self._slot_widgets.get(name)
-            if widget:
-                widget.set_pos_num(i + 1)
-                self.slots_lay.addWidget(widget, i // 4, i % 4)
-
-    def _on_drag_end(self):
-        """Fin du glissement (bouton relâché) — si aucun dépôt valide n'a eu
-        lieu (annulé, ou lâché hors d'une tuile), on revient à l'ordre réel."""
-        if self._preview_order is not None:
-            self._preview_order = None
-            self._apply_preview_order(self._committed_order)
 
     def _on_slot_reorder(self, src_name, dst_name, after):
         """Glisser-déposer direct dans la grille — insère src_name juste avant/
@@ -535,7 +502,6 @@ class MesEquipesPage(QWidget):
             self.logic.all_accounts.sort(
                 key=lambda a: order.index(a["name"]) if a.get("name") in order else len(order)
             )
-        self._preview_order = None
         # Report différé (au tour suivant de la boucle d'événements) : la boucle
         # imbriquée de QDrag.exec() (démarrée depuis mouseMoveEvent de la tuile
         # source) est encore active à ce stade (on est appelé depuis dropEvent) —

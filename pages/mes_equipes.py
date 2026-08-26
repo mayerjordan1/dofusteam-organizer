@@ -7,7 +7,7 @@ des widgets autour d'elle, tout le calcul reste dans main.py/dofus_logic.
 from PyQt6.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QGridLayout, QLabel, QPushButton, QScrollArea, QApplication,
 )
-from PyQt6.QtCore import Qt, QSize, pyqtSignal, QMimeData
+from PyQt6.QtCore import Qt, QSize, pyqtSignal, QMimeData, QTimer
 from PyQt6.QtGui import QIcon, QDrag
 
 from theme import TEXT, MUT, BG, BG2, BG3, ACC, GREEN, GOLD, BORDER, section_label, glass_card, accent_btn, ghost_btn, make_avatar, ClickableAvatar, crown_icon
@@ -531,6 +531,15 @@ class MesEquipesPage(QWidget):
                 key=lambda a: order.index(a["name"]) if a.get("name") in order else len(order)
             )
         self._preview_order = None
+        # Report différé (au tour suivant de la boucle d'événements) : la boucle
+        # imbriquée de QDrag.exec() (démarrée depuis mouseMoveEvent de la tuile
+        # source) est encore active à ce stade (on est appelé depuis dropEvent) —
+        # détruire/recréer les tuiles maintenant (refresh -> _refresh_slots)
+        # perturbe l'état interne de drag/grab de Qt et bloquait tout glisser-
+        # déposer suivant tant que la page n'était pas rechargée.
+        QTimer.singleShot(0, self._after_reorder)
+
+    def _after_reorder(self):
         self.refresh()
         self.order_changed.emit()
 
@@ -578,6 +587,11 @@ class MesEquipesPage(QWidget):
             else:
                 self.status_lbl.setText("⚠  Aucune fenêtre Dofus — Dofus est-il ouvert ?")
             self.refresh()
+            # Un perso déconnecté disparaît de logic.all_accounts après le scan
+            # (scan_slots() ne renvoie que les fenêtres encore ouvertes) — sans
+            # ça, la bande d'avatars de la mini-toolbar n'était reconstruite
+            # qu'après un scan lancé depuis la page Gestion, pas depuis ici.
+            self.order_changed.emit()
 
         self._scan_thread = ScanThread(self.logic)
         self._scan_thread.done.connect(on_done)

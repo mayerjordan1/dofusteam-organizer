@@ -25,7 +25,7 @@ from theme import (BG, BG2, BG3, BG4, ACC, RED, GREEN, GOLD, BLUE, TEXT, MUT, BO
 from sidebar import Sidebar
 
 APP_NAME = "DofusTeam"
-VERSION  = "V1.0"
+VERSION  = "V1.01"
 
 CLASSES = ["Cra","Ecaflip","Eliotrope","Eniripsa","Enutrof","Feca","Forgelance",
            "Huppermage","Iop","Osamodas","Ouginak","Pandawa","Roublard","Sacrieur",
@@ -696,7 +696,6 @@ class MiniToolbar(QWidget):
         self.b_zaap=mkb("⚡","Zaap favoris ⭐\nOuvre havre-sac + zaap puis colle/valide directement la destination favorite sur tous les persos",BG,icon_file="icon_zaap.png",size=(40,30),icon_size=28)
         self.b_recall=mkb("🧪","Potion de rappel\nSwitch de fenêtre + renvoie le raccourci de rappel sur tous les persos (déjà bind côté jeu)",BG,icon_file="potion-rappel.png",icon_size=20)
         self.b_inv=mkb("🎒","Inventaire\nSwitch de fenêtre + renvoie le raccourci inventaire sur tous les persos (déjà bind côté jeu)",BG,icon_file="inventaire.png",icon_size=20)
-        self.b_more=mkb("⋯","Plus d'actions")
         self.b_hsac.clicked.connect(self._quick_hsac)
         self.b_hsac.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
         self.b_hsac.customContextMenuRequested.connect(lambda: self._show_zaap_menu())
@@ -704,8 +703,7 @@ class MiniToolbar(QWidget):
         self.b_zaap.clicked.connect(self._quick_zaap)
         self.b_recall.clicked.connect(lambda: self.logic.trigger_recall_potion() if self.logic else None)
         self.b_inv.clicked.connect(lambda: self.logic.trigger_inventaire() if self.logic else None)
-        self.b_more.clicked.connect(self._show_more_menu)
-        for w in (self.b_hsac,self.b_zaap,self.b_recall,self.b_inv,self.b_more): lay.addWidget(w)
+        for w in (self.b_hsac,self.b_zaap,self.b_recall,self.b_inv): lay.addWidget(w)
 
         lay.addWidget(sep())
 
@@ -714,11 +712,6 @@ class MiniToolbar(QWidget):
         self.b_min.clicked.connect(self._toggle_collapse)
         self.b_close.clicked.connect(lambda:(self.hide(),self.on_show()))
         lay.addWidget(self.b_min); lay.addWidget(self.b_close)
-
-        # Secondaires — repliés derrière "⋯"
-        self.b_spam=mkb("🖱","Spam clic\nClic gauche + switch de fenêtre sur tous les persos (raccourci définissable dans Raccourcis)")
-        self.b_spam.clicked.connect(lambda: self.logic.trigger_spam_click() if self.logic else None)
-        self._secondary_btns=(self.b_spam,)
 
         bar.adjustSize(); bar.move(0,0)
 
@@ -806,19 +799,6 @@ class MiniToolbar(QWidget):
             return
         from zaap_favorites import ZaapFavoritesDialog
         ZaapFavoritesDialog(self.config, self).exec()
-
-    def _show_more_menu(self):
-        """Clic sur "⋯" → menu des actions secondaires (spam clic),
-        boutons mkb() réutilisés tels quels via QWidgetAction (garde style + connexions)."""
-        menu = QMenu(self)
-        menu.setStyleSheet(f"""
-            QMenu{{background:#151922;border:1px solid rgba(255,138,30,0.3);border-radius:8px;padding:4px;}}
-        """)
-        for b in self._secondary_btns:
-            wa = QWidgetAction(menu)
-            wa.setDefaultWidget(b)
-            menu.addAction(wa)
-        menu.exec(self.b_more.mapToGlobal(self.b_more.rect().bottomLeft()))
 
     def _rebuild_char_icons(self, accounts):
         """Rebuild character icon strip after scan — avatars ronds + pastille de statut
@@ -1030,7 +1010,7 @@ class MainWindow(QMainWindow):
         self.stack=QStackedWidget(); self.stack.setStyleSheet("background:transparent;")
         self.page_mes_equipes=MesEquipesPage(self.config,self.logic)
         self.page_presets=PresetsPage(self.config,self.logic)
-        self.page_raccourcis=RaccourcisPage(self.config,self.logic)
+        self.page_raccourcis=RaccourcisPage(self.config,self.logic,on_change=self.hk.reload)
         self.page_chasse_tresor=ChasseTresorPage(self.config,self.logic)
         self.page_zaap_menu=ZaapMenuPage(self.config,self.logic)
         self.page_automatisations_zaap=AutomatisationsZaapPage(self.config,self.logic)

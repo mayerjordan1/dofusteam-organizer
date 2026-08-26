@@ -5,7 +5,7 @@ zaap_dialog/zaap_favorites) redéfinissait sa propre palette + son propre
 STYLE + son propre make_avatar(), avec des variations qui divergeaient au
 fil des sessions. Tout le monde importe désormais ce module.
 """
-from PyQt6.QtWidgets import QPushButton, QLabel
+from PyQt6.QtWidgets import QPushButton, QLabel, QApplication
 from PyQt6.QtGui import QPixmap, QFont, QIcon
 from PyQt6.QtCore import Qt, QSize, pyqtSignal
 from paths import SKIN_DIR
@@ -216,12 +216,29 @@ def ghost_btn(text, fn):
 
 
 class ClickableAvatar(QLabel):
-    """QLabel d'avatar cliquable — utilisé pour basculer homme/femme au clic."""
+    """QLabel d'avatar cliquable — utilisé pour basculer homme/femme au clic.
+
+    Le clic n'est émis qu'au relâchement, et seulement si la souris n'a pas
+    bougé au-delà du seuil de drag — sinon un glisser-déposer démarré depuis
+    l'avatar (le parent gère le drag via l'event qui remonte, non accepté ici)
+    basculait aussi le sexe du personnage à chaque tentative de drag."""
     clicked = pyqtSignal()
 
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self._press_pos = None
+
     def mousePressEvent(self, event):
-        self.clicked.emit()
-        super().mousePressEvent(event)
+        self._press_pos = event.position().toPoint()
+        event.ignore()
+
+    def mouseReleaseEvent(self, event):
+        if self._press_pos is not None:
+            moved = (event.position().toPoint() - self._press_pos).manhattanLength()
+            if moved < QApplication.startDragDistance():
+                self.clicked.emit()
+        self._press_pos = None
+        event.ignore()
 
 
 _avatar_cache = {}

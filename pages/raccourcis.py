@@ -44,10 +44,11 @@ DEFS = [
 class RaccourcisPage(QWidget):
     """Page pleine largeur listant/éditant les 10 raccourcis clavier, en tuiles."""
 
-    def __init__(self, config, logic=None, parent=None):
+    def __init__(self, config, logic=None, on_change=None, parent=None):
         super().__init__(parent)
         self.config = config
         self.logic = logic
+        self.on_change = on_change
         self._sc = {}
         self._build()
 
@@ -85,11 +86,17 @@ class RaccourcisPage(QWidget):
             f"padding:2px 6px;font-size:11px;color:{ACC};font-family:'Space Mono';font-weight:700;"
         )
         inp.textChanged.connect(lambda text, k=key: (self.config.set(k, text), self.config.save()))
+        inp.editingFinished.connect(self._on_change)
         rm.clicked.connect(inp.clear)
+        rm.clicked.connect(self._on_change)
         lay.addWidget(inp)
 
         self._sc[key] = inp
         return t
+
+    def _on_change(self):
+        if self.on_change:
+            self.on_change()
 
     def _build(self):
         lay = QVBoxLayout(self)

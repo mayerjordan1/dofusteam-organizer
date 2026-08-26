@@ -26,7 +26,7 @@ from sidebar import Sidebar
 from updater import UpdateCheckThread, UpdateDownloadThread, can_self_update, apply_update_and_restart
 
 APP_NAME = "DofusTeam"
-VERSION  = "V1.17"
+VERSION  = "V1.18"
 
 CLASSES = ["Cra","Ecaflip","Eliotrope","Eniripsa","Enutrof","Feca","Forgelance",
            "Huppermage","Iop","Osamodas","Ouginak","Pandawa","Roublard","Sacrieur",
@@ -174,15 +174,30 @@ class DofusLogic:
         if now-self._last_switch_t < self._SWITCH_DEBOUNCE: return False
         self._last_switch_t=now; return True
 
+    def _resync_idx(self, lst):
+        # self._idx est un compteur interne, pas une lecture de l'état réel :
+        # si un switch a raté, a été doublé, ou que le focus a changé d'une
+        # autre façon (clic manuel, alt-tab...), il dérive silencieusement et
+        # tous les switches suivants restent décalés (ex: 8 -> 2 au lieu de
+        # 8 -> 1, ou une fenêtre sautée). On le recale ici sur la fenêtre
+        # réellement au premier plan avant de calculer le prochain index.
+        try:
+            fg=win32gui.GetForegroundWindow()
+            for i,a in enumerate(lst):
+                if a["hwnd"]==fg: self._idx=i; return
+        except Exception: pass
+
     def switch_next(self):
         if not self._switch_debounced(): return
         lst=self.get_cycle_list()
         if not lst: return
+        self._resync_idx(lst)
         self._idx=(self._idx+1)%len(lst); self.focus_window(lst[self._idx]["hwnd"])
     def switch_prev(self):
         if not self._switch_debounced(): return
         lst=self.get_cycle_list()
         if not lst: return
+        self._resync_idx(lst)
         self._idx=(self._idx-1)%len(lst); self.focus_window(lst[self._idx]["hwnd"])
     def switch_to_leader(self):
         if self.leader_hwnd: self.focus_window(self.leader_hwnd)

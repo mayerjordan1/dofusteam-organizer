@@ -25,12 +25,11 @@ from theme import (BG, BG2, BG3, BG4, ACC, RED, GREEN, GOLD, BLUE, TEXT, MUT, BO
 from sidebar import Sidebar
 
 APP_NAME = "DofusTeam"
-VERSION  = "V1.04"
+VERSION  = "V1.05"
 
 CLASSES = ["Cra","Ecaflip","Eliotrope","Eniripsa","Enutrof","Feca","Forgelance",
            "Huppermage","Iop","Osamodas","Ouginak","Pandawa","Roublard","Sacrieur",
            "Sadida","Sram","Steamer","Xelor","Zobal"]
-TEAMS = ["", "Team 1", "Team 2", "Team 3", "Team 4"]
 
 # ── Settings ──────────────────────────────────────────────────────────────────
 DEFAULT = {
@@ -39,13 +38,13 @@ DEFAULT = {
     "auto_zaap_key":"","invite_group_key":"","paste_active_key":"","recall_key":"ctrl+shift+&","inventaire_key":"i","spam_click_key":"",
     "zaap_open_delay":0.8,"zaap_click_delay":0.5,"zaap_paste_delay":0.4,
     "game_haven_key":"h","game_version":"Unity","selector_key":"","zaap_favorites":[],"zaap_paste_delay":0.35,
-    "leader_name":"","accounts_state":{},"accounts_team":{},
-    "current_mode":"ALL","classes":{},"custom_order":[],
+    "leader_name":"","accounts_state":{},
+    "classes":{},"custom_order":[],
     "macro_positions":{"chat_position":None,"zaaps":{}},
     "cycle_row_binds":["ctrl+F1","ctrl+F2","ctrl+F3","ctrl+F4","ctrl+F5","ctrl+F6","ctrl+F7","ctrl+F8"],
     "volume_level":50,"spam_click_interval":0.1,
     "mini_toolbar_x":100,"mini_toolbar_y":100,
-    "presets":[],
+    "presets":[],"team_presets":[],
     "radial_menu_active":True,"radial_menu_hotkey":"alt+left_click",
 }
 
@@ -94,8 +93,7 @@ class DofusLogic:
                 pseudo=title.split(" - Dofus Retro")[0].strip()
                 cls=self.config.get("classes",{}).get(pseudo,"Inconnu")
             active=self.config.get("accounts_state",{}).get(pseudo,True)
-            team=self.config.get("accounts_team",{}).get(pseudo,"Team 1")
-            accounts.append({"name":pseudo,"hwnd":hwnd,"active":active,"team":team,"classe":cls})
+            accounts.append({"name":pseudo,"hwnd":hwnd,"active":active,"classe":cls})
         order=self.config.get("custom_order",[])
         for a in accounts:
             if a["name"] not in order: order.append(a["name"])
@@ -122,8 +120,7 @@ class DofusLogic:
         win32gui.EnumWindows(cb,None); return r
 
     def get_cycle_list(self):
-        mode=self.config.get("current_mode","ALL")
-        return [a for a in self.all_accounts if a["active"] and (mode=="ALL" or a["team"]==mode)]
+        return [a for a in self.all_accounts if a["active"]]
 
     def focus_window(self,hwnd):
         if not hwnd or not WINDOWS: return
@@ -228,13 +225,15 @@ class DofusLogic:
         self.all_accounts.sort(key=lambda x:new_order.index(x["name"]) if x["name"] in new_order else 999)
         self.sort_taskbar()
 
-    def set_team(self,name,team):
-        for a in self.all_accounts:
-            if a["name"]==name: a["team"]=team
-        t=self.config.get("accounts_team",{})
-        if team: t[name]=team
-        else: t.pop(name,None)
-        self.config.set("accounts_team",t); self.config.save()
+    def apply_roster(self,members):
+        """Active uniquement les persos du roster (les autres sortent du cycle
+        Tab/fermer team/etc. sans être supprimés de la liste)."""
+        members=set(members)
+        state=self.config.get("accounts_state",{})
+        for name in self.config.get("custom_order",[]):
+            state[name]=name in members
+        self.config.set("accounts_state",state); self.config.save()
+        for a in self.all_accounts: a["active"]=a["name"] in members
 
     def set_leader(self,name):
         self.config.set("leader_name",name); self.config.save()
@@ -257,13 +256,28 @@ class DofusLogic:
             if self.leader_hwnd: self.focus_window(self.leader_hwnd)
         threading.Thread(target=_s,daemon=True).start()
 
-    def close_all(self):
-        for a in self.get_cycle_list():
+    def close_window(self,hwnd):
+        """Ferme la fenêtre proprement (WM_CLOSE, comme un clic sur la croix) —
+        laisse le client Dofus fermer sa session normalement. Un TerminateProcess
+        immédiat coupait le process en plein rendu/réseau, ce qui déstabilisait
+        l'appli quand l'UI redessinait juste après (plantage au clic ⏻). Si la
+        fenêtre n'a pas disparu au bout de 2s, on force en dernier recours."""
+        try: win32gui.PostMessage(hwnd,win32con.WM_CLOSE,0,0)
+        except: pass
+
+        def _force_if_still_open():
             try:
-                _,pid=win32process.GetWindowThreadProcessId(a["hwnd"])
+                if not win32gui.IsWindow(hwnd): return
+                _,pid=win32process.GetWindowThreadProcessId(hwnd)
                 h=ctypes.windll.kernel32.OpenProcess(1,False,pid)
                 ctypes.windll.kernel32.TerminateProcess(h,0); ctypes.windll.kernel32.CloseHandle(h)
             except: pass
+
+        t=threading.Timer(2.0,_force_if_still_open); t.daemon=True; t.start()
+
+    def close_all(self):
+        for a in self.get_cycle_list():
+            self.close_window(a["hwnd"])
 
     def paste_active(self):
         """Colle + valide (clic position chat calibrée, Ctrl+V, Entrée x2) sur le
@@ -427,13 +441,6 @@ class AccountRow(QFrame):
         btn_dn = icon_btn("▼", "Descendre")
         btn_dn.clicked.connect(lambda: self.sig_down.emit(name)); lay.addWidget(btn_dn)
 
-        # Team badge
-        team = config.get("accounts_team",{}).get(name,"")
-        self.tb = QPushButton(team.replace("Team ","T") if team else "—")
-        self.tb.setFixedSize(30,24)
-        self.tb.setToolTip("Changer d'équipe"); self.tb.clicked.connect(lambda: self._cycle_team(name)); lay.addWidget(self.tb)
-        self._style_team_badge(bool(team))
-
         # Star — accent quand chef
         is_leader = config.get("leader_name") == name
         self.star = icon_btn("★", "Définir comme chef", active=is_leader, active_color=GOLD)
@@ -455,21 +462,6 @@ class AccountRow(QFrame):
         # Remove
         rm = icon_btn("✕", "Retirer de la liste", size=(26,24))
         rm.clicked.connect(lambda: self.sig_remove.emit(name)); lay.addWidget(rm)
-
-    def _style_team_badge(self, active):
-        tc = BLUE if active else MUT
-        bg = "rgba(79,163,224,0.14)" if active else "transparent"
-        self.tb.setStyleSheet(f"QPushButton{{background:{bg};color:{tc};border:none;border-radius:5px;font-size:10px;font-weight:700;}}QPushButton:hover{{background:rgba(255,255,255,0.06);}}")
-
-    def _cycle_team(self,name):
-        cur=self.config.get("accounts_team",{}).get(name,"")
-        idx=TEAMS.index(cur) if cur in TEAMS else 0; new=TEAMS[(idx+1)%len(TEAMS)]
-        t=self.config.get("accounts_team",{})
-        if new: t[name]=new
-        else: t.pop(name,None)
-        self.config.set("accounts_team",t); self.config.save()
-        self.tb.setText(new.replace("Team ","T") if new else "—")
-        self._style_team_badge(bool(new))
 
     def _refresh_avatar(self):
         name = self.acc["name"]
@@ -625,6 +617,132 @@ class PresetEditor(QDialog):
         self.config.set("presets",presets); self.config.save()
         self.saved.emit(); self.accept()
 
+class RosterPanel(QWidget):
+    """Presets de roster : chaque roster est une liste indépendante de persos
+    (un même perso peut appartenir à plusieurs rosters). Appliquer un roster
+    active ces persos-là et désactive les autres dans le cycle Tab/fermer
+    team/etc. via DofusLogic.apply_roster() — ne touche pas à l'ordre."""
+    roster_applied = pyqtSignal()
+
+    def __init__(self,config,logic,parent=None):
+        super().__init__(parent); self.config=config; self.logic=logic
+        lay=QVBoxLayout(self); lay.setContentsMargins(0,0,0,0); lay.setSpacing(8)
+        hrow=QHBoxLayout()
+        hrow.addWidget(section_label("ROSTERS")); hrow.addStretch()
+        add=QPushButton("+"); add.setFixedSize(24,24)
+        add.setStyleSheet(f"background:rgba(255,138,30,0.12);color:{ACC};border:1px solid rgba(255,138,30,0.3);border-radius:5px;font-size:14px;font-weight:700;")
+        add.setToolTip("Nouveau roster"); add.clicked.connect(self._new_roster); hrow.addWidget(add)
+        lay.addLayout(hrow)
+        self.container=QWidget(); self.vlay=QVBoxLayout(self.container)
+        self.vlay.setContentsMargins(0,0,0,0); self.vlay.setSpacing(4); self.vlay.addStretch()
+        lay.addWidget(self.container)
+        self.refresh_rosters()
+
+    def refresh_rosters(self):
+        while self.vlay.count()>1:
+            item=self.vlay.takeAt(0)
+            if item.widget(): item.widget().deleteLater()
+        rosters=self.config.get("team_presets",[])
+        if not rosters:
+            empty=QLabel("Aucun roster — crée-en un avec +")
+            empty.setStyleSheet(f"color:{MUT};font-size:11px;"); self.vlay.insertWidget(0,empty); return
+        classes=self.config.get("classes",{})
+        for i,r in enumerate(rosters):
+            row=QWidget(); rl=QHBoxLayout(row); rl.setContentsMargins(8,4,8,4); rl.setSpacing(8)
+            row.setObjectName(f"RosterRow{i}")
+            row.setStyleSheet(f"QWidget#RosterRow{i}{{background:{BG2};border-radius:6px;}}")
+            members=r.get("members",[])
+            if members:
+                icon_av=QLabel(); icon_av.setFixedSize(20,20)
+                icon_av.setStyleSheet("background:transparent;")
+                icon_pix=make_avatar(classes.get(members[0],""),20)
+                if icon_pix: icon_av.setPixmap(icon_pix)
+                rl.addWidget(icon_av)
+            name_lbl=QLabel(r["name"]); name_lbl.setStyleSheet(f"font-weight:700;font-size:12px;color:{TEXT};"); rl.addWidget(name_lbl)
+            count=QLabel(f"{len(members)} persos"); count.setStyleSheet(f"color:{MUT};font-size:10px;"); rl.addWidget(count)
+            rl.addStretch()
+            apply=QPushButton("▶ Appliquer")
+            apply.setStyleSheet(f"background:rgba(255,138,30,0.1);color:{ACC};border:1px solid rgba(255,138,30,0.25);border-radius:5px;padding:3px 10px;font-size:11px;font-weight:700;")
+            apply.clicked.connect(lambda _,r=r: self._apply(r)); rl.addWidget(apply)
+            edit=QPushButton("✏"); edit.setFixedSize(24,24)
+            edit.setStyleSheet(f"background:rgba(255,255,255,0.04);color:{MUT};border:none;border-radius:4px;"); edit.clicked.connect(lambda _,idx=i: self._edit_roster(idx)); rl.addWidget(edit)
+            rm=QPushButton("✕"); rm.setFixedSize(24,24)
+            rm.setStyleSheet(f"QPushButton{{background:transparent;color:rgba(224,85,85,0.35);border:none;border-radius:4px;}}QPushButton:hover{{color:{RED};background:rgba(224,85,85,0.1);}}")
+            rm.clicked.connect(lambda _,idx=i: self._delete(idx)); rl.addWidget(rm)
+            self.vlay.insertWidget(self.vlay.count()-1,row)
+
+    def _apply(self,roster):
+        self.logic.apply_roster(roster.get("members",[]))
+        self.roster_applied.emit()
+
+    def _delete(self,idx):
+        rosters=self.config.get("team_presets",[]); rosters.pop(idx)
+        self.config.set("team_presets",rosters); self.config.save(); self.refresh_rosters()
+
+    def _new_roster(self): self._open_editor(-1)
+    def _edit_roster(self,idx): self._open_editor(idx)
+
+    def _open_editor(self,idx):
+        dlg=RosterEditor(self.config,idx,self); dlg.saved.connect(self.refresh_rosters); dlg.exec()
+
+class RosterEditor(QDialog):
+    saved=pyqtSignal()
+    def __init__(self,config,idx,parent=None):
+        super().__init__(parent); self.config=config; self.idx=idx
+        rosters=self.config.get("team_presets",[])
+        if idx>=0 and idx<len(rosters):
+            self.roster=rosters[idx].copy()
+        else:
+            self.roster={"name":"","members":[]}
+        self.setWindowTitle("Roster d'équipe"); self.setFixedSize(360,480); self.setStyleSheet(STYLE)
+        self._build()
+
+    def _build(self):
+        lay=QVBoxLayout(self); lay.setContentsMargins(16,16,16,16); lay.setSpacing(12)
+        lay.addWidget(QLabel("Nom du roster :"))
+        self.name_inp=QLineEdit(self.roster.get("name","")); self.name_inp.setPlaceholderText("Ex: Farm Abysse"); lay.addWidget(self.name_inp)
+        lay.addWidget(QLabel("Personnages du roster :"))
+
+        scroll=QScrollArea(); scroll.setWidgetResizable(True)
+        scroll.setStyleSheet(f"QScrollArea{{background:{BG3};border:none;border-radius:6px;}}")
+        list_w=QWidget(); list_l=QVBoxLayout(list_w); list_l.setContentsMargins(6,6,6,6); list_l.setSpacing(2)
+        scroll.setWidget(list_w); lay.addWidget(scroll)
+        self._build_char_list(list_l)
+
+        btns=QHBoxLayout()
+        cancel=ghost_btn("Annuler",self.reject); btns.addWidget(cancel)
+        save=accent_btn("💾 Sauvegarder",self._save); btns.addWidget(save)
+        lay.addLayout(btns)
+
+    def _build_char_list(self,list_l):
+        all_known=self.config.get("custom_order",[])
+        members=self.roster.get("members",[])
+        self.checks={}
+        for name in all_known:
+            row=QWidget(); rl=QHBoxLayout(row); rl.setContentsMargins(8,6,8,6); rl.setSpacing(10)
+            chk=QCheckBox(); chk.setChecked(name in members); rl.addWidget(chk)
+            av=QLabel(); av.setFixedSize(28,28)
+            av.setStyleSheet("background:transparent;border:none;")
+            pix=make_avatar(self.config.get("classes",{}).get(name,""),28)
+            if pix: av.setPixmap(pix)
+            rl.addWidget(av)
+            lbl=QLabel(name); lbl.setStyleSheet(f"font-weight:600;color:{TEXT};background:transparent;border:none;"); rl.addWidget(lbl)
+            rl.addStretch()
+            self.checks[name]=chk
+            list_l.addWidget(row)
+        list_l.addStretch()
+
+    def _save(self):
+        name=self.name_inp.text().strip()
+        if not name: return
+        members=[n for n,chk in self.checks.items() if chk.isChecked()]
+        roster={"name":name,"members":members}
+        rosters=self.config.get("team_presets",[])
+        if self.idx>=0 and self.idx<len(rosters): rosters[self.idx]=roster
+        else: rosters.append(roster)
+        self.config.set("team_presets",rosters); self.config.save()
+        self.saved.emit(); self.accept()
+
 # ── Mini Toolbar ──────────────────────────────────────────────────────────────
 class MiniToolbar(QWidget):
     """Barre flottante — inspirée du style overlay de DoFrame (capture fournie par
@@ -673,12 +791,6 @@ class MiniToolbar(QWidget):
         logo.setStyleSheet("QPushButton{background:transparent;border:none;}QPushButton:hover{background:rgba(255,255,255,0.08);border-radius:5px;}")
         logo.clicked.connect(lambda: self.on_show())
         lay.addWidget(logo)
-
-        self.mode_btn=QPushButton()
-        self.mode_btn.setStyleSheet(f"QPushButton{{background:transparent;color:{TEXT};border:none;font-size:12px;font-weight:700;padding:0 4px;}}QPushButton:hover{{color:{ACC};}}")
-        self.mode_btn.clicked.connect(self._show_mode_menu)
-        self._refresh_mode_label()
-        lay.addWidget(self.mode_btn)
 
         # Bande d'avatars — peuplée par _rebuild_char_icons(), séparateur affiché
         # seulement quand des comptes sont détectés (garde l'aspect « replié » avant scan).
@@ -732,24 +844,6 @@ class MiniToolbar(QWidget):
 
         self.resize(bar.sizeHint().width(),bar.sizeHint().height())
         self.move(config.get("mini_toolbar_x",100),config.get("mini_toolbar_y",100))
-
-    def _refresh_mode_label(self):
-        self.mode_btn.setText(f"{self.config.get('current_mode','ALL')}  ⌄")
-
-    def _show_mode_menu(self):
-        menu=QMenu(self)
-        menu.setStyleSheet(f"""
-            QMenu{{background:#151922;color:#f3f4f6;border:1px solid rgba(255,138,30,0.3);border-radius:8px;padding:4px;}}
-            QMenu::item{{padding:6px 18px;border-radius:5px;font-size:12px;}}
-            QMenu::item:selected{{background:#1b2130;color:#ff8a1e;}}
-        """)
-        for m in ("ALL","Team 1","Team 2","Team 3","Team 4"):
-            menu.addAction(m).triggered.connect(lambda _,mm=m: self._set_mode(mm))
-        menu.exec(self.mode_btn.mapToGlobal(self.mode_btn.rect().bottomLeft()))
-
-    def _set_mode(self,m):
-        self.config.set("current_mode",m); self.config.save()
-        self._refresh_mode_label()
 
     def _toggle_collapse(self):
         self._collapsed = not self._collapsed
@@ -987,6 +1081,7 @@ class MainWindow(QMainWindow):
 
     def _build_ui(self):
         from pages.mes_equipes import MesEquipesPage
+        from pages.rosters import RostersPage
         from pages.presets import PresetsPage
         from pages.raccourcis import RaccourcisPage
         from pages.chasse_tresor import ChasseTresorPage
@@ -1009,6 +1104,7 @@ class MainWindow(QMainWindow):
 
         self.stack=QStackedWidget(); self.stack.setStyleSheet("background:transparent;")
         self.page_mes_equipes=MesEquipesPage(self.config,self.logic)
+        self.page_rosters=RostersPage(self.config,self.logic)
         self.page_presets=PresetsPage(self.config,self.logic)
         self.page_raccourcis=RaccourcisPage(self.config,self.logic,on_change=self.hk.reload)
         self.page_chasse_tresor=ChasseTresorPage(self.config,self.logic)
@@ -1019,6 +1115,7 @@ class MainWindow(QMainWindow):
 
         self.pages={
             "mes_equipes":self.page_mes_equipes,
+            "rosters":self.page_rosters,
             "presets":self.page_presets,
             "raccourcis":self.page_raccourcis,
             "chasse_tresor":self.page_chasse_tresor,
@@ -1037,6 +1134,7 @@ class MainWindow(QMainWindow):
         self.page_presets.preset_applied.connect(self.page_mes_equipes.refresh)
         self.page_presets.preset_applied.connect(self._on_order_changed)
         self.page_mes_equipes.order_changed.connect(self._on_order_changed)
+        self.page_rosters.roster_applied.connect(self._on_order_changed)
         self.page_fenetres_scan.accounts_changed.connect(self._on_accounts_changed)
         self.page_automatisations_zaap.open_calibration.connect(lambda: self._open_calib_mode("zaap"))
         self.page_calibration.open_calibration.connect(self._open_calib_mode)

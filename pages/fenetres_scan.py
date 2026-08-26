@@ -29,8 +29,6 @@ try:
 except ImportError:
     PYAUTOGUI_OK = False
 
-TEAMS = ["", "Team 1", "Team 2", "Team 3", "Team 4"]
-
 
 def _make_header(title, subtitle):
     header = QWidget()
@@ -215,7 +213,6 @@ class FenetresScanPage(QWidget):
     def _refresh(self):
         order = self.config.get("custom_order", [])
         classes = self.config.get("classes", {})
-        teams = self.config.get("accounts_team", {})
         leader = self.config.get("leader_name", "")
         hwnds = {a.get("name"): a.get("hwnd") for a in (self.logic.all_accounts or [])}
 
@@ -231,7 +228,6 @@ class FenetresScanPage(QWidget):
             acc = {
                 "name": name,
                 "classe": classes.get(name, ""),
-                "team": teams.get(name, ""),
                 "leader": name == leader,
                 "hwnd": hwnds.get(name),
             }

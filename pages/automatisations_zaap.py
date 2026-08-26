@@ -10,7 +10,7 @@ l'onglet Calibration est remplacé par une carte de renvoi vers la page
 Calibration dédiée (pages/calibration.py) — décision "redondance calibration"
 du plan, pour ne pas dupliquer CalibrationManager/zaap_dialog côte à côte.
 """
-from PyQt6.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout, QLabel, QPushButton, QFrame
+from PyQt6.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout, QLabel, QPushButton, QFrame, QScrollArea
 from PyQt6.QtCore import pyqtSignal
 
 from theme import MUT, GOLD, RED, section_label, card, accent_btn, ghost_btn
@@ -35,6 +35,7 @@ def _make_header(title, subtitle):
     if subtitle:
         s = QLabel(subtitle)
         s.setObjectName("PageSubtitle")
+        s.setWordWrap(True)
         lay.addWidget(s)
     return header
 
@@ -82,8 +83,12 @@ class AutomatisationsZaapPage(QWidget):
         body_lay.addWidget(self._exec_card())
         body_lay.addStretch()
 
-        lay.addWidget(body)
-        lay.addStretch()
+        scroll = QScrollArea()
+        scroll.setWidgetResizable(True)
+        scroll.setFrameShape(QScrollArea.Shape.NoFrame)
+        scroll.setStyleSheet("background:transparent;")
+        scroll.setWidget(body)
+        lay.addWidget(scroll, stretch=1)
 
     def _calib_link_card(self):
         c = card(QWidget())

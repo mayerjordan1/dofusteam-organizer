@@ -19,3 +19,5 @@ else:
 SKIN_DIR = RES_DIR / "skin"
 SOUNDS_DIR = RES_DIR / "sounds"
 SETTINGS_PATH = APP_DIR / "settings.json"
+CACHE_DIR = APP_DIR / ".cache"
+CACHE_DIR.mkdir(exist_ok=True)

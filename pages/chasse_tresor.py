@@ -39,6 +39,7 @@ def _make_header(title, subtitle):
     if subtitle:
         s = QLabel(subtitle)
         s.setObjectName("PageSubtitle")
+        s.setWordWrap(True)
         lay.addWidget(s)
     return header
 
@@ -106,14 +107,20 @@ class ChasseTresorPage(QWidget):
         ))
 
         body = QWidget()
+        body.setStyleSheet("background:transparent;")
         body_lay = QHBoxLayout(body)
         body_lay.setContentsMargins(24, 18, 24, 18)
         body_lay.setSpacing(16)
 
         body_lay.addWidget(self._search_card(), 1)
-        body_lay.addWidget(self._result_card())
+        body_lay.addWidget(self._result_card(), 0, Qt.AlignmentFlag.AlignTop)
 
-        lay.addWidget(body, 1)
+        scroll = QScrollArea()
+        scroll.setWidgetResizable(True)
+        scroll.setFrameShape(QScrollArea.Shape.NoFrame)
+        scroll.setStyleSheet("background:transparent;")
+        scroll.setWidget(body)
+        lay.addWidget(scroll, 1)
 
     def _search_card(self):
         c = glass_card(QWidget())
@@ -138,11 +145,12 @@ class ChasseTresorPage(QWidget):
         crit_lay.setContentsMargins(14, 14, 14, 14)
         crit_lay.setSpacing(10)
 
-        pos_row = QHBoxLayout()
-        pos_row.setSpacing(14)
         pos_lbl = QLabel("Position actuelle :")
         pos_lbl.setStyleSheet(f"color:{TEXT}; font-size:12px; background:transparent;")
-        pos_row.addWidget(pos_lbl)
+        crit_lay.addWidget(pos_lbl)
+
+        pos_row = QHBoxLayout()
+        pos_row.setSpacing(10)
         self.x_inp = self._coord_field("X")
         pos_row.addWidget(self.x_inp.parent_widget)
         self.y_inp = self._coord_field("Y")
@@ -286,7 +294,7 @@ class ChasseTresorPage(QWidget):
 
     def _result_card(self):
         c = glass_card(QWidget())
-        c.setFixedWidth(280)
+        c.setFixedWidth(240)
         clay = QVBoxLayout(c)
         clay.setContentsMargins(16, 14, 16, 14)
         clay.setSpacing(10)

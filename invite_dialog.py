@@ -190,10 +190,11 @@ class InviteDialog(QDialog):
         def _do():
             for i, name in enumerate(to_invite):
                 self._status_sig.emit(f"Invitation {i+1}/{total} — {name}...")
-                pyautogui.click(cp[0], cp[1]); time.sleep(0.2)
+                pyautogui.click(cp[0], cp[1]); time.sleep(0.08)
                 pyperclip.copy(f"/invite {name}")
-                pyautogui.hotkey("ctrl", "v"); pyautogui.press("enter")
-                time.sleep(0.5)
+                pyautogui.hotkey("ctrl", "v"); time.sleep(0.05)
+                pyautogui.press("enter")
+                time.sleep(0.2)
             self._status_sig.emit(f"✅ {total} invitation(s) envoyée(s) !")
             self._done_sig.emit()
 

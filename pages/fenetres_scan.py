@@ -42,6 +42,7 @@ def _make_header(title, subtitle):
     if subtitle:
         s = QLabel(subtitle)
         s.setObjectName("PageSubtitle")
+        s.setWordWrap(True)
         lay.addWidget(s)
     return header
 
@@ -93,18 +94,26 @@ class FenetresScanPage(QWidget):
         lay.setContentsMargins(16, 14, 16, 14)
         lay.setSpacing(10)
 
-        head = QHBoxLayout()
-        head.addWidget(section_label("Comptes"))
+        # Titre+badge sur leur propre ligne, actions sur la suivante — évite que
+        # ce header pousse la largeur minimale de la page au-delà de 700px
+        # (les 2 boutons + le titre ne tenaient pas sur une seule ligne à la
+        # largeur minimale du panneau).
+        title_row = QHBoxLayout()
+        title_row.addWidget(section_label("Comptes"))
         self.count_badge = QLabel("0")
         self.count_badge.setStyleSheet(
             f"color:{ACC}; background:rgba(255,138,30,0.12); border-radius:9px;"
             f"padding:1px 8px; font-size:11px; font-weight:700;"
         )
-        head.addWidget(self.count_badge)
-        head.addStretch()
-        head.addWidget(ghost_btn("🔍 Scanner", self._scan))
-        head.addWidget(ghost_btn("+ Ajouter", self._add_account))
-        lay.addLayout(head)
+        title_row.addWidget(self.count_badge)
+        title_row.addStretch()
+        lay.addLayout(title_row)
+
+        actions_row = QHBoxLayout()
+        actions_row.addWidget(ghost_btn("🔍 Scanner", self._scan))
+        actions_row.addWidget(ghost_btn("+ Ajouter", self._add_account))
+        actions_row.addStretch()
+        lay.addLayout(actions_row)
 
         self.scan_msg = QLabel("—")
         self.scan_msg.setWordWrap(True)

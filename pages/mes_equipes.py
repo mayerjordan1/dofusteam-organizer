@@ -7,7 +7,8 @@ des widgets autour d'elle, tout le calcul reste dans main.py/dofus_logic.
 from PyQt6.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QGridLayout, QLabel, QPushButton, QScrollArea,
 )
-from PyQt6.QtCore import Qt, pyqtSignal
+from PyQt6.QtCore import Qt, QSize, pyqtSignal
+from PyQt6.QtGui import QIcon
 
 from theme import TEXT, MUT, BG, BG2, BG3, ACC, GREEN, GOLD, BORDER, section_label, glass_card, accent_btn, ghost_btn, make_avatar, ClickableAvatar, crown_icon
 
@@ -28,6 +29,7 @@ def _make_header(title, subtitle):
     if subtitle:
         s = QLabel(subtitle)
         s.setObjectName("PageSubtitle")
+        s.setWordWrap(True)
         lay.addWidget(s)
     return header
 
@@ -157,10 +159,13 @@ class _EmptySlot(QWidget):
 
 
 class _PresetPill(QPushButton):
-    def __init__(self, name, subtitle, active=False, parent=None):
+    def __init__(self, name, subtitle, active=False, icon_pix=None, parent=None):
         super().__init__(parent)
         self.setCursor(Qt.CursorShape.PointingHandCursor)
         self.setText(f"{name}\n{subtitle}" if subtitle else name)
+        if icon_pix:
+            self.setIcon(QIcon(icon_pix))
+            self.setIconSize(QSize(22, 22))
         border = f"2px solid {ACC}" if active else f"1px solid {BORDER}"
         fg = TEXT if active else MUT
         self.setStyleSheet(
@@ -172,6 +177,11 @@ class _PresetPill(QPushButton):
 
 class MesEquipesPage(QWidget):
     """Page principale — presets rapides + ordre d'initiative + actions de fenêtre."""
+
+    # Émis quand l'ordre des persos change (preset appliqué, ordre d'initiative
+    # modifié) — MainWindow s'y connecte pour rafraîchir la bande d'avatars de la
+    # mini-toolbar, qui n'est sinon reconstruite qu'après un scan de fenêtres.
+    order_changed = pyqtSignal()
 
     def __init__(self, config, logic, parent=None):
         super().__init__(parent)
@@ -238,12 +248,23 @@ class MesEquipesPage(QWidget):
         order_header.addWidget(ghost_btn("✏ Modifier l'ordre", self._edit_order))
         llay.addLayout(order_header)
 
-        # Une seule ligne de 8 — CARD_W=84 * 8 + espacements tient dans la largeur restante
+        # Une seule ligne de 8 — CARD_W=84 * 8 + espacements peut dépasser la
+        # largeur restante à la taille minimale de la fenêtre → scroll horizontal
+        # (même pattern que pills_scroll ci-dessus) pour ne jamais rogner une carte.
+        slots_scroll = QScrollArea()
+        slots_scroll.setWidgetResizable(True)
+        slots_scroll.setFixedHeight(CARD_H + 14)
+        slots_scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAsNeeded)
+        slots_scroll.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+        slots_scroll.setFrameShape(QScrollArea.Shape.NoFrame)
+        slots_scroll.setStyleSheet("background:transparent;")
         slots_container = QWidget()
+        slots_container.setStyleSheet("background:transparent;")
         self.slots_lay = QGridLayout(slots_container)
         self.slots_lay.setContentsMargins(2, 2, 2, 2)
         self.slots_lay.setSpacing(10)
-        llay.addWidget(slots_container)
+        slots_scroll.setWidget(slots_container)
+        llay.addWidget(slots_scroll)
 
         llay.addStretch()
         return left
@@ -332,10 +353,12 @@ class MesEquipesPage(QWidget):
             empty.setStyleSheet(f"color:{MUT}; font-size:11px; background:transparent;")
             self.pills_lay.addWidget(empty)
         else:
+            classes = self.config.get("classes", {})
             for i, p in enumerate(presets):
                 p_order = p.get("order", [])
                 subtitle = f"{len(p_order)} position(s)"
-                pill = _PresetPill(p.get("name", "?"), subtitle, active=(i == 0))
+                icon_pix = make_avatar(classes.get(p_order[0], ""), 22) if p_order else None
+                pill = _PresetPill(p.get("name", "?"), subtitle, active=(i == 0), icon_pix=icon_pix)
                 pill.clicked.connect(lambda _, pp=p: self._apply_preset(pp))
                 self.pills_lay.addWidget(pill)
         self.pills_lay.addStretch()
@@ -389,6 +412,7 @@ class MesEquipesPage(QWidget):
     def _apply_preset(self, preset):
         self.logic.apply_preset(preset.get("order", []))
         self.refresh()
+        self.order_changed.emit()
 
     def _arm_leader_select(self):
         self._select_mode = not self._select_mode

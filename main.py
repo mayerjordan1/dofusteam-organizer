@@ -36,7 +36,7 @@ TEAMS = ["", "Team 1", "Team 2", "Team 3", "Team 4"]
 DEFAULT = {
     "prev_key":"<","next_key":"tab","leader_key":"","sync_key":"decimal",
     "toggle_app_key":"f10","refresh_key":"f5","sort_taskbar_key":"","calib_key":"f4",
-    "auto_zaap_key":"","invite_group_key":"","paste_active_key":"",
+    "auto_zaap_key":"","invite_group_key":"","paste_active_key":"","recall_key":"ctrl+shift+&",
     "zaap_open_delay":0.8,"zaap_click_delay":0.5,"zaap_paste_delay":0.4,
     "game_haven_key":"h","game_version":"Unity","selector_key":"","zaap_favorites":[],"zaap_paste_delay":0.35,
     "leader_name":"","accounts_state":{},"accounts_team":{},
@@ -173,6 +173,16 @@ class DofusLogic:
         self._idx=(self._idx-1)%len(lst); self.focus_window(lst[self._idx]["hwnd"])
     def switch_to_leader(self):
         if self.leader_hwnd: self.focus_window(self.leader_hwnd)
+    def trigger_recall_potion(self):
+        # Le raccourci renvoyé dans chaque fenêtre est le même que le déclencheur
+        # global (le jeu détecte tout seul la potion, pas besoin de le distinguer)
+        # → verrou pour ne pas se re-déclencher soi-même via le hook clavier
+        # global pendant qu'on renvoie ce raccourci fenêtre par fenêtre.
+        if getattr(self,"_recall_busy",False): return
+        self._recall_busy=True
+        from recall_macro import quick_recall_potion
+        key=self.config.get("recall_key","")
+        quick_recall_potion(self.config,self,key,on_done=lambda: setattr(self,"_recall_busy",False))
     def switch_to_index(self,i):
         lst=self.get_cycle_list()
         if 0<=i<len(lst): self._idx=i; self.focus_window(lst[i]["hwnd"])
@@ -307,6 +317,7 @@ class HotkeyManager:
         self._reg(c.get("refresh_key"),self.logic.refresh_all)
         self._reg(c.get("sort_taskbar_key"),self.logic.sort_taskbar)
         self._reg(c.get("paste_active_key"),self.logic.paste_active)
+        self._reg(c.get("recall_key"),self.logic.trigger_recall_potion)
         # appui simple : instantané, géré par le hook clavier (pas le polling)
         self._reg(c.get("next_key"),self.logic.switch_next)
         self._reg(c.get("prev_key"),self.logic.switch_prev)
@@ -486,10 +497,18 @@ class PresetPanel(QWidget):
         if not presets:
             empty=QLabel("Aucun preset — crée-en un avec +")
             empty.setStyleSheet(f"color:{MUT};font-size:11px;"); self.vlay.insertWidget(0,empty); return
+        classes=self.config.get("classes",{})
         for i,p in enumerate(presets):
             row=QWidget(); rl=QHBoxLayout(row); rl.setContentsMargins(8,4,8,4); rl.setSpacing(8)
             row.setObjectName(f"PresetRow{i}")
             row.setStyleSheet(f"QWidget#PresetRow{i}{{background:{BG2};border-radius:6px;}}")
+            p_order=p.get("order",[])
+            if p_order:
+                icon_av=QLabel(); icon_av.setFixedSize(20,20)
+                icon_av.setStyleSheet("background:transparent;")
+                icon_pix=make_avatar(classes.get(p_order[0],""),20)
+                if icon_pix: icon_av.setPixmap(icon_pix)
+                rl.addWidget(icon_av)
             name_lbl=QLabel(p["name"]); name_lbl.setStyleSheet(f"font-weight:700;font-size:12px;color:{TEXT};"); rl.addWidget(name_lbl)
             count=QLabel(f"{len(p.get('order',[]))} persos"); count.setStyleSheet(f"color:{MUT};font-size:10px;"); rl.addWidget(count)
             rl.addStretch()
@@ -519,10 +538,13 @@ class PresetPanel(QWidget):
 
 class PresetEditor(QDialog):
     saved=pyqtSignal()
-    def __init__(self,config,idx,parent=None):
+    def __init__(self,config,idx,parent=None,initial_order=None):
         super().__init__(parent); self.config=config; self.idx=idx
         presets=self.config.get("presets",[])
-        self.preset=presets[idx].copy() if idx>=0 and idx<len(presets) else {"name":"","order":[]}
+        if idx>=0 and idx<len(presets):
+            self.preset=presets[idx].copy()
+        else:
+            self.preset={"name":"","order":list(initial_order) if initial_order else []}
         self.setWindowTitle("Preset d'initiative"); self.setFixedSize(360,480); self.setStyleSheet(STYLE)
         self._build()
 
@@ -589,12 +611,65 @@ class PresetEditor(QDialog):
         self.saved.emit(); self.accept()
 
 # ── Mini Toolbar ──────────────────────────────────────────────────────────────
+class _AvatarSlot(QWidget):
+    """Icône d'un perso dans la bande d'avatars — source ET cible de drag & drop
+    pour réordonner à la volée (glisser un avatar sur un autre les échange)."""
+
+    def __init__(self, name, on_reorder, parent=None):
+        super().__init__(parent)
+        self.name = name
+        self._on_reorder = on_reorder
+        self.setAcceptDrops(True)
+        self._press_pos = None
+
+    def mousePressEvent(self, e):
+        if e.button() == Qt.MouseButton.LeftButton:
+            self._press_pos = e.position().toPoint()
+        super().mousePressEvent(e)
+
+    def mouseMoveEvent(self, e):
+        if self._press_pos is None or not (e.buttons() & Qt.MouseButton.LeftButton):
+            super().mouseMoveEvent(e); return
+        if (e.position().toPoint() - self._press_pos).manhattanLength() < QApplication.startDragDistance():
+            super().mouseMoveEvent(e); return
+        drag = QDrag(self)
+        mime = QMimeData(); mime.setText(self.name)
+        drag.setMimeData(mime)
+        drag.setPixmap(self.grab())
+        drag.setHotSpot(e.position().toPoint())
+        self._press_pos = None
+        drag.exec(Qt.DropAction.MoveAction)
+
+    def dragEnterEvent(self, e):
+        if e.mimeData().hasText() and e.mimeData().text() != self.name:
+            e.acceptProposedAction()
+            self.setStyleSheet("background:transparent;border:2px solid #ff8a1e;border-radius:16px;")
+
+    def dragLeaveEvent(self, e):
+        self.setStyleSheet("")
+
+    def dropEvent(self, e):
+        self.setStyleSheet("")
+        src = e.mimeData().text()
+        if src and src != self.name:
+            self._on_reorder(src, self.name)
+        e.acceptProposedAction()
+
+
 class MiniToolbar(QWidget):
     """Barre flottante — inspirée du style overlay de DoFrame (capture fournie par
     l'utilisateur) : poignée + logo + libellé de mode à gauche, bande d'avatars des
     personnages détectés au centre (pastille de statut), actions rapides à droite
     (chef/havre-sac/zaap/plus), puis réduire/fermer. « Réduire » replie la barre en
-    une petite pastille (self.nub) — même geste que le second aperçu de la capture."""
+    une petite pastille (self.nub) — même geste que le second aperçu de la capture.
+
+    La bande d'avatars supporte le drag & drop pour réordonner les persos sans
+    repasser par la fenêtre principale — glisser change juste l'affichage local
+    (self._pending_accounts) ; « ✓ Valider » applique cet ordre (fenêtres Windows
+    + ordre d'initiative), « 💾 » l'enregistre comme preset nommé."""
+
+    order_validated = pyqtSignal()
+    preset_saved = pyqtSignal()
 
     def __init__(self,config,logic,on_show,on_navigate=None):
         super().__init__(None,Qt.WindowType.Tool|Qt.WindowType.FramelessWindowHint|Qt.WindowType.WindowStaysOnTopHint)
@@ -608,6 +683,7 @@ class MiniToolbar(QWidget):
             if icon_file:
                 ic=load_icon(icon_file,icon_size)
                 if ic: b.setIcon(ic); b.setIconSize(QSize(icon_size,icon_size))
+                else: b.setText(icon)  # PNG absent du skin/ → fallback emoji
             elif icon_pixmap is not None:
                 b.setIcon(QIcon(icon_pixmap)); b.setIconSize(icon_pixmap.size())
             return b
@@ -651,12 +727,29 @@ class MiniToolbar(QWidget):
         self._char_lay.setContentsMargins(0,0,0,0); self._char_lay.setSpacing(6)
         lay.addWidget(self._char_container)
         self._char_btns=[]
+        self._pending_accounts=[]
+
+        # Glisser un avatar dans la bande ci-dessus réordonne self._pending_accounts
+        # sans rien appliquer — ces deux boutons commitent ce choix : "✓" trie la
+        # barre des tâches Windows + l'ordre d'initiative, "💾" ouvre l'éditeur de
+        # preset pré-rempli avec l'ordre courant (voir _validate_order/_save_order_as_preset).
+        self.b_validate_order=mkb("✓","Valider l'ordre — trie la barre des tâches Windows selon la bande d'avatars",BG,size=(24,30))
+        self.b_save_preset=mkb("💾","Enregistrer l'ordre de la bande d'avatars comme preset",BG,size=(24,30))
+        self.b_validate_order.clicked.connect(self._validate_order)
+        self.b_save_preset.clicked.connect(self._save_order_as_preset)
+        self.b_validate_order.setVisible(False)
+        self.b_save_preset.setVisible(False)
+        self._order_dirty=False
+        lay.addWidget(self.b_validate_order)
+        lay.addWidget(self.b_save_preset)
 
         lay.addWidget(sep())
 
         self.b_leader=mkb("👑","Aller au chef",BG,icon_pixmap=crown_icon(16,GOLD))
         self.b_hsac=mkb("🏠","Havre-sac + Zaap\n1. Appuie H sur tous les persos\n2. Clique zaap calibré sur tous",BG,icon_file="havre-sac.png",icon_size=22)
         self.b_zaap=mkb("⚡","Zaap favoris ⭐\nOuvre havre-sac + zaap puis colle/valide directement la destination favorite sur tous les persos",BG,icon_file="icon_zaap.png",size=(40,30),icon_size=28)
+        self.b_recall=mkb("🧪","Potion de rappel\nSwitch de fenêtre + renvoie le raccourci de rappel sur tous les persos (déjà bind côté jeu)",BG,icon_file="potion-rappel.png",icon_size=20)
+        self.b_inv=mkb("🎒","Inventaire\nClic gauche: switch + clic sur la position calibrée sur tous les persos\nClic droit: calibrer",BG,icon_file="inventaire.png",icon_size=20)
         self.b_more=mkb("⋯","Plus d'actions")
         self.b_leader.clicked.connect(lambda: self.logic.switch_to_leader() if self.logic else None)
         self.b_hsac.clicked.connect(self._quick_hsac)
@@ -664,8 +757,12 @@ class MiniToolbar(QWidget):
         self.b_hsac.customContextMenuRequested.connect(lambda: self._show_zaap_menu())
         self.b_hsac.setToolTip("🏠 Havre-sac + Zaap\nClic gauche: ouvrir tous les havresacs\nClic droit: zaap favoris ⭐")
         self.b_zaap.clicked.connect(self._quick_zaap)
+        self.b_recall.clicked.connect(lambda: self.logic.trigger_recall_potion() if self.logic else None)
+        self.b_inv.clicked.connect(self._quick_inventaire)
+        self.b_inv.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
+        self.b_inv.customContextMenuRequested.connect(lambda: self._calibrate_inventaire())
         self.b_more.clicked.connect(self._show_more_menu)
-        for w in (self.b_leader,self.b_hsac,self.b_zaap,self.b_more): lay.addWidget(w)
+        for w in (self.b_leader,self.b_hsac,self.b_zaap,self.b_recall,self.b_inv,self.b_more): lay.addWidget(w)
 
         lay.addWidget(sep())
 
@@ -739,6 +836,18 @@ class MiniToolbar(QWidget):
         from zaap_macro import quick_havresac_zaap
         quick_havresac_zaap(self.config, self.logic, on_status=lambda m:print(f"[hsac]{m}"))
 
+    def _quick_inventaire(self):
+        if not PYAUTOGUI_OK or not self.logic: return
+        from inventaire_macro import quick_inventaire
+        quick_inventaire(self.config, self.logic, on_status=lambda m:print(f"[inventaire]{m}"))
+
+    def _calibrate_inventaire(self):
+        if not self.logic: return
+        from calibrator import CalibrationManager
+        self._calib_mgr = CalibrationManager(self.config, self.logic, self, mode="inventaire")
+        self._calib_mgr.status.connect(lambda m: print(f"[inventaire]{m}"))
+        self._calib_mgr.start()
+
     def _show_zaap_menu(self):
         """Right-click on zaap button → favorites menu."""
         from zaap_data import ZAAPS, get_favorites
@@ -782,9 +891,12 @@ class MiniToolbar(QWidget):
             menu.addAction(wa)
         menu.exec(self.b_more.mapToGlobal(self.b_more.rect().bottomLeft()))
 
-    def _rebuild_char_icons(self, accounts):
+    def _rebuild_char_icons(self, accounts, reset_dirty=True):
         """Rebuild character icon strip after scan — avatars ronds + pastille de statut
-        (style bande d'avatars DoFrame), peuplés dans self._char_lay (voir __init__)."""
+        (style bande d'avatars DoFrame), peuplés dans self._char_lay (voir __init__).
+        reset_dirty=False quand on redessine juste après un drag & drop interne
+        (_on_avatar_drag_reorder) : l'ordre reste "non validé", il ne faut pas
+        effacer l'indicateur du bouton "✓ Valider"."""
         while self._char_lay.count():
             item = self._char_lay.takeAt(0)
             if item.widget():
@@ -803,9 +915,15 @@ class MiniToolbar(QWidget):
             deduped.append(acc)
         accounts = deduped
         self._char_sep.setVisible(bool(accounts))
+        self._pending_accounts = list(accounts)
+        self.b_validate_order.setVisible(bool(accounts))
+        self.b_save_preset.setVisible(bool(accounts))
+        if reset_dirty:
+            self._order_dirty = False
+            self._update_validate_style()
 
         for acc in accounts:
-            stack = QWidget(); stack.setFixedSize(32, 32)
+            stack = _AvatarSlot(acc["name"], self._on_avatar_drag_reorder); stack.setFixedSize(32, 32)
             b = QPushButton(stack); b.setGeometry(0, 0, 32, 32); b.setToolTip(acc["name"])
             pix = make_avatar(acc.get("classe", ""), 28)
             if pix: b.setIcon(QIcon(pix)); b.setIconSize(QSize(28, 28))
@@ -847,6 +965,57 @@ class MiniToolbar(QWidget):
                     f"QPushButton{{background:{'rgba(255,138,30,0.2)' if is_active else 'rgba(255,255,255,0.05)'};border:{'2px solid #ff8a1e' if is_active else '1px solid rgba(255,255,255,0.08)'};border-radius:16px;}}"
                     f"QPushButton:hover{{background:rgba(255,138,30,0.15);border-color:#ff8a1e;}}"
                 )
+
+    def _on_avatar_drag_reorder(self, src_name, dst_name):
+        """Un avatar déposé sur un autre échange leur position dans
+        self._pending_accounts, puis la bande est redessinée dans le nouvel ordre."""
+        names = [a["name"] for a in self._pending_accounts]
+        if src_name not in names or dst_name not in names:
+            return
+        i, j = names.index(src_name), names.index(dst_name)
+        self._pending_accounts[i], self._pending_accounts[j] = self._pending_accounts[j], self._pending_accounts[i]
+        self._order_dirty = True
+        self._rebuild_char_icons(self._pending_accounts, reset_dirty=False)
+        self._update_validate_style()
+
+    def _update_validate_style(self):
+        """Pastille orange sur "✓ Valider" tant que l'ordre glissé n'a pas été
+        appliqué — sans ça rien n'indique qu'un changement local attend d'être validé."""
+        if self._order_dirty:
+            self.b_validate_order.setStyleSheet(
+                f"QPushButton{{background:{ACC};color:#0f1115;border:none;border-radius:6px;font-size:14px;font-weight:700;}}"
+            )
+        else:
+            self.b_validate_order.setStyleSheet(
+                f"QPushButton{{background:{BG};color:white;border:none;border-radius:6px;font-size:14px;}}"
+            )
+
+    def _validate_order(self):
+        """« ✓ Valider » — commite l'ordre courant de la bande d'avatars : trie
+        la barre des tâches Windows et l'ordre d'initiative (via apply_preset,
+        même chemin que l'application d'un preset depuis la page Presets)."""
+        if not self.logic or not self._pending_accounts: return
+        order = [a["name"] for a in self._pending_accounts]
+        self.logic.apply_preset(order)
+        self._order_dirty = False
+        self.order_validated.emit()
+        self.b_validate_order.setToolTip("Trié !")
+        self.b_validate_order.setStyleSheet(
+            f"QPushButton{{background:{GREEN};color:#0f1115;border:none;border-radius:6px;font-size:14px;font-weight:700;}}"
+        )
+        QTimer.singleShot(900, self._update_validate_style)
+        QTimer.singleShot(900, lambda: self.b_validate_order.setToolTip(
+            "Valider l'ordre — trie la barre des tâches Windows selon la bande d'avatars"))
+
+    def _save_order_as_preset(self):
+        """« 💾 » — ouvre l'éditeur de preset pré-rempli avec l'ordre courant de
+        la bande d'avatars ; l'utilisateur peut encore l'ajuster puis n'a plus
+        qu'à saisir un nom."""
+        if not self._pending_accounts: return
+        order = [a["name"] for a in self._pending_accounts]
+        editor = PresetEditor(self.config, -1, self, initial_order=order)
+        editor.saved.connect(self.preset_saved.emit)
+        editor.exec()
 
     def _quick_paste(self):
         if not PYAUTOGUI_OK or not self.logic: return
@@ -1029,6 +1198,12 @@ class MainWindow(QMainWindow):
 
         # Inter-pages : rester découplées, MainWindow fait le lien via signaux
         self.page_presets.preset_applied.connect(self.page_mes_equipes.refresh)
+        self.page_presets.preset_applied.connect(self._on_order_changed)
+        self.page_mes_equipes.order_changed.connect(self._on_order_changed)
+        self.mini.order_validated.connect(self.page_mes_equipes.refresh)
+        self.mini.order_validated.connect(self._on_order_changed)
+        self.mini.preset_saved.connect(self.page_mes_equipes.refresh)
+        self.mini.preset_saved.connect(self.page_presets.refresh_presets)
         self.page_fenetres_scan.accounts_changed.connect(self._on_accounts_changed)
         self.page_automatisations_zaap.open_calibration.connect(lambda: self._open_calib_mode("zaap"))
         self.page_calibration.open_calibration.connect(self._open_calib_mode)
@@ -1162,6 +1337,14 @@ class MainWindow(QMainWindow):
         self.page_chasse_tresor._refresh_accounts()
         self._last_scan_ts=time.time()
         self._tick_status_bar()
+
+    def _on_order_changed(self):
+        """Branché sur preset_applied (page Presets) et order_changed (page Mes
+        équipes) — l'application d'un preset trie déjà la barre des tâches
+        Windows et l'ordre d'initiative via DofusLogic.apply_preset(), mais la
+        bande d'avatars de la mini-toolbar n'était sinon reconstruite qu'après
+        un scan : on la rafraîchit ici pour qu'elle suive le nouvel ordre."""
+        self.mini._rebuild_char_icons(self.logic.get_cycle_list())
 
     # ── Actions ───────────────────────────────────────────────────────────────
     def _toggle_hk(self):

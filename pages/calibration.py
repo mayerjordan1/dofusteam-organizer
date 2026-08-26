@@ -24,6 +24,7 @@ def _make_header(title, subtitle):
     if subtitle:
         s = QLabel(subtitle)
         s.setObjectName("PageSubtitle")
+        s.setWordWrap(True)
         lay.addWidget(s)
     return header
 

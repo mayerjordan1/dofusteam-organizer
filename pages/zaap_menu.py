@@ -47,6 +47,7 @@ def _make_header(title, subtitle):
     if subtitle:
         s = QLabel(subtitle)
         s.setObjectName("PageSubtitle")
+        s.setWordWrap(True)
         lay.addWidget(s)
     return header
 
@@ -79,7 +80,6 @@ class ZaapMenuPage(QWidget):
         body_lay.setSpacing(12)
 
         body_lay.addWidget(self._search_row())
-        body_lay.addWidget(self._column_header())
         body_lay.addWidget(self._list_card(), 1)
 
         lay.addWidget(body, 1)
@@ -151,12 +151,26 @@ class ZaapMenuPage(QWidget):
         scroll.setWidgetResizable(True)
         scroll.setStyleSheet("background:transparent;border:none;")
 
+        # L'en-tête de colonnes vit DANS le même widget scrollable que les
+        # lignes (plutôt qu'en sibling fixe au-dessus) : ses largeurs de
+        # colonnes (_NAME_W/_REGION_W) sont bien plus larges que 700px ne le
+        # permet, donc les sortir du scroll forçait la fenêtre entière à
+        # s'élargir bien au-delà du minimum déclaré — ici elles défilent
+        # simplement à l'horizontale avec les lignes, toujours alignées.
         self.list_w = QWidget()
         self.list_w.setStyleSheet("background:transparent;")
         self.list_l = QVBoxLayout(self.list_w)
         self.list_l.setSpacing(4)
         self.list_l.setContentsMargins(4, 4, 4, 4)
-        self.list_l.addStretch()
+        self.list_l.addWidget(self._column_header())
+
+        self.rows_w = QWidget()
+        self.rows_w.setStyleSheet("background:transparent;")
+        self.list_l_rows = QVBoxLayout(self.rows_w)
+        self.list_l_rows.setContentsMargins(0, 0, 0, 0)
+        self.list_l_rows.setSpacing(4)
+        self.list_l_rows.addStretch()
+        self.list_l.addWidget(self.rows_w)
 
         scroll.setWidget(self.list_w)
         clay.addWidget(scroll)
@@ -174,19 +188,19 @@ class ZaapMenuPage(QWidget):
         if query:
             items = [z for z in items if query in z["name"].lower() or query in z["region"].lower()]
 
-        while self.list_l.count() > 1:
-            item = self.list_l.takeAt(0)
+        while self.list_l_rows.count() > 1:
+            item = self.list_l_rows.takeAt(0)
             if item.widget():
                 item.widget().deleteLater()
 
         for z in items:
-            self.list_l.insertWidget(self.list_l.count() - 1, self._make_row(z, z["name"] in favs))
+            self.list_l_rows.insertWidget(self.list_l_rows.count() - 1, self._make_row(z, z["name"] in favs))
 
         if not items:
             empty = QLabel("Aucun zaap ne correspond à cette recherche.")
             empty.setStyleSheet(f"color:{MUT}; font-size:12px; background:transparent; padding:16px;")
             empty.setAlignment(Qt.AlignmentFlag.AlignCenter)
-            self.list_l.insertWidget(self.list_l.count() - 1, empty)
+            self.list_l_rows.insertWidget(self.list_l_rows.count() - 1, empty)
 
     def _make_row(self, z, is_fav):
         row = QWidget()

@@ -6,7 +6,7 @@ logique métier (aucune réécriture — juste config.get/set/save sur les même
 clés), déplacée dans une page dédiée pleine largeur et présentée en tuiles.
 """
 from PyQt6.QtWidgets import (
-    QWidget, QVBoxLayout, QHBoxLayout, QGridLayout, QLabel, QLineEdit, QPushButton,
+    QWidget, QVBoxLayout, QHBoxLayout, QGridLayout, QLabel, QLineEdit, QPushButton, QScrollArea,
 )
 from PyQt6.QtCore import Qt
 
@@ -25,6 +25,7 @@ def _make_header(title, subtitle):
     if subtitle:
         s = QLabel(subtitle)
         s.setObjectName("PageSubtitle")
+        s.setWordWrap(True)
         lay.addWidget(s)
     return header
 
@@ -34,6 +35,7 @@ DEFS = [
     ("Chef", "leader_key", "★"), ("Afficher/Cacher", "toggle_app_key", "👁"), ("Havre-sac", "game_haven_key", "🏠"),
     ("Sélecteur", "selector_key", "🎯"), ("Calibrer", "calib_key", "🎚"), ("Inviter", "invite_group_key", "👥"),
     ("Coller+Valider", "paste_active_key", "📋"),
+    ("Potion de rappel", "recall_key", "🧪"),
 ]
 
 
@@ -43,6 +45,7 @@ class RaccourcisPage(QWidget):
     def __init__(self, config, logic=None, parent=None):
         super().__init__(parent)
         self.config = config
+        self.logic = logic
         self._sc = {}
         self._build()
 
@@ -111,7 +114,17 @@ class RaccourcisPage(QWidget):
             r, c = divmod(i, cols)
             grid.addWidget(self._tile(label, key, icon), r, c)
         body_lay.addLayout(grid)
+
+        hint = QLabel("💡 Potion de rappel : ce raccourci doit être exactement le même que celui bind côté jeu (Dofus détecte tout seul la potion — pas de calibration nécessaire).")
+        hint.setStyleSheet(f"color:{MUT};font-size:11px;")
+        hint.setWordWrap(True)
+        body_lay.addWidget(hint)
+
         body_lay.addStretch()
 
-        lay.addWidget(body)
-        lay.addStretch()
+        scroll = QScrollArea()
+        scroll.setWidgetResizable(True)
+        scroll.setFrameShape(QScrollArea.Shape.NoFrame)
+        scroll.setStyleSheet("background:transparent;")
+        scroll.setWidget(body)
+        lay.addWidget(scroll, stretch=1)

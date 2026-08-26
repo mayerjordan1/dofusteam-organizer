@@ -1,5 +1,8 @@
 # AGENTS.md — DofusTeam Organizer (Python Desktop) + Hunt Tool
 
+## Mémoire projet
+Ce fichier reste une **référence statique** (stack, architecture, patterns) — pas un journal. Les décisions/notes propres à une session vont dans `.claude/remember/` (fichier `MEMORY.md` = index, un fichier par sujet), jamais ajoutées ici en pavé chronologique. Format des notes : 3-5 lignes max, le fait puis le pourquoi si non-évident, jamais de citation verbatim de la demande utilisateur. Ce dossier n'est pas auto-chargé à chaque message — le consulter/l'enrichir volontairement quand pertinent.
+
 ## Contexte général
 Jordan, entrepreneur basé à Strasbourg. Joueur Dofus Unity multi-compte (8 persos simultanés).
 Ce repo contient **DofusTeam Organizer** — gestionnaire multi-compte Python/PyQt6 pour Dofus 3 Unity.

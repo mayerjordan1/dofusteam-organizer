@@ -26,7 +26,7 @@ from sidebar import Sidebar
 from updater import UpdateCheckThread, UpdateDownloadThread, can_self_update, apply_update_and_restart
 
 APP_NAME = "DofusTeam"
-VERSION  = "V1.14"
+VERSION  = "V1.15"
 
 CLASSES = ["Cra","Ecaflip","Eliotrope","Eniripsa","Enutrof","Feca","Forgelance",
            "Huppermage","Iop","Osamodas","Ouginak","Pandawa","Roublard","Sacrieur",
@@ -65,8 +65,11 @@ class Config:
 
 # ── Logic ─────────────────────────────────────────────────────────────────────
 class DofusLogic:
+    _SWITCH_DEBOUNCE = 0.09  # secondes — voir switch_next/switch_prev
+
     def __init__(self,config):
         self.config=config; self.all_accounts=[]; self.leader_hwnd=None; self._idx=0
+        self._last_switch_t=0.0
 
     def scan_slots(self):
         if not WINDOWS: return []
@@ -160,11 +163,24 @@ class DofusLogic:
             try: win32gui.BringWindowToTop(hwnd)
             except: pass
 
+    def _switch_debounced(self):
+        # add_hotkey (appui simple) + le polling de maintien de HotkeyManager +
+        # la répétition clavier auto de Windows peuvent tous les trois se
+        # chevaucher pour un seul appui physique (surtout avec une macro
+        # matérielle qui maintient la touche quelques dizaines de ms) — sans
+        # ce verrou, un seul Tab pouvait avancer de 2 crans (fenêtre sautée)
+        # ou déclencher un aller-retour bizarre dans le cycle.
+        now=time.time()
+        if now-self._last_switch_t < self._SWITCH_DEBOUNCE: return False
+        self._last_switch_t=now; return True
+
     def switch_next(self):
+        if not self._switch_debounced(): return
         lst=self.get_cycle_list()
         if not lst: return
         self._idx=(self._idx+1)%len(lst); self.focus_window(lst[self._idx]["hwnd"])
     def switch_prev(self):
+        if not self._switch_debounced(): return
         lst=self.get_cycle_list()
         if not lst: return
         self._idx=(self._idx-1)%len(lst); self.focus_window(lst[self._idx]["hwnd"])

@@ -128,13 +128,16 @@ def apply_update_and_restart(new_exe_path):
         "    goto wait\r\n"
         ")\r\n"
         f'ren "{new_exe}" "{old_exe.name}"\r\n'
-        f'start "" "{old_exe}"\r\n'
         # Le nouvel exe (bootloader PyInstaller) vérifie au démarrage que son
-        # processus parent (ce cmd.exe) est bien accessible — s'il se termine
-        # trop vite après le "start" (non-bloquant), cette vérification échoue
+        # processus parent est bien accessible. "start" lance l'exe de façon
+        # indirecte (association shell) plutôt qu'un CreateProcess direct, ce
+        # qui cassait ce lien parent/enfant et faisait échouer la vérification
         # avec "Security Validation failure: failed to obtain executable path
-        # for parent process". On le garde vivant le temps que ça se stabilise.
-        "timeout /t 2 /nobreak >nul\r\n"
+        # for parent process" (déjà tenté : juste retarder le "start" — ne
+        # suffisait pas). On lance l'exe directement (sans "start") : cmd.exe
+        # devient son vrai parent CreateProcess et attend qu'il se termine
+        # avant de continuer, donc il reste garanti vivant tout du long.
+        f'"{old_exe}"\r\n'
         'del /f /q "%~f0"\r\n'
     )
     bat_path.write_text(bat_content, encoding="utf-8")

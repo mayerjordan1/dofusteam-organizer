@@ -17,6 +17,32 @@ def _send_key_sendinput(key_char):
     inp.ki.dwFlags=0x0002  # KEYEVENTF_KEYUP
     _ctypes.windll.user32.SendInput(1,_ctypes.pointer(inp),_ctypes.sizeof(inp))
 
+
+def _send_ctrl_combo_sendinput(key_char):
+    """Ctrl+<touche> injecté via SendInput plutôt que pyautogui.hotkey —
+    même technique que _send_key_sendinput ci-dessus (déjà utilisée pour H
+    car pyautogui.press n'était pas fiable avec le client Dofus). Le Ctrl+W
+    de réactivation d'autofollow en fin de macro zaap ne prenait jamais côté
+    utilisateur alors qu'il marche à la main ou via sa propre macro souris —
+    ce contournement est le même que celui déjà validé pour le havre-sac."""
+    class KEYBDINPUT(_ctypes.Structure):
+        _fields_=[('wVk',_ctypes.c_ushort),('wScan',_ctypes.c_ushort),('dwFlags',_ctypes.c_ulong),
+                  ('time',_ctypes.c_ulong),('dwExtraInfo',_ctypes.c_void_p)]
+    class INPUT(_ctypes.Structure):
+        class _I(_ctypes.Union):
+            _fields_=[('ki',KEYBDINPUT)]
+        _anonymous_=('_i',); _fields_=[('type',_ctypes.c_ulong),('_i',_I)]
+    import time as _time
+    VK_CONTROL=0x11
+    vk_key=ord(key_char.upper())
+    def _press(vk, down):
+        inp=INPUT(type=1); inp.ki.wVk=vk; inp.ki.dwFlags=0 if down else 0x0002
+        _ctypes.windll.user32.SendInput(1,_ctypes.pointer(inp),_ctypes.sizeof(inp))
+    _press(VK_CONTROL, True);  _time.sleep(0.03)
+    _press(vk_key, True);      _time.sleep(0.06)
+    _press(vk_key, False);     _time.sleep(0.03)
+    _press(VK_CONTROL, False)
+
 """
 DofusTeam — zaap_macro.py
 Système Auto-Zaap : calibration + exécution en 3 phases
@@ -277,7 +303,7 @@ class ZaapExecutor:
                 except Exception: pass
                 time.sleep(0.1)
             time.sleep(_jitter(0.35))
-            try: pyautogui.hotkey("ctrl", "w")
+            try: _send_ctrl_combo_sendinput("w")
             except Exception: pass
 
         unfreeze_mouse()

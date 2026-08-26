@@ -133,7 +133,9 @@ def run_zaap_to_destination(config, logic, destination_name, on_status=None):
             time.sleep(random.uniform(0.28, 0.42))
             # Ctrl+W réactive l'autofollow (raccourci Dofus) une fois de retour
             # sur le chef, pour reprendre le suivi automatique du groupe.
-            try: pyautogui.hotkey("ctrl", "w")
+            try:
+                from zaap_macro import _send_ctrl_combo_sendinput
+                _send_ctrl_combo_sendinput("w")
             except Exception: pass
 
         try: import ctypes; ctypes.windll.user32.BlockInput(False)

@@ -129,6 +129,12 @@ def apply_update_and_restart(new_exe_path):
         ")\r\n"
         f'ren "{new_exe}" "{old_exe.name}"\r\n'
         f'start "" "{old_exe}"\r\n'
+        # Le nouvel exe (bootloader PyInstaller) vérifie au démarrage que son
+        # processus parent (ce cmd.exe) est bien accessible — s'il se termine
+        # trop vite après le "start" (non-bloquant), cette vérification échoue
+        # avec "Security Validation failure: failed to obtain executable path
+        # for parent process". On le garde vivant le temps que ça se stabilise.
+        "timeout /t 2 /nobreak >nul\r\n"
         'del /f /q "%~f0"\r\n'
     )
     bat_path.write_text(bat_content, encoding="utf-8")

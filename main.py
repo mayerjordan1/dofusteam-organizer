@@ -26,7 +26,7 @@ from sidebar import Sidebar
 from updater import UpdateCheckThread, UpdateDownloadThread, can_self_update, apply_update_and_restart
 
 APP_NAME = "DofusTeam"
-VERSION  = "V1.21"
+VERSION  = "V1.22"
 
 CLASSES = ["Cra","Ecaflip","Eliotrope","Eniripsa","Enutrof","Feca","Forgelance",
            "Huppermage","Iop","Osamodas","Ouginak","Pandawa","Roublard","Sacrieur",
@@ -816,6 +816,15 @@ class RosterEditor(QDialog):
         self.saved.emit(); self.accept()
 
 # ── Mini Toolbar ──────────────────────────────────────────────────────────────
+class _InstantTooltipStyle(QProxyStyle):
+    """Tooltip sans délai — le style Qt par défaut attend ~700ms avant
+    d'afficher le tooltip, ce qui rend le survol des avatars peu réactif."""
+    def styleHint(self, hint, option=None, widget=None, returnData=None):
+        if hint == QStyle.StyleHint.SH_ToolTip_WakeUpDelay:
+            return 0
+        return super().styleHint(hint, option, widget, returnData)
+
+
 class MiniToolbar(QWidget):
     """Barre flottante — inspirée du style overlay de DoFrame (capture fournie par
     l'utilisateur) : poignée + logo + libellé de mode à gauche, bande d'avatars des
@@ -827,6 +836,7 @@ class MiniToolbar(QWidget):
         super().__init__(None,Qt.WindowType.Tool|Qt.WindowType.FramelessWindowHint|Qt.WindowType.WindowStaysOnTopHint)
         self.config=config; self.logic=logic; self.on_show=on_show; self.on_navigate=on_navigate; self._drag=None
         self._collapsed=False
+        self._instant_tooltip=_InstantTooltipStyle()
         self.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground)
 
         def mkb(icon,tip,color=BG3,ck=False,icon_file=None,icon_pixmap=None,size=(32,30),icon_size=18):
@@ -991,6 +1001,7 @@ class MiniToolbar(QWidget):
         for acc in accounts:
             stack = QWidget(); stack.setFixedSize(32, 32)
             b = QPushButton(stack); b.setGeometry(0, 0, 32, 32); b.setToolTip(acc["name"])
+            b.setStyle(self._instant_tooltip)
             pix = make_avatar(acc.get("classe", ""), 28)
             if pix: b.setIcon(QIcon(pix)); b.setIconSize(QSize(28, 28))
             b.setStyleSheet(

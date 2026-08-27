@@ -26,7 +26,7 @@ from sidebar import Sidebar
 from updater import UpdateCheckThread, UpdateDownloadThread, can_self_update, apply_update_and_restart
 
 APP_NAME = "DofusTeam"
-VERSION  = "V1.23"
+VERSION  = "V1.24"
 
 CLASSES = ["Cra","Ecaflip","Eliotrope","Eniripsa","Enutrof","Feca","Forgelance",
            "Huppermage","Iop","Osamodas","Ouginak","Pandawa","Roublard","Sacrieur",
@@ -107,11 +107,6 @@ class DofusLogic:
                 if "Dofus Retro" in t: raw.append((hwnd,t))
             return True
         win32gui.EnumWindows(cb,None)
-        # hwnd -> nom vu au scan précédent : sert à détecter un changement de
-        # personnage en jeu sur une fenêtre déjà connue (même compte, autre
-        # perso) pour migrer sa place dans l'ordre au lieu de laisser un
-        # fantôme "offline" à l'ancien nom + un nouveau perso non classé.
-        prev_name_by_hwnd={a["hwnd"]:a["name"] for a in self.all_accounts}
         accounts=[]
         for hwnd,title in raw:
             if ver=="Unity":
@@ -126,28 +121,16 @@ class DofusLogic:
             active=self.config.get("accounts_state",{}).get(pseudo,True)
             accounts.append({"name":pseudo,"hwnd":hwnd,"active":active,"classe":cls})
 
-        order=self.config.get("custom_order",[])
-        classes=self.config.get("classes",{})
-        states=self.config.get("accounts_state",{})
-        sexes=self.config.get("sexes",{})
-        leader_name=self.config.get("leader_name","")
-        renamed=False
-        for a in accounts:
-            old_name=prev_name_by_hwnd.get(a["hwnd"])
-            if old_name and old_name!=a["name"] and old_name in order:
-                order[order.index(old_name)]=a["name"]
-                if old_name in states: states[a["name"]]=states.pop(old_name)
-                if old_name in sexes: sexes[a["name"]]=sexes.pop(old_name)
-                if leader_name==old_name: leader_name=a["name"]
-                classes.pop(old_name,None)
-                a["active"]=states.get(a["name"],True)
-                renamed=True
-        if renamed:
-            self.config.set("classes",classes); self.config.set("accounts_state",states)
-            self.config.set("sexes",sexes); self.config.set("leader_name",leader_name)
-
-        for a in accounts:
-            if a["name"] not in order: order.append(a["name"])
+        # Un scan repart des fenêtres réellement ouvertes : tout perso plus
+        # détecté (déco, changement de perso en jeu sur une fenêtre déjà
+        # connue...) est retiré de l'ordre au lieu de rester affiché
+        # "offline" indéfiniment. Ceux encore présents gardent leur position
+        # relative (pas de retri surprise à chaque scan) ; les nouveaux sont
+        # ajoutés en fin de liste, à l'utilisateur de les replacer.
+        current_names=[a["name"] for a in accounts]
+        order=[n for n in self.config.get("custom_order",[]) if n in current_names]
+        for n in current_names:
+            if n not in order: order.append(n)
         self.config.set("custom_order",order); self.config.save()
         # Deduplicate by name (a window can match multiple times)
         seen=set(); unique=[]

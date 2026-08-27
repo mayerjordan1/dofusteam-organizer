@@ -112,8 +112,10 @@ class UpdateDownloadThread(QThread):
 
 def apply_update_and_restart(new_exe_path):
     """Écrit et lance le .bat de remplacement puis quitte immédiatement ce
-    process (os._exit) pour libérer le verrou sur l'exe courant. Ne retourne
-    jamais en cas de succès."""
+    process (os._exit) pour libérer le verrou sur l'exe courant. Ne relance
+    PAS le nouvel exe automatiquement (voir commentaire dans le .bat) —
+    l'utilisateur doit rouvrir l'appli lui-même. Ne retourne jamais en cas
+    de succès."""
     if not can_self_update():
         return False
     old_exe = Path(sys.executable)
@@ -128,31 +130,27 @@ def apply_update_and_restart(new_exe_path):
         "    set /a tries+=1\r\n"
         # Limite à 30 tentatives (~1 minute) : si l'ancien exe reste
         # verrouillé au-delà (antivirus, sync cloud...), on abandonne la
-        # mise à jour et on relance l'ancienne version plutôt que de rester
-        # coincé dans une boucle infinie. "ping" (au lieu de "timeout") ne
-        # nécessite pas de console interactive — "timeout" échoue
-        # immédiatement ("Input redirection is not supported") quand il
-        # tourne sans console attachée, ce qui provoquait une boucle très
-        # rapide au lieu d'une vraie attente d'1s.
+        # mise à jour plutôt que de rester coincé dans une boucle infinie.
+        # "ping" (au lieu de "timeout") ne nécessite pas de console
+        # interactive — "timeout" échoue immédiatement ("Input redirection
+        # is not supported") sans console attachée, provoquant une boucle
+        # très rapide au lieu d'une vraie attente d'1s.
         "    if %tries% GEQ 30 goto giveup\r\n"
         "    ping -n 2 127.0.0.1 >nul\r\n"
         "    goto wait\r\n"
         ")\r\n"
         f'ren "{new_exe}" "{old_exe.name}"\r\n'
         ":giveup\r\n"
-        # Le nouvel exe (bootloader PyInstaller) vérifie au démarrage que son
-        # processus parent est bien accessible. Lancer ce .bat via un
-        # intermédiaire (wscript/COM, "start", ...) casse cette chaîne
-        # parent/enfant et fait échouer la vérification avec "Security
-        # Validation failure: failed to obtain executable path for parent
-        # process" (déjà vu deux fois : une fois avec "start", une fois avec
-        # un wrapper WScript.Shell utilisé un temps pour cacher la fenêtre —
-        # les deux réintroduisaient le bug). Seul un CreateProcess direct et
-        # ininterrompu depuis Python (cmd.exe) -> bat -> exe est fiable ici.
-        # On lance l'exe directement (sans "start") : cmd.exe devient son
-        # vrai parent CreateProcess et attend qu'il se termine avant de
-        # continuer, donc il reste garanti vivant tout du long.
-        f'"{old_exe}"\r\n'
+        # On NE relance PAS le nouvel exe ici. Le bootloader PyInstaller
+        # vérifie au démarrage que son processus parent est accessible, et
+        # cette vérification s'est révélée persistante et non fiable peu
+        # importe comment ce .bat le lance ("start", un CreateProcess direct
+        # depuis cmd.exe, un wrapper WScript.Shell — tout a fini par
+        # redéclencher "Security Validation failure" chez certains
+        # utilisateurs). Un lancement normal par l'utilisateur (double-clic
+        # sur son raccourci, donc explorer.exe comme parent) n'a jamais ce
+        # problème — l'appli invite donc à rouvrir manuellement après la
+        # mise à jour plutôt que de tenter un auto-relance fragile.
         'del /f /q "%~f0"\r\n'
     )
     bat_path.write_text(bat_content, encoding="utf-8")

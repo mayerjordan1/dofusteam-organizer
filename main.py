@@ -26,7 +26,7 @@ from sidebar import Sidebar
 from updater import UpdateCheckThread, UpdateDownloadThread, can_self_update, apply_update_and_restart
 
 APP_NAME = "DofusTeam"
-VERSION  = "V1.24"
+VERSION  = "V1.25"
 
 CLASSES = ["Cra","Ecaflip","Eliotrope","Eniripsa","Enutrof","Feca","Forgelance",
            "Huppermage","Iop","Osamodas","Ouginak","Pandawa","Roublard","Sacrieur",
@@ -128,7 +128,10 @@ class DofusLogic:
         # relative (pas de retri surprise à chaque scan) ; les nouveaux sont
         # ajoutés en fin de liste, à l'utilisateur de les replacer.
         current_names=[a["name"] for a in accounts]
-        order=[n for n in self.config.get("custom_order",[]) if n in current_names]
+        # dict.fromkeys(...) dédoublonne en gardant l'ordre — nettoie au
+        # passage un éventuel doublon déjà présent dans custom_order (un
+        # nom qui s'y serait retrouvé deux fois lors d'un scan précédent).
+        order=list(dict.fromkeys(n for n in self.config.get("custom_order",[]) if n in current_names))
         for n in current_names:
             if n not in order: order.append(n)
         self.config.set("custom_order",order); self.config.save()
@@ -1282,6 +1285,9 @@ class MainWindow(QMainWindow):
 
     def _apply_update(self):
         if self._new_exe_path:
+            QMessageBox.information(self, "Mise à jour",
+                "DofusTeam va se fermer pour terminer la mise à jour.\n"
+                "Relance-le ensuite depuis ton raccourci habituel.")
             apply_update_and_restart(self._new_exe_path)
 
     def _paint_version_btn(self,color):

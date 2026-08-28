@@ -154,8 +154,22 @@ def apply_update_and_restart(new_exe_path):
         'del /f /q "%~f0"\r\n'
     )
     bat_path.write_text(bat_content, encoding="utf-8")
+    # Le .bat ne lance plus aucun exe (voir ci-dessus) — il ne fait plus que
+    # des opérations fichier (del/ren) et s'autodétruit, donc le cacher via
+    # un wrapper WScript.Shell (windowstyle=0) est maintenant sans risque
+    # pour le contrôle de sécurité du bootloader : ça ne concernait que le
+    # lancement de l'exe, qu'on ne fait plus. CREATE_NO_WINDOW seul ne
+    # suffisait pas à cacher la fenêtre sur certaines configs (Windows
+    # Terminal en terminal par défaut), d'où cette fenêtre visible qui
+    # restait affichée pendant la boucle d'attente.
+    vbs_path = APP_DIR / "_dofusteam_update.vbs"
+    vbs_content = (
+        'Set s = CreateObject("WScript.Shell")\r\n'
+        f's.Run """{bat_path}""", 0, False\r\n'
+    )
+    vbs_path.write_text(vbs_content, encoding="utf-8")
     subprocess.Popen(
-        ["cmd", "/c", str(bat_path)],
+        ["wscript", "//B", str(vbs_path)],
         creationflags=subprocess.CREATE_NO_WINDOW | subprocess.DETACHED_PROCESS,
         cwd=str(APP_DIR),
     )

@@ -3,10 +3,15 @@
 Chaque boss ouvre une popup en 2 parties :
 - Guide : contenu riche en lecture seule (titres colorés, emphases, images
   intégrées au fil du texte et cliquables pour zoomer) — curé à l'avance
-  (par moi/Claude, à partir des liens/screens fournis) et stocké tel quel en
-  HTML dans config["boss_guide_html"][boss_key]. Pensé pour être lu EN JEU,
-  d'un coup d'œil, pendant un tour compté — donc les images importantes sont
-  affichées en taille lisible directement, pas juste en vignette.
+  (par moi/Claude, à partir des liens/screens fournis) et codé en dur dans
+  pages/donjon_guides.py (DEFAULT_GUIDES), PAS dans settings.json : ce
+  fichier est local/gitignored donc absent sur une install fraîche, un
+  guide qui n'existerait que là serait invisible pour tout le monde sauf
+  la machine où il a été écrit. Les images qu'il référence vivent dans
+  skin/ (bundlée par PyInstaller), jamais dans NOTES_IMG_DIR (contenu
+  utilisateur, local). Pensé pour être lu EN JEU, d'un coup d'œil, pendant
+  un tour compté — donc les images importantes sont affichées en taille
+  lisible directement, pas juste en vignette.
 - Mes notes : zone de texte libre, éditable, pour des rappels personnels
   rapides — persistée dans config["boss_notes"][boss_key].
 Une galerie d'images "en vrac" (ajout via coller/fichier) reste disponible
@@ -34,6 +39,7 @@ from PyQt6.QtGui import QPixmap
 
 from theme import TEXT, MUT, BG2, BG3, BORDER, ACC, STYLE, load_icon, ghost_btn
 from paths import NOTES_IMG_DIR, SKIN_DIR
+from pages.donjon_guides import DEFAULT_GUIDES
 
 BOSS_ICON_SIZE = 84
 THUMB_SIZE = 84
@@ -282,7 +288,7 @@ class BossNotesDialog(QDialog):
         cl.setSpacing(10)
 
         # ── Guide (riche, lecture seule, curé à l'avance) ───────────────
-        guide_html = self.config.get("boss_guide_html", {}).get(self.boss["key"], "")
+        guide_html = DEFAULT_GUIDES.get(self.boss["key"], "")
         if guide_html:
             guide_title = QLabel("Guide")
             guide_title.setStyleSheet(f"color:{MUT}; font-size:10px; font-weight:700; letter-spacing:1px; background:transparent; border:none;")
@@ -494,7 +500,7 @@ class DonjonsPage(QWidget):
 
         # Référence générale (pas liée à un boss précis) — un seul petit
         # bouton discret, pas un pavé qui prendrait de la place dans la page.
-        general_path = _boss_img_dir("_general") / "deplacement.png"
+        general_path = SKIN_DIR / "deplacement.png"
         if general_path.exists():
             ref_row = QHBoxLayout()
             ref_row.addWidget(ghost_btn("📍  États de déplacement", lambda: self._view_general(general_path)))

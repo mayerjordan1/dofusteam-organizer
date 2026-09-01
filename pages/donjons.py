@@ -32,7 +32,7 @@ import time
 
 from PyQt6.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QGridLayout, QLabel, QDialog, QTextEdit,
-    QTextBrowser, QApplication, QScrollArea, QFileDialog, QPushButton,
+    QTextBrowser, QApplication, QScrollArea, QFileDialog, QPushButton, QSplitter,
 )
 from PyQt6.QtCore import Qt, pyqtSignal
 from PyQt6.QtGui import QPixmap
@@ -246,7 +246,7 @@ class BossNotesDialog(QDialog):
         self.config = config
         self.boss = boss
         self.setWindowTitle(boss["name"])
-        self.resize(520, 700)
+        self.resize(560, 800)
         self.setMinimumSize(420, 420)
         self.setStyleSheet(STYLE)
         self.setWindowFlags(self.windowFlags() | Qt.WindowType.WindowStaysOnTopHint)
@@ -287,12 +287,83 @@ class BossNotesDialog(QDialog):
         cl.setContentsMargins(16, 14, 16, 14)
         cl.setSpacing(10)
 
-        # ── Guide (riche, lecture seule, curé à l'avance) ───────────────
         guide_html = DEFAULT_GUIDES.get(self.boss["key"], "")
+
+        # ── Bloc du bas : Mes notes + galerie (toujours présent) ────────
+        bottom = QWidget()
+        bl = QVBoxLayout(bottom)
+        bl.setContentsMargins(0, 0, 0, 0)
+        bl.setSpacing(10)
+
+        notes_title = QLabel("Mes notes")
+        notes_title.setStyleSheet(f"color:{MUT}; font-size:10px; font-weight:700; letter-spacing:1px; background:transparent; border:none;")
+        bl.addWidget(notes_title)
+
+        self.notes = QTextEdit()
+        self.notes.setPlaceholderText("Rappels personnels rapides, en plus du Guide ci-dessus...")
+        self.notes.setStyleSheet(
+            f"QTextEdit {{ background:{BG2}; color:{TEXT}; border:1px solid {BORDER}; "
+            f"border-radius:8px; padding:10px; font-size:12px; }}"
+        )
+        notes = self.config.get("boss_notes", {})
+        self.notes.setPlainText(notes.get(self.boss["key"], ""))
+        bl.addWidget(self.notes, 1)
+
+        # ── Galerie d'images en vrac ─────────────────────────────────────
+        img_row = QHBoxLayout()
+        img_title = QLabel("Autres images")
+        img_title.setStyleSheet(f"color:{MUT}; font-size:10px; font-weight:700; letter-spacing:1px; background:transparent; border:none;")
+        img_row.addWidget(img_title)
+        img_row.addStretch()
+        img_row.addWidget(ghost_btn("📋  Coller", self._paste_image))
+        img_row.addWidget(ghost_btn("📁  Ajouter", self._add_image_file))
+        bl.addLayout(img_row)
+
+        self._strip_scroll = QScrollArea()
+        self._strip_scroll.setWidgetResizable(True)
+        self._strip_scroll.setFixedHeight(THUMB_SIZE + 34)
+        self._strip_scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAsNeeded)
+        self._strip_scroll.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+        self._strip_scroll.setStyleSheet("background:transparent; border:none;")
+        self._strip_w = QWidget()
+        self._strip_w.setStyleSheet("background:transparent;")
+        self._strip_lay = QHBoxLayout(self._strip_w)
+        self._strip_lay.setContentsMargins(0, 0, 0, 0)
+        self._strip_lay.setSpacing(8)
+        self._strip_lay.addStretch()
+        self._strip_scroll.setWidget(self._strip_w)
+        bl.addWidget(self._strip_scroll)
+
+        self._empty_hint = QLabel("Aucune image — colle une capture (Ctrl+C dans le jeu) ou ajoute un fichier.")
+        self._empty_hint.setStyleSheet(f"color:{MUT}; font-size:10.5px; background:transparent; border:none;")
+        bl.addWidget(self._empty_hint)
+
+        self._refresh_images()
+
+        btns = QHBoxLayout()
+        if self.boss.get("url"):
+            link = QLabel(f'<a href="{self.boss["url"]}" style="color:{ACC};">🔗 Guide complet (dofuspourlesnoobs.com)</a>')
+            link.setStyleSheet("background:transparent; border:none; font-size:11px;")
+            link.setOpenExternalLinks(True)
+            btns.addWidget(link)
+        btns.addStretch()
+        btns.addWidget(ghost_btn("Fermer", self.close))
+        bl.addLayout(btns)
+
+        # ── Guide (riche, lecture seule, curé à l'avance) ───────────────
+        # Guide et bloc du bas mis dans un QSplitter vertical plutôt qu'un
+        # simple empilement à ratio fixe : l'utilisateur peut alors glisser
+        # la poignée pour agrandir le Guide (souvent trop petit pour lire
+        # vite en jeu) au détriment de Mes notes/galerie, ou l'inverse.
         if guide_html:
+            top = QWidget()
+            tl_ = QVBoxLayout(top)
+            tl_.setContentsMargins(0, 0, 0, 0)
+            tl_.setSpacing(10)
+
             guide_title = QLabel("Guide")
             guide_title.setStyleSheet(f"color:{MUT}; font-size:10px; font-weight:700; letter-spacing:1px; background:transparent; border:none;")
-            cl.addWidget(guide_title)
+            tl_.addWidget(guide_title)
 
             self.guide = QTextBrowser()
             self.guide.setOpenLinks(False)
@@ -308,65 +379,25 @@ class BossNotesDialog(QDialog):
             # stats/états partagées, réutilisables par tous les guides).
             self.guide.setSearchPaths([str(_boss_img_dir(self.boss["key"])), str(SKIN_DIR)])
             self.guide.setHtml(guide_html)
-            cl.addWidget(self.guide, 3)
+            tl_.addWidget(self.guide, 1)
 
-        # ── Mes notes (texte libre, éditable) ───────────────────────────
-        notes_title = QLabel("Mes notes")
-        notes_title.setStyleSheet(f"color:{MUT}; font-size:10px; font-weight:700; letter-spacing:1px; background:transparent; border:none;")
-        cl.addWidget(notes_title)
-
-        self.notes = QTextEdit()
-        self.notes.setPlaceholderText("Rappels personnels rapides, en plus du Guide ci-dessus...")
-        self.notes.setStyleSheet(
-            f"QTextEdit {{ background:{BG2}; color:{TEXT}; border:1px solid {BORDER}; "
-            f"border-radius:8px; padding:10px; font-size:12px; }}"
-        )
-        notes = self.config.get("boss_notes", {})
-        self.notes.setPlainText(notes.get(self.boss["key"], ""))
-        # Sans Guide, les notes perso deviennent le contenu principal — leur
-        # donner tout l'espace disponible plutôt qu'une petite bande basse.
-        cl.addWidget(self.notes, 1 if guide_html else 3)
-
-        # ── Galerie d'images en vrac ─────────────────────────────────────
-        img_row = QHBoxLayout()
-        img_title = QLabel("Autres images")
-        img_title.setStyleSheet(f"color:{MUT}; font-size:10px; font-weight:700; letter-spacing:1px; background:transparent; border:none;")
-        img_row.addWidget(img_title)
-        img_row.addStretch()
-        img_row.addWidget(ghost_btn("📋  Coller", self._paste_image))
-        img_row.addWidget(ghost_btn("📁  Ajouter", self._add_image_file))
-        cl.addLayout(img_row)
-
-        self._strip_scroll = QScrollArea()
-        self._strip_scroll.setWidgetResizable(True)
-        self._strip_scroll.setFixedHeight(THUMB_SIZE + 34)
-        self._strip_scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAsNeeded)
-        self._strip_scroll.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
-        self._strip_scroll.setStyleSheet("background:transparent; border:none;")
-        self._strip_w = QWidget()
-        self._strip_w.setStyleSheet("background:transparent;")
-        self._strip_lay = QHBoxLayout(self._strip_w)
-        self._strip_lay.setContentsMargins(0, 0, 0, 0)
-        self._strip_lay.setSpacing(8)
-        self._strip_lay.addStretch()
-        self._strip_scroll.setWidget(self._strip_w)
-        cl.addWidget(self._strip_scroll)
-
-        self._empty_hint = QLabel("Aucune image — colle une capture (Ctrl+C dans le jeu) ou ajoute un fichier.")
-        self._empty_hint.setStyleSheet(f"color:{MUT}; font-size:10.5px; background:transparent; border:none;")
-        cl.addWidget(self._empty_hint)
-
-        self._refresh_images()
-
-        btns = QHBoxLayout()
-        if self.boss.get("url"):
-            link = QLabel(f'<a href="{self.boss["url"]}" style="color:{ACC};">🔗 Guide complet (dofuspourlesnoobs.com)</a>')
-            link.setStyleSheet("background:transparent; border:none; font-size:11px;")
-            link.setOpenExternalLinks(True)
-            btns.addWidget(link)
-        btns.addStretch()
-        btns.addWidget(ghost_btn("Fermer", self.close))
-        cl.addLayout(btns)
+            splitter = QSplitter(Qt.Orientation.Vertical)
+            splitter.setChildrenCollapsible(False)
+            splitter.setStyleSheet(
+                f"QSplitter::handle {{ background:{BORDER}; margin:4px 40%; border-radius:2px; }}"
+                f"QSplitter::handle:hover {{ background:{ACC}; }}"
+            )
+            splitter.setHandleWidth(10)
+            splitter.addWidget(top)
+            splitter.addWidget(bottom)
+            splitter.setStretchFactor(0, 3)
+            splitter.setStretchFactor(1, 1)
+            # Tailles initiales cohérentes avec resize(560, 800) — plus de
+            # place au Guide par défaut, ajustable ensuite par l'utilisateur.
+            splitter.setSizes([520, 220])
+            cl.addWidget(splitter, 1)
+        else:
+            cl.addWidget(bottom, 1)
 
         lay.addWidget(content, 1)
 

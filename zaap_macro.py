@@ -82,6 +82,36 @@ def unfreeze_mouse():
         pass
 
 
+_VK_ESCAPE = 0x1B
+
+
+def start_kill_switch(abort_flag, stop_watching, on_status=None):
+    """Coupe-circuit d'urgence partagé par les macros zaap "quick" (toolbar).
+
+    Pendant freeze_mouse()/BlockInput(True), le clic/clavier normal ne
+    déclenche plus rien dans l'app (y compris un éventuel bouton Arrêter) —
+    ces macros n'en ont même pas. GetAsyncKeyState lit l'état matériel de
+    la touche directement, hors de la file de messages Windows que
+    BlockInput bloque, donc Échap reste le seul moyen fiable d'interrompre
+    la macro en cours.
+
+    abort_flag : liste à 1 élément (ex: [False]) — mise à True si Échap est
+    pressé ; la macro appelante doit la vérifier entre chaque action.
+    stop_watching : threading.Event — à set() par l'appelant une fois la
+    macro terminée (normalement ou non), pour arrêter le thread de veille
+    au lieu de le laisser tourner indéfiniment."""
+    def _watch():
+        while not stop_watching.is_set():
+            if win32api.GetAsyncKeyState(_VK_ESCAPE) & 0x8000:
+                abort_flag[0] = True
+                unfreeze_mouse()
+                if on_status:
+                    on_status("⛔ Arrêt d'urgence (Échap).")
+                return
+            time.sleep(0.05)
+    threading.Thread(target=_watch, daemon=True).start()
+
+
 # ── Relative coords helpers ───────────────────────────────────────────────────
 
 def abs_to_rel(hwnd, ax, ay):
@@ -170,6 +200,7 @@ class ZaapExecutor:
         self._running = True
         self._phase3_event.clear()
         threading.Thread(target=self._run, daemon=True).start()
+        threading.Thread(target=self._watch_kill_switch, daemon=True).start()
 
     def trigger_phase3(self):
         """Appelé par l'UI quand l'utilisateur a fini la phase 2."""
@@ -178,6 +209,27 @@ class ZaapExecutor:
     def stop(self):
         self._running = False
         self._phase3_event.set()  # débloquer si en attente
+        unfreeze_mouse()  # immédiat — ne pas attendre que _run() repasse par son check périodique
+
+    def _watch_kill_switch(self):
+        """Touche Échap = coupe-circuit d'urgence.
+
+        freeze_mouse() (BlockInput) bloque tout clic/frappe au niveau
+        système pendant les phases 1/3 — y compris sur le bouton "Arrêter"
+        de l'UI, qui devient donc inatteignable. GetAsyncKeyState lit
+        l'état matériel de la touche directement (pas la file de messages
+        Windows que BlockInput intercepte), donc reste utilisable même
+        dans cet état : c'est le seul moyen d'interrompre la macro une
+        fois lancée."""
+        VK_ESCAPE = 0x1B
+        while self._running:
+            if win32api.GetAsyncKeyState(VK_ESCAPE) & 0x8000:
+                self._status("⛔ Arrêt d'urgence (Échap).")
+                self.stop()
+                if self.on_done:
+                    self.on_done()
+                return
+            time.sleep(0.05)
 
     def _run(self):
         accounts = self.logic.get_cycle_list()
@@ -340,12 +392,19 @@ def quick_havresac_zaap(config, logic, on_status=None):
         haven_key  = config.get("game_haven_key", "h")
         open_delay = float(config.get("zaap_open_delay", 1.0))
 
+        abort_flag = [False]
+        stop_watching = threading.Event()
+        start_kill_switch(abort_flag, stop_watching, on_status=on_status)
+
         try: import ctypes; ctypes.windll.user32.BlockInput(True)
         except: pass
 
         # ── Phase 1 : Havre-sac sur chaque fenetre (rapide, sans attente) ──
         if on_status: on_status("Phase 1 — Ouverture havresacs (×" + str(len(accounts)) + ")")
         for acc in accounts:
+            if abort_flag[0]:
+                stop_watching.set()
+                return
             name = acc["name"]; hwnd = acc["hwnd"]
             logic.focus_window(hwnd)
             # Attendre confirmation focus (max 1.5s)
@@ -383,6 +442,9 @@ def quick_havresac_zaap(config, logic, on_status=None):
         # ── Phase 2 : Clic zaap sur chaque fenetre ─────────────────────────
         if on_status: on_status("Phase 2 — Clic zaaps")
         for acc in accounts:
+            if abort_flag[0]:
+                stop_watching.set()
+                return
             name = acc["name"]; hwnd = acc["hwnd"]
             logic.focus_window(hwnd)
             for _ in range(15):
@@ -403,6 +465,7 @@ def quick_havresac_zaap(config, logic, on_status=None):
                 if on_status: on_status(f"⚠ {name} non calibré")
             time.sleep(_jitter(0.2))
 
+        stop_watching.set()
         try: import ctypes; ctypes.windll.user32.BlockInput(False)
         except: pass
         if on_status: on_status("✅ Havresacs + zaaps ouverts — Copie la destination !")
@@ -436,12 +499,18 @@ def quick_paste_zaap(config, logic, on_status=None):
         except Exception:
             original_fg_hwnd = None
 
+        abort_flag = [False]
+        stop_watching = threading.Event()
+        start_kill_switch(abort_flag, stop_watching, on_status=on_status)
+
         try: import ctypes; ctypes.windll.user32.BlockInput(True)
         except: pass
 
         try:
             if on_status: on_status("📋 Collage de la destination...")
             for i,acc in enumerate(accounts):
+                if abort_flag[0]:
+                    break
                 hwnd = acc["hwnd"]
                 logic.focus_window(hwnd)
                 # Attend la confirmation réelle du focus avant de coller —
@@ -459,6 +528,7 @@ def quick_paste_zaap(config, logic, on_status=None):
                 time.sleep(max(paste_delay, _jitter(0.15)))
                 if on_status: on_status(f"📋 {i+1}/{len(accounts)} — {acc['name']}")
         finally:
+            stop_watching.set()
             # Retour au chef de groupe (ou à la fenêtre d'origine à défaut) —
             # évite de rester bloqué sur le dernier perso collé.
             leader_hwnd = getattr(logic, "leader_hwnd", None)

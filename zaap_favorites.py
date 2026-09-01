@@ -49,12 +49,23 @@ def run_zaap_to_destination(config, logic, destination_name, on_status=None):
         haven_key  = config.get("game_haven_key", "h")
         open_delay = float(config.get("zaap_open_delay", 1.0))
 
+        from zaap_macro import start_kill_switch
+        abort_flag = [False]
+        stop_watching = threading.Event()
+        # Échap = coupe-circuit d'urgence — indispensable ici : BlockInput
+        # bloque tout clic/frappe pendant l'exécution, donc sans lui la
+        # macro serait impossible à interrompre en cas de miss-clic.
+        start_kill_switch(abort_flag, stop_watching, on_status=on_status)
+
         try: import ctypes; ctypes.windll.user32.BlockInput(True)
         except: pass
 
         # Phase 1: H rapide sur chaque fenetre (comme la main)
-        if on_status: on_status(f"Phase 1 — Ouverture havresacs → {destination_name}")
+        if on_status: on_status(f"Phase 1 — Ouverture havresacs → {destination_name} (Échap pour arrêter)")
         for acc in accounts:
+            if abort_flag[0]:
+                stop_watching.set()
+                return
             hwnd = acc["hwnd"]
             logic.focus_window(hwnd)
             for _ in range(15):
@@ -79,6 +90,9 @@ def run_zaap_to_destination(config, logic, destination_name, on_status=None):
         # Phase 2: Click zaap on all windows
         if on_status: on_status("⚡ Clic zaaps...")
         for acc in accounts:
+            if abort_flag[0]:
+                stop_watching.set()
+                return
             name = acc["name"]; hwnd = acc["hwnd"]
             if name not in zaaps: continue
             logic.focus_window(hwnd)
@@ -104,6 +118,9 @@ def run_zaap_to_destination(config, logic, destination_name, on_status=None):
         pyperclip.copy(destination_name)
 
         for i, acc in enumerate(accounts):
+            if abort_flag[0]:
+                stop_watching.set()
+                return
             hwnd = acc["hwnd"]
             logic.focus_window(hwnd)
             for _ in range(15):
@@ -138,6 +155,7 @@ def run_zaap_to_destination(config, logic, destination_name, on_status=None):
                 _send_ctrl_combo_sendinput("w")
             except Exception: pass
 
+        stop_watching.set()
         try: import ctypes; ctypes.windll.user32.BlockInput(False)
         except: pass
         if on_status: on_status(f"✅ Tous zaapés → {destination_name} !")

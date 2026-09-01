@@ -32,7 +32,7 @@ import time
 
 from PyQt6.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QGridLayout, QLabel, QDialog, QTextEdit,
-    QTextBrowser, QApplication, QScrollArea, QFileDialog, QPushButton, QSplitter,
+    QTextBrowser, QApplication, QScrollArea, QFileDialog, QPushButton,
 )
 from PyQt6.QtCore import Qt, pyqtSignal
 from PyQt6.QtGui import QPixmap
@@ -351,19 +351,11 @@ class BossNotesDialog(QDialog):
         bl.addLayout(btns)
 
         # ── Guide (riche, lecture seule, curé à l'avance) ───────────────
-        # Guide et bloc du bas mis dans un QSplitter vertical plutôt qu'un
-        # simple empilement à ratio fixe : l'utilisateur peut alors glisser
-        # la poignée pour agrandir le Guide (souvent trop petit pour lire
-        # vite en jeu) au détriment de Mes notes/galerie, ou l'inverse.
         if guide_html:
             top = QWidget()
             tl_ = QVBoxLayout(top)
             tl_.setContentsMargins(0, 0, 0, 0)
             tl_.setSpacing(10)
-
-            guide_title = QLabel("Guide")
-            guide_title.setStyleSheet(f"color:{MUT}; font-size:10px; font-weight:700; letter-spacing:1px; background:transparent; border:none;")
-            tl_.addWidget(guide_title)
 
             self.guide = QTextBrowser()
             self.guide.setOpenLinks(False)
@@ -381,25 +373,50 @@ class BossNotesDialog(QDialog):
             self.guide.setHtml(guide_html)
             tl_.addWidget(self.guide, 1)
 
-            splitter = QSplitter(Qt.Orientation.Vertical)
-            splitter.setChildrenCollapsible(False)
-            splitter.setStyleSheet(
-                f"QSplitter::handle {{ background:{BORDER}; margin:4px 40%; border-radius:2px; }}"
-                f"QSplitter::handle:hover {{ background:{ACC}; }}"
-            )
-            splitter.setHandleWidth(10)
-            splitter.addWidget(top)
-            splitter.addWidget(bottom)
-            splitter.setStretchFactor(0, 3)
-            splitter.setStretchFactor(1, 1)
-            # Tailles initiales cohérentes avec resize(560, 800) — plus de
-            # place au Guide par défaut, ajustable ensuite par l'utilisateur.
-            splitter.setSizes([520, 220])
-            cl.addWidget(splitter, 1)
+            # ── Onglets Guide / Notes & images ──────────────────────────
+            # Un simple empilement (ou même un splitter, cf. anciennes
+            # versions) partageait toujours la hauteur entre les deux — le
+            # Guide restait petit dès que Mes notes/galerie prenaient de la
+            # place. En onglets, chacun a TOUTE la hauteur de la popup :
+            # le Guide est bien plus grand par défaut, sans rien à ajuster.
+            tab_row = QHBoxLayout()
+            tab_row.setSpacing(6)
+            self._tab_guide_btn = self._tab_btn("📖  Guide", lambda: self._switch_tab("guide"))
+            self._tab_notes_btn = self._tab_btn("📝  Mes notes && images", lambda: self._switch_tab("notes"))
+            tab_row.addWidget(self._tab_guide_btn)
+            tab_row.addWidget(self._tab_notes_btn)
+            tab_row.addStretch()
+            cl.addLayout(tab_row)
+
+            self._tab_panels = {"guide": top, "notes": bottom}
+            cl.addWidget(top, 1)
+            cl.addWidget(bottom, 1)
+            self._switch_tab("guide")
         else:
             cl.addWidget(bottom, 1)
 
         lay.addWidget(content, 1)
+
+    def _tab_btn(self, label, onclick):
+        btn = QPushButton(label)
+        btn.setCursor(Qt.CursorShape.PointingHandCursor)
+        btn.clicked.connect(onclick)
+        return btn
+
+    def _switch_tab(self, key):
+        for k, panel in self._tab_panels.items():
+            panel.setVisible(k == key)
+        active_style = (
+            f"QPushButton {{ background:{ACC}22; color:{TEXT}; border:1px solid {ACC}; "
+            f"border-radius:7px; padding:6px 12px; font-size:11.5px; font-weight:700; }}"
+        )
+        inactive_style = (
+            f"QPushButton {{ background:transparent; color:{MUT}; border:1px solid {BORDER}; "
+            f"border-radius:7px; padding:6px 12px; font-size:11.5px; }}"
+            f"QPushButton:hover {{ color:{TEXT}; border-color:{ACC}; }}"
+        )
+        self._tab_guide_btn.setStyleSheet(active_style if key == "guide" else inactive_style)
+        self._tab_notes_btn.setStyleSheet(active_style if key == "notes" else inactive_style)
 
     # ── Galerie : chargement / ajout / suppression ─────────────────────────
     def _image_list(self):

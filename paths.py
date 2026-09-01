@@ -19,3 +19,8 @@ else:
 SKIN_DIR = RES_DIR / "skin"
 SOUNDS_DIR = RES_DIR / "sounds"
 SETTINGS_PATH = APP_DIR / "settings.json"
+
+# Images collées/ajoutées par l'utilisateur dans les notes de boss — contenu
+# généré par l'utilisateur, donc à côté de settings.json (APP_DIR, persistant),
+# jamais dans RES_DIR (temp jetable en onefile, cf. docstring ci-dessus).
+NOTES_IMG_DIR = APP_DIR / "notes_images"

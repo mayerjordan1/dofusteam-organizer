@@ -11,7 +11,7 @@ from PyQt6.QtWidgets import *
 from PyQt6.QtCore import *
 from PyQt6.QtGui import *
 
-try: import win32gui, win32con, win32api, win32process; WINDOWS = True
+try: import win32gui, win32con, win32api; WINDOWS = True
 except: WINDOWS = False
 try: import keyboard; KEYBOARD_OK = True
 except: KEYBOARD_OK = False
@@ -75,6 +75,17 @@ class DofusLogic:
     def __init__(self,config):
         self.config=config; self.all_accounts=[]; self.leader_hwnd=None; self._idx=0
         self._last_switch_t=0.0
+        # Verrou partagé par TOUTE action qui vole le focus + envoie des touches/
+        # clics (switch_next/prev via _switch_worker, paste_active) — sans lui,
+        # spammer "valider" (paste_active) en même temps que "switch fenêtre"
+        # lançait 2 threads en parallèle qui se marchaient dessus : chacun fait
+        # focus_window() + pyautogui.click/press, qui sont des actions GLOBALES
+        # (pas ciblées sur une fenêtre précise) — le clic/la touche d'un thread
+        # pouvait donc atterrir sur la fenêtre que l'AUTRE thread venait de
+        # focus, d'où les ralentissements/gels et l'impression que l'organizer
+        # "revenait" sur la fenêtre précédente (en réalité une course, pas une
+        # précaution volontaire).
+        self._focus_lock=threading.Lock()
         # File d'attente : chaque appui Tab est empilé instantanément (jamais
         # bloquant pour le thread du hook clavier) et traité un par un par un
         # thread dédié — même en spammant très vite, aucun appui n'est perdu
@@ -89,9 +100,22 @@ class DofusLogic:
             direction=self._switch_queue.get()
             lst=self.get_cycle_list()
             if not lst: continue
-            self._resync_idx(lst)
-            self._idx=(self._idx+direction)%len(lst)
-            self.focus_window(lst[self._idx]["hwnd"])
+            with self._focus_lock:
+                # Ne resynchronise l'index sur la fenêtre réellement au premier
+                # plan QUE s'il n'y a pas déjà un autre switch en attente dans
+                # la file — pendant un spam rapide (macro souris clic+Tab),
+                # GetForegroundWindow() n'a pas toujours fini de refléter le
+                # SetForegroundWindow() du switch précédent au moment où
+                # celui-ci se resynchronise dessus : l'index se décale sur
+                # cette lecture périmée, d'où une fenêtre sautée ou un retour
+                # en arrière. En rafale, on avance l'index en confiance (les
+                # switches restent dans l'ordre) ; resync seulement pour un
+                # appui isolé, où il sert vraiment à rattraper un clic manuel/
+                # alt-tab entre-temps.
+                if self._switch_queue.empty():
+                    self._resync_idx(lst)
+                self._idx=(self._idx+direction)%len(lst)
+                self.focus_window(lst[self._idx]["hwnd"])
 
     def scan_slots(self):
         if not WINDOWS: return []
@@ -318,29 +342,6 @@ class DofusLogic:
             if self.leader_hwnd: self.focus_window(self.leader_hwnd)
         threading.Thread(target=_s,daemon=True).start()
 
-    def close_window(self,hwnd):
-        """Ferme la fenêtre proprement (WM_CLOSE, comme un clic sur la croix) —
-        laisse le client Dofus fermer sa session normalement. Un TerminateProcess
-        immédiat coupait le process en plein rendu/réseau, ce qui déstabilisait
-        l'appli quand l'UI redessinait juste après (plantage au clic ⏻). Si la
-        fenêtre n'a pas disparu au bout de 2s, on force en dernier recours."""
-        try: win32gui.PostMessage(hwnd,win32con.WM_CLOSE,0,0)
-        except: pass
-
-        def _force_if_still_open():
-            try:
-                if not win32gui.IsWindow(hwnd): return
-                _,pid=win32process.GetWindowThreadProcessId(hwnd)
-                h=ctypes.windll.kernel32.OpenProcess(1,False,pid)
-                ctypes.windll.kernel32.TerminateProcess(h,0); ctypes.windll.kernel32.CloseHandle(h)
-            except: pass
-
-        t=threading.Timer(2.0,_force_if_still_open); t.daemon=True; t.start()
-
-    def close_all(self):
-        for a in self.get_cycle_list():
-            self.close_window(a["hwnd"])
-
     def paste_active(self):
         """Colle + valide (clic position chat calibrée, Ctrl+V, Entrée x2) sur le
         chef de groupe — utilisable depuis N'IMPORTE QUELLE fenêtre (ex: un site
@@ -348,8 +349,14 @@ class DofusLogic:
         automatiquement vers le chef avant de coller, pas besoin d'être déjà sur
         une fenêtre Dofus. Sans chef défini, se rabat sur la fenêtre Dofus active.
         Double Entrée : la 1ère valide l'autocomplétion Dofus (ex: /travel), la
-        2e envoie réellement le message."""
+        2e envoie réellement le message.
+
+        Verrouillée comme trigger_recall_potion/trigger_inventaire : spammer
+        la touche sans garde empilait plusieurs threads _do() en parallèle,
+        qui se marchaient dessus (chacun fait focus_window() + clic/touches,
+        des actions globales non ciblées) — d'où gels et fenêtres sautées."""
         if not WINDOWS or not PYAUTOGUI_OK: return
+        if getattr(self,"_paste_busy",False): return
         cp=self.config.get("macro_positions",{}).get("chat_position")
         if not cp: return
         target_hwnd=self.leader_hwnd
@@ -358,15 +365,19 @@ class DofusLogic:
             except Exception: fg=None
             if not any(a["hwnd"]==fg for a in self.all_accounts): return
             target_hwnd=fg
+        self._paste_busy=True
         def _do():
             try:
-                self.focus_window(target_hwnd); time.sleep(0.2)
-                pyautogui.click(cp[0],cp[1]); time.sleep(0.15)
-                pyautogui.hotkey("ctrl","v"); time.sleep(0.08)
-                pyautogui.press("enter"); time.sleep(0.15)
-                pyautogui.press("enter")
+                with self._focus_lock:
+                    self.focus_window(target_hwnd); time.sleep(0.2)
+                    pyautogui.click(cp[0],cp[1]); time.sleep(0.15)
+                    pyautogui.hotkey("ctrl","v"); time.sleep(0.08)
+                    pyautogui.press("enter"); time.sleep(0.15)
+                    pyautogui.press("enter")
             except Exception as e:
                 print(f"[paste_active] {e}")
+            finally:
+                self._paste_busy=False
         threading.Thread(target=_do,daemon=True).start()
 
 def _typing_in_app():
@@ -457,7 +468,7 @@ class HotkeyManager:
 
 # ── Account Row ───────────────────────────────────────────────────────────────
 class AccountRow(QFrame):
-    sig_remove=pyqtSignal(str); sig_up=pyqtSignal(str); sig_down=pyqtSignal(str); sig_leader=pyqtSignal(str); sig_close=pyqtSignal(str)
+    sig_remove=pyqtSignal(str); sig_up=pyqtSignal(str); sig_down=pyqtSignal(str); sig_leader=pyqtSignal(str)
 
     def __init__(self,acc,config,pos_num=0,parent=None):
         super().__init__(parent)
@@ -528,19 +539,6 @@ class AccountRow(QFrame):
         is_leader = config.get("leader_name") == name
         self.star = icon_btn("★", "Définir comme chef", active=is_leader, active_color=GOLD)
         self.star.clicked.connect(lambda: self.sig_leader.emit(name)); lay.addWidget(self.star)
-
-        # Close window — ferme juste la fenêtre Dofus de ce compte (process kill),
-        # sans le retirer de la liste — plus rapide qu'un clic droit > Fermer.
-        close = QPushButton("⏻")
-        close.setFixedSize(26,24)
-        close.setEnabled(live)
-        close.setToolTip("Fermer cette fenêtre Dofus" if live else "Aucune fenêtre détectée pour ce compte")
-        close.setStyleSheet(
-            f"QPushButton{{background:transparent;color:{RED if live else '#3a4050'};border:none;border-radius:5px;font-size:12px;font-weight:700;}}"
-            f"QPushButton:hover{{background:rgba(224,85,85,0.14);}}"
-            f"QPushButton:disabled{{background:transparent;}}"
-        )
-        close.clicked.connect(lambda: self.sig_close.emit(name)); lay.addWidget(close)
 
         # Remove
         rm = icon_btn("✕", "Retirer de la liste", size=(26,24))
@@ -1188,6 +1186,7 @@ class MainWindow(QMainWindow):
         from pages.automatisations_zaap import AutomatisationsZaapPage
         from pages.fenetres_scan import FenetresScanPage
         from pages.calibration import CalibrationPage
+        from pages.donjons import DonjonsPage
 
         root=_BackgroundWidget(); self.setCentralWidget(root)
         vl=QVBoxLayout(root); vl.setContentsMargins(0,0,0,0); vl.setSpacing(0)
@@ -1211,6 +1210,7 @@ class MainWindow(QMainWindow):
         self.page_automatisations_zaap=AutomatisationsZaapPage(self.config,self.logic)
         self.page_fenetres_scan=FenetresScanPage(self.config,self.logic)
         self.page_calibration=CalibrationPage(self.config,self.logic)
+        self.page_donjons=DonjonsPage(self.config,self.logic)
 
         self.pages={
             "mes_equipes":self.page_mes_equipes,
@@ -1222,6 +1222,7 @@ class MainWindow(QMainWindow):
             "automatisations_zaap":self.page_automatisations_zaap,
             "fenetres_scan":self.page_fenetres_scan,
             "calibration":self.page_calibration,
+            "donjons":self.page_donjons,
         }
         for page in self.pages.values(): self.stack.addWidget(page)
         bl.addWidget(self.stack, 1)

@@ -3,7 +3,7 @@
 Un roster = liste nommée et indépendante de persos (contrairement à l'ancien
 système Team 1-4, un même perso peut appartenir à plusieurs rosters).
 Appliquer un roster active ses membres et désactive les autres dans le cycle
-(Tab, fermer team, etc.) via DofusLogic.apply_roster() — ne touche pas à
+(Tab, etc.) via DofusLogic.apply_roster() — ne touche pas à
 l'ordre d'initiative, qui reste géré par les Presets.
 """
 from PyQt6.QtWidgets import QWidget, QVBoxLayout, QLabel

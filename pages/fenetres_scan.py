@@ -1,23 +1,28 @@
 """Page "Gestion" — scan des fenêtres Dofus, liste des comptes, branding
-et actions rapides (spam clic, trier la barre Windows, fermer la team).
+et actions rapides (spam clic, trier la barre Windows).
 
 Réutilise la logique métier existante (DofusLogic.scan_slots/sort_taskbar/
-close_all/set_leader/move_account, ScanThread, AccountRow, CLASSES) sans
+set_leader/move_account, ScanThread, AccountRow, CLASSES) sans
 réécriture — priorité V1 explicite de l'utilisateur ("organiser les
 fenêtres"). preset_card (ex-_mk_side_panel) n'est PAS repris ici : il vit
 désormais dans pages/presets.py.
+
+Aucune fermeture de fenêtre Dofus depuis l'app (ni groupée "Fermer team",
+ni individuelle par compte) : ça pouvait faire perdre des paramètres du
+client au relancement (écriture de sauvegarde interrompue/concurrente).
+Fermer un client reste possible normalement, juste pas depuis l'organizer.
 """
 from PyQt6.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QLabel, QPushButton, QScrollArea,
-    QComboBox, QLineEdit, QMessageBox, QDialog,
+    QComboBox, QLineEdit, QDialog,
 )
-from PyQt6.QtCore import Qt, QTimer, pyqtSignal
+from PyQt6.QtCore import Qt, pyqtSignal
 from PyQt6.QtGui import QPixmap
 
 import threading, time
 
 from theme import (
-    BG, BG2, BG3, ACC, RED, GREEN, GOLD, TEXT, MUT, BORDER, STYLE,
+    BG, BG2, BG3, ACC, GREEN, GOLD, TEXT, MUT, BORDER, STYLE,
     section_label, card, accent_btn, ghost_btn,
 )
 from paths import SKIN_DIR
@@ -117,18 +122,10 @@ class FenetresScanPage(QWidget):
         add_btn = ghost_btn("＋  Ajouter", self._add_account)
         add_btn.setFixedHeight(38)
         add_btn.setStyleSheet(add_btn.styleSheet() + "font-size:13px; padding:8px 18px; font-weight:700;")
-        close_team_btn = QPushButton("✕  Fermer team")
-        close_team_btn.setFixedHeight(38)
-        close_team_btn.setStyleSheet(
-            f"background:transparent;color:{RED};border:1px solid rgba(224,85,85,0.3);"
-            f"border-radius:6px;padding:8px 18px;font-size:13px;font-weight:700;"
-        )
-        close_team_btn.clicked.connect(self._close_team)
 
         actions_row.addWidget(scan_btn)
         actions_row.addWidget(add_btn)
         actions_row.addStretch()
-        actions_row.addWidget(close_team_btn)
         lay.addLayout(actions_row)
 
         self.scan_msg = QLabel("—")
@@ -236,7 +233,6 @@ class FenetresScanPage(QWidget):
             row.sig_up.connect(lambda n: self._move(n, -1))
             row.sig_down.connect(lambda n: self._move(n, 1))
             row.sig_leader.connect(self._set_leader)
-            row.sig_close.connect(self._close_account)
             self.rows_lay.addWidget(row)
             self._rows[name] = row
         self.rows_lay.addStretch()
@@ -331,25 +327,6 @@ class FenetresScanPage(QWidget):
 
     def _sort_taskbar(self):
         self.logic.sort_taskbar()
-
-    def _close_account(self, name):
-        acc = next((a for a in (self.logic.all_accounts or []) if a.get("name") == name), None)
-        if acc and acc.get("hwnd"):
-            self.logic.close_window(acc["hwnd"])
-            # Report différé : on est encore dans le handler de clic du bouton
-            # "⏻" de la ligne en train d'être fermée — reconstruire/détruire
-            # cette ligne maintenant (via _rescan_refresh -> _refresh) plantait
-            # l'appli. Même cause que le bug de drag&drop déjà corrigé.
-            QTimer.singleShot(0, self._rescan_refresh)
-
-    def _close_team(self):
-        r = QMessageBox.question(
-            self, "Fermer Team", "Fermer toutes les fenêtres Dofus actives ?",
-            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
-        )
-        if r == QMessageBox.StandardButton.Yes:
-            self.logic.close_all()
-            QTimer.singleShot(0, self._rescan_refresh)
 
     def _toggle_spam(self, on):
         if not PYAUTOGUI_OK:

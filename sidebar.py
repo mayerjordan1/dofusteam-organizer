@@ -26,6 +26,9 @@ GROUPS = [
         ("chasse_tresor", "  Chasse au trésor", "carte.png"),
         ("zaap_menu", "  Zaap", "icon_zaap.png"),
     ]),
+    ("DONJON", [
+        ("donjons", "  Donjons", "donjon.png"),
+    ]),
     ("SYSTÈME", [
         ("fenetres_scan", "🖥  Gestion"),
         ("calibration", "🎯  Calibration"),

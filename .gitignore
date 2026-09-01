@@ -8,3 +8,6 @@ venv/
 
 # Donnees perso (comptes, calibration ecran) — jamais commit
 settings.json
+
+# Images collees/ajoutees dans les notes de boss — contenu utilisateur
+notes_images/

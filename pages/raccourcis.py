@@ -36,6 +36,8 @@ DEFS = [
     ("Sélecteur", "selector_key", "🎯"), ("Calibrer", "calib_key", "🎚"), ("Inviter", "invite_group_key", "👥"),
     ("Coller+Valider", "paste_active_key", "📋"),
     ("Potion de rappel", "recall_key", "🧪"),
+    ("Potion de Bonta", "bonta_key", "🔵"),
+    ("Potion de Brakmar", "brakmar_key", "🔴"),
     ("Inventaire", "inventaire_key", "🎒"),
     ("Spam clic", "spam_click_key", "🖱"),
 ]
@@ -143,7 +145,7 @@ class RaccourcisPage(QWidget):
             grid.addWidget(self._tile(label, key, icon), r, c)
         body_lay.addLayout(grid)
 
-        hint = QLabel("💡 Potion de rappel / Inventaire : ces raccourcis doivent être exactement les mêmes que ceux bind côté jeu — pas de calibration nécessaire.")
+        hint = QLabel("💡 Potion de rappel / Bonta / Brakmar / Inventaire : ces raccourcis doivent être exactement les mêmes que ceux bind côté jeu — pas de calibration nécessaire. Décoche pour retirer le bouton de la barre flottante.")
         hint.setStyleSheet(f"color:{MUT};font-size:11px;")
         hint.setWordWrap(True)
         body_lay.addWidget(hint)

@@ -26,7 +26,7 @@ from sidebar import Sidebar
 from updater import UpdateCheckThread, UpdateDownloadThread, can_self_update, apply_update_and_restart
 
 APP_NAME = "DofusTeam"
-VERSION  = "V2.06"
+VERSION  = "V2.07"
 
 CLASSES = ["Cra","Ecaflip","Eliotrope","Eniripsa","Enutrof","Feca","Forgelance",
            "Huppermage","Iop","Osamodas","Ouginak","Pandawa","Roublard","Sacrieur",
@@ -37,6 +37,7 @@ DEFAULT = {
     "prev_key":"<","next_key":"tab","sync_key":"decimal",
     "toggle_app_key":"f10","refresh_key":"f5","sort_taskbar_key":"","calib_key":"f4",
     "auto_zaap_key":"","invite_group_key":"","paste_active_key":"","recall_key":"ctrl+shift+&","inventaire_key":"i","spam_click_key":"",
+    "bonta_key":"ctrl+shift+é","brakmar_key":"ctrl+shift+\"",
     "zaap_open_delay":0.8,"zaap_click_delay":0.5,"zaap_paste_delay":0.4,
     "game_haven_key":"h","game_version":"Unity","selector_key":"","zaap_favorites":[],"zaap_paste_delay":0.35,
     "leader_name":"","accounts_state":{},
@@ -266,6 +267,20 @@ class DofusLogic:
         from recall_macro import quick_recall_potion
         key=self.config.get("recall_key","")
         quick_recall_potion(self.config,self,key,on_done=lambda: setattr(self,"_recall_busy",False))
+    def trigger_bonta_potion(self):
+        # Même principe que trigger_recall_potion (même macro générique,
+        # juste une autre touche déjà bind côté jeu).
+        if getattr(self,"_bonta_busy",False): return
+        self._bonta_busy=True
+        from recall_macro import quick_recall_potion
+        key=self.config.get("bonta_key","")
+        quick_recall_potion(self.config,self,key,on_done=lambda: setattr(self,"_bonta_busy",False))
+    def trigger_brakmar_potion(self):
+        if getattr(self,"_brakmar_busy",False): return
+        self._brakmar_busy=True
+        from recall_macro import quick_recall_potion
+        key=self.config.get("brakmar_key","")
+        quick_recall_potion(self.config,self,key,on_done=lambda: setattr(self,"_brakmar_busy",False))
     def trigger_inventaire(self):
         # Même principe que trigger_recall_potion : le raccourci renvoyé dans
         # chaque fenêtre est le même que le déclencheur global → verrou pour
@@ -865,7 +880,12 @@ class MiniToolbar(QWidget):
 
         # ── Barre complète ──────────────────────────────────────────────
         bar=QWidget(self); bar.setObjectName("b")
-        bar.setStyleSheet(f"QWidget#b{{background:{BG};border:1px solid rgba(255,138,30,0.35);border-radius:12px;}}")
+        bar.setStyleSheet(
+            f"QWidget#b{{"
+            f"background:qlineargradient(x1:0,y1:0,x2:0,y2:1,stop:0 rgba(40,32,26,0.97),stop:1 rgba(22,18,15,0.97));"
+            f"border:1.5px solid rgba(255,158,60,0.55);border-radius:14px;"
+            f"}}"
+        )
         lay=QHBoxLayout(bar); lay.setContentsMargins(10,6,8,6); lay.setSpacing(6)
         self.bar=bar; self._inner_lay=lay
 
@@ -898,6 +918,8 @@ class MiniToolbar(QWidget):
         self.b_hsac=mkb("🏠","Havre-sac + Zaap\n1. Appuie H sur tous les persos\n2. Clique zaap calibré sur tous",BG,icon_file="havre-sac.png",size=(40,30),icon_size=28)
         self.b_zaap=mkb("⚡","Zaap favoris ⭐\nOuvre havre-sac + zaap puis colle/valide directement la destination favorite sur tous les persos",BG,icon_file="icon_zaap.png",size=(40,30),icon_size=28)
         self.b_recall=mkb("🧪","Potion de rappel\nSwitch de fenêtre + renvoie le raccourci de rappel sur tous les persos (déjà bind côté jeu)",BG,icon_file="potion-rappel.png",size=(40,30),icon_size=28)
+        self.b_bonta=mkb("🔵","Potion de Bonta\nSwitch de fenêtre + renvoie le raccourci Bonta sur tous les persos (déjà bind côté jeu)",BG,icon_file="potion-bonta.png",size=(40,30),icon_size=28)
+        self.b_brakmar=mkb("🔴","Potion de Brakmar\nSwitch de fenêtre + renvoie le raccourci Brakmar sur tous les persos (déjà bind côté jeu)",BG,icon_file="potion-brakmar.png",size=(40,30),icon_size=28)
         self.b_inv=mkb("🎒","Inventaire\nSwitch de fenêtre + renvoie le raccourci inventaire sur tous les persos (déjà bind côté jeu)",BG,icon_file="inventaire.png",size=(40,30),icon_size=28)
         self.b_hsac.clicked.connect(self._quick_hsac)
         self.b_hsac.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
@@ -905,8 +927,14 @@ class MiniToolbar(QWidget):
         self.b_hsac.setToolTip("🏠 Havre-sac + Zaap\nClic gauche: ouvrir tous les havresacs\nClic droit: zaap favoris ⭐")
         self.b_zaap.clicked.connect(self._quick_zaap)
         self.b_recall.clicked.connect(lambda: self.logic.trigger_recall_potion() if self.logic else None)
+        self.b_bonta.clicked.connect(lambda: self.logic.trigger_bonta_potion() if self.logic else None)
+        self.b_brakmar.clicked.connect(lambda: self.logic.trigger_brakmar_potion() if self.logic else None)
         self.b_inv.clicked.connect(lambda: self.logic.trigger_inventaire() if self.logic else None)
-        for w in (self.b_hsac,self.b_zaap,self.b_recall,self.b_inv): lay.addWidget(w)
+        for w in (self.b_hsac,self.b_zaap,self.b_recall,self.b_bonta,self.b_brakmar,self.b_inv): lay.addWidget(w)
+        # Boutons potion optionnels — cachés si l'utilisateur décoche leur
+        # raccourci dans la page Raccourcis (voir refresh_quick_actions).
+        self._quick_potion_btns={"recall_key":self.b_recall,"bonta_key":self.b_bonta,"brakmar_key":self.b_brakmar}
+        self.refresh_quick_actions()
 
         lay.addWidget(sep())
 
@@ -920,7 +948,12 @@ class MiniToolbar(QWidget):
 
         # ── Pastille repliée (état « minimisé ») ────────────────────────
         nub=QWidget(self); nub.setObjectName("n")
-        nub.setStyleSheet(f"QWidget#n{{background:{BG};border:1px solid rgba(255,138,30,0.35);border-radius:18px;}}")
+        nub.setStyleSheet(
+            f"QWidget#n{{"
+            f"background:qlineargradient(x1:0,y1:0,x2:0,y2:1,stop:0 rgba(40,32,26,0.97),stop:1 rgba(22,18,15,0.97));"
+            f"border:1.5px solid rgba(255,158,60,0.55);border-radius:18px;"
+            f"}}"
+        )
         nlay=QHBoxLayout(nub); nlay.setContentsMargins(6,4,6,4); nlay.setSpacing(4)
         nub_logo=QLabel()
         if egg: nub_logo.setPixmap(egg.pixmap(18,18))
@@ -1051,6 +1084,13 @@ class MiniToolbar(QWidget):
                     f"QPushButton{{background:{'rgba(255,138,30,0.2)' if is_active else 'rgba(255,255,255,0.05)'};border:{'2px solid #ff8a1e' if is_active else '1px solid rgba(255,255,255,0.08)'};border-radius:16px;}}"
                     f"QPushButton:hover{{background:rgba(255,138,30,0.15);border-color:#ff8a1e;}}"
                 )
+
+    def refresh_quick_actions(self):
+        """Affiche/cache les boutons potion selon leur case à cocher dans la
+        page Raccourcis (clé_on) — appelé au démarrage et à chaque
+        modification de cette page (voir on_change dans MainWindow)."""
+        for key,btn in self._quick_potion_btns.items():
+            btn.setVisible(self.config.get(f"{key}_on",True))
 
     def mousePressEvent(self,e):
         if e.button()==Qt.MouseButton.LeftButton: self._drag=e.globalPosition().toPoint()-self.frameGeometry().topLeft()
@@ -1204,7 +1244,10 @@ class MainWindow(QMainWindow):
         self.page_mes_equipes=MesEquipesPage(self.config,self.logic)
         self.page_rosters=RostersPage(self.config,self.logic)
         self.page_presets=PresetsPage(self.config,self.logic)
-        self.page_raccourcis=RaccourcisPage(self.config,self.logic,on_change=self.hk.reload)
+        def _on_raccourcis_change():
+            self.hk.reload()
+            self.mini.refresh_quick_actions()
+        self.page_raccourcis=RaccourcisPage(self.config,self.logic,on_change=_on_raccourcis_change)
         self.page_chasse_tresor=ChasseTresorPage(self.config,self.logic)
         self.page_zaap_menu=ZaapMenuPage(self.config,self.logic)
         self.page_automatisations_zaap=AutomatisationsZaapPage(self.config,self.logic)

@@ -26,7 +26,7 @@ from sidebar import Sidebar
 from updater import UpdateCheckThread, UpdateDownloadThread, can_self_update, apply_update_and_restart
 
 APP_NAME = "DofusTeam"
-VERSION  = "V2.10"
+VERSION  = "V2.11"
 
 CLASSES = ["Cra","Ecaflip","Eliotrope","Eniripsa","Enutrof","Feca","Forgelance",
            "Huppermage","Iop","Osamodas","Ouginak","Pandawa","Roublard","Sacrieur",
@@ -1096,6 +1096,15 @@ class MiniToolbar(QWidget):
         modification de cette page (voir on_change dans MainWindow)."""
         for key,btn in self._quick_potion_btns.items():
             btn.setVisible(self.config.get(f"{key}_on",True))
+        # La fenêtre (self) est dimensionnée une seule fois à la taille de
+        # bar dans __init__ — sans ce recalcul (même pattern que
+        # _rebuild_char_icons), activer un bouton l'ajoute dans le même
+        # espace figé et écrase tout le reste (avatars y compris) au lieu
+        # d'élargir la barre.
+        self.bar.layout().activate()
+        self.bar.adjustSize()
+        if not self._collapsed:
+            self.resize(self.bar.width(),self.bar.height())
 
     def mousePressEvent(self,e):
         if e.button()==Qt.MouseButton.LeftButton: self._drag=e.globalPosition().toPoint()-self.frameGeometry().topLeft()

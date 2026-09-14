@@ -155,7 +155,7 @@ class RaccourcisPage(QWidget):
         grid = QGridLayout()
         grid.setHorizontalSpacing(12)
         grid.setVerticalSpacing(12)
-        cols = 5
+        cols = 4
         for i, (label, key, icon) in enumerate(DEFS):
             r, c = divmod(i, cols)
             grid.addWidget(self._tile(label, key, icon), r, c)

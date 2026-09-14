@@ -26,7 +26,7 @@ from sidebar import Sidebar
 from updater import UpdateCheckThread, UpdateDownloadThread, can_self_update, apply_update_and_restart
 
 APP_NAME = "DofusTeam"
-VERSION  = "V2.08"
+VERSION  = "V2.09"
 
 CLASSES = ["Cra","Ecaflip","Eliotrope","Eniripsa","Enutrof","Feca","Forgelance",
            "Huppermage","Iop","Osamodas","Ouginak","Pandawa","Roublard","Sacrieur",
@@ -882,8 +882,7 @@ class MiniToolbar(QWidget):
         bar=QWidget(self); bar.setObjectName("b")
         bar.setStyleSheet(
             f"QWidget#b{{"
-            f"background:qlineargradient(x1:0,y1:0,x2:0,y2:1,stop:0 rgba(40,32,26,0.97),stop:1 rgba(22,18,15,0.97));"
-            f"border:1.5px solid rgba(255,158,60,0.55);border-radius:14px;"
+            f"background:{BG};border:1.5px solid rgba(255,158,60,0.55);border-radius:12px;"
             f"}}"
         )
         lay=QHBoxLayout(bar); lay.setContentsMargins(10,6,8,6); lay.setSpacing(6)
@@ -915,12 +914,12 @@ class MiniToolbar(QWidget):
 
         lay.addWidget(sep())
 
-        self.b_hsac=mkb("🏠","Havre-sac + Zaap\n1. Appuie H sur tous les persos\n2. Clique zaap calibré sur tous",BG,icon_file="havre-sac.png",size=(40,30),icon_size=28)
-        self.b_zaap=mkb("⚡","Zaap favoris ⭐\nOuvre havre-sac + zaap puis colle/valide directement la destination favorite sur tous les persos",BG,icon_file="icon_zaap.png",size=(40,30),icon_size=28)
-        self.b_recall=mkb("🧪","Potion de rappel\nSwitch de fenêtre + renvoie le raccourci de rappel sur tous les persos (déjà bind côté jeu)",BG,icon_file="potion-rappel.png",size=(40,30),icon_size=28)
-        self.b_bonta=mkb("🔵","Potion de Bonta\nSwitch de fenêtre + renvoie le raccourci Bonta sur tous les persos (déjà bind côté jeu)",BG,icon_file="potion-bonta.png",size=(40,30),icon_size=28)
-        self.b_brakmar=mkb("🔴","Potion de Brakmar\nSwitch de fenêtre + renvoie le raccourci Brakmar sur tous les persos (déjà bind côté jeu)",BG,icon_file="potion-brakmar.png",size=(40,30),icon_size=28)
-        self.b_inv=mkb("🎒","Inventaire\nSwitch de fenêtre + renvoie le raccourci inventaire sur tous les persos (déjà bind côté jeu)",BG,icon_file="inventaire.png",size=(40,30),icon_size=28)
+        self.b_hsac=mkb("🏠","Havre-sac + Zaap\n1. Appuie H sur tous les persos\n2. Clique zaap calibré sur tous","transparent",icon_file="havre-sac.png",size=(40,30),icon_size=28)
+        self.b_zaap=mkb("⚡","Zaap favoris ⭐\nOuvre havre-sac + zaap puis colle/valide directement la destination favorite sur tous les persos","transparent",icon_file="icon_zaap.png",size=(40,30),icon_size=28)
+        self.b_recall=mkb("🧪","Potion de rappel\nSwitch de fenêtre + renvoie le raccourci de rappel sur tous les persos (déjà bind côté jeu)","transparent",icon_file="potion-rappel.png",size=(40,30),icon_size=28)
+        self.b_bonta=mkb("🔵","Potion de Bonta\nSwitch de fenêtre + renvoie le raccourci Bonta sur tous les persos (déjà bind côté jeu)","transparent",icon_file="potion-bonta.png",size=(40,30),icon_size=28)
+        self.b_brakmar=mkb("🔴","Potion de Brakmar\nSwitch de fenêtre + renvoie le raccourci Brakmar sur tous les persos (déjà bind côté jeu)","transparent",icon_file="potion-brakmar.png",size=(40,30),icon_size=28)
+        self.b_inv=mkb("🎒","Inventaire\nSwitch de fenêtre + renvoie le raccourci inventaire sur tous les persos (déjà bind côté jeu)","transparent",icon_file="inventaire.png",size=(40,30),icon_size=28)
         self.b_hsac.clicked.connect(self._quick_hsac)
         self.b_hsac.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
         self.b_hsac.customContextMenuRequested.connect(lambda: self._show_zaap_menu())
@@ -931,9 +930,15 @@ class MiniToolbar(QWidget):
         self.b_brakmar.clicked.connect(lambda: self.logic.trigger_brakmar_potion() if self.logic else None)
         self.b_inv.clicked.connect(lambda: self.logic.trigger_inventaire() if self.logic else None)
         for w in (self.b_hsac,self.b_zaap,self.b_recall,self.b_bonta,self.b_brakmar,self.b_inv): lay.addWidget(w)
-        # Boutons potion optionnels — cachés si l'utilisateur décoche leur
-        # raccourci dans la page Raccourcis (voir refresh_quick_actions).
-        self._quick_potion_btns={"recall_key":self.b_recall,"bonta_key":self.b_bonta,"brakmar_key":self.b_brakmar}
+        # Boutons optionnels — cachés si l'utilisateur décoche le raccourci
+        # correspondant dans la page Raccourcis (voir refresh_quick_actions).
+        # b_zaap (Zaap favoris) n'a pas de touche/case associée, il reste
+        # toujours affiché.
+        self._quick_potion_btns={
+            "game_haven_key":self.b_hsac,"recall_key":self.b_recall,
+            "bonta_key":self.b_bonta,"brakmar_key":self.b_brakmar,
+            "inventaire_key":self.b_inv,
+        }
         self.refresh_quick_actions()
 
         lay.addWidget(sep())

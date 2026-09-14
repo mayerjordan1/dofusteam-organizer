@@ -10,7 +10,7 @@ from PyQt6.QtWidgets import (
 )
 from PyQt6.QtCore import Qt
 
-from theme import MUT, TEXT, ACC, BG, section_label, card
+from theme import MUT, TEXT, ACC, BG, section_label, card, load_icon
 
 
 def _make_header(title, subtitle):
@@ -42,6 +42,16 @@ DEFS = [
     ("Spam clic", "spam_click_key", "🖱"),
 ]
 
+# Vraie icône (skin/) à la place de l'emoji fallback, quand disponible.
+ICON_FILES = {
+    "recall_key": "potion-rappel.png",
+    "bonta_key": "potion-bonta.png",
+    "brakmar_key": "potion-brakmar.png",
+    "game_haven_key": "havre-sac.png",
+    "inventaire_key": "inventaire.png",
+    "invite_group_key": "icon_group.png",
+}
+
 
 class RaccourcisPage(QWidget):
     """Page pleine largeur listant/éditant les 10 raccourcis clavier, en tuiles."""
@@ -65,8 +75,14 @@ class RaccourcisPage(QWidget):
 
         top = QHBoxLayout()
         top.setSpacing(4)
-        ic = QLabel(icon)
-        ic.setStyleSheet("font-size:18px;background:transparent;")
+        ic = QLabel()
+        ic.setStyleSheet("background:transparent;")
+        img = load_icon(ICON_FILES[key], 20) if key in ICON_FILES else None
+        if img:
+            ic.setPixmap(img.pixmap(20, 20))
+        else:
+            ic.setText(icon)
+            ic.setStyleSheet("font-size:18px;background:transparent;")
         top.addWidget(ic)
         top.addStretch()
         chk = QCheckBox()

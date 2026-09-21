@@ -19,7 +19,6 @@ GROUPS = [
     ("ORGANISER", [
         ("mes_equipes", "  Mes équipes", "icon_group.png"),
         ("rosters", "🧩  Rosters"),
-        ("presets", "  Presets d'initiative", "ini.png"),
         ("raccourcis", "⌨  Raccourcis"),
     ]),
     ("OUTILS", [
@@ -30,7 +29,6 @@ GROUPS = [
         ("donjons", "  Donjons", "donjon.png"),
     ]),
     ("SYSTÈME", [
-        ("fenetres_scan", "🖥  Gestion"),
         ("calibration", "🎯  Calibration"),
         ("parametres", "⚙  Paramètres"),
     ]),

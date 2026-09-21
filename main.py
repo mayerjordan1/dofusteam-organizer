@@ -26,7 +26,7 @@ from sidebar import Sidebar
 from updater import UpdateCheckThread, UpdateDownloadThread, can_self_update, apply_update_and_restart
 
 APP_NAME = "DofusTeam"
-VERSION  = "V2.11"
+VERSION  = "V2.12"
 
 CLASSES = ["Cra","Ecaflip","Eliotrope","Eniripsa","Enutrof","Feca","Forgelance",
            "Huppermage","Iop","Osamodas","Ouginak","Pandawa","Roublard","Sacrieur",
@@ -1049,7 +1049,7 @@ class MiniToolbar(QWidget):
             stack = QWidget(); stack.setFixedSize(32, 32)
             b = QPushButton(stack); b.setGeometry(0, 0, 32, 32); b.setToolTip(acc["name"])
             b.setStyle(self._instant_tooltip)
-            pix = make_avatar(acc.get("classe", ""), 28)
+            pix = make_avatar(acc.get("classe", ""), 28, self.config.get("sexes", {}).get(acc["name"], "h"))
             if pix: b.setIcon(QIcon(pix)); b.setIconSize(QSize(28, 28))
             b.setStyleSheet(
                 f"QPushButton{{background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.08);border-radius:16px;}}"

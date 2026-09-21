@@ -44,6 +44,7 @@ class TeamSlotCard(QWidget):
     sig_leader ; un badge couronne (crown_icon) marque la tuile du chef actuel."""
 
     sig_leader = pyqtSignal(str)
+    sig_sexe = pyqtSignal()  # sexe changé : la navbar doit refléter le nouvel avatar
     sig_reorder = pyqtSignal(str, str, bool)  # (nom glissé, nom cible, insérer après) — direct, sans passer par un preset
 
     def __init__(self, name, classe, pos_num, config=None, live=False, is_leader=False, parent=None):
@@ -122,6 +123,7 @@ class TeamSlotCard(QWidget):
         sexes[self.name] = "f" if sexes.get(self.name,"h")=="h" else "h"
         self.config.set("sexes",sexes); self.config.save()
         self._refresh_avatar()
+        self.sig_sexe.emit()
 
     def _on_avatar_click(self):
         if self._select_mode:
@@ -292,7 +294,7 @@ class MesEquipesPage(QWidget):
         llay.addWidget(section_label("Presets"))
         pills_scroll = QScrollArea()
         pills_scroll.setWidgetResizable(True)
-        pills_scroll.setFixedHeight(46)
+        pills_scroll.setFixedHeight(72)
         pills_scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAsNeeded)
         pills_scroll.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
         pills_container = QWidget()
@@ -417,7 +419,25 @@ class MesEquipesPage(QWidget):
                 icon_pix = make_avatar(classes.get(p_order[0], ""), 22) if p_order else None
                 pill = _PresetPill(p.get("name", "?"), subtitle, active=(i == 0), icon_pix=icon_pix)
                 pill.clicked.connect(lambda _, pp=p: self._apply_preset(pp))
-                self.pills_lay.addWidget(pill)
+                pill.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
+                pill.customContextMenuRequested.connect(lambda _pos, idx=i, pl=pill: self._preset_menu(idx, pl))
+                rm = QPushButton("✕")
+                rm.setFixedSize(20, 20)
+                rm.setToolTip("Supprimer ce preset")
+                rm.setCursor(Qt.CursorShape.PointingHandCursor)
+                rm.setStyleSheet(
+                    f"QPushButton{{background:transparent;color:{MUT};border:none;font-size:11px;}}"
+                    f"QPushButton:hover{{color:#e05555;}}"
+                )
+                rm.clicked.connect(lambda _, idx=i: self._delete_preset(idx))
+                cell = QWidget()
+                cell.setStyleSheet("background:transparent;")
+                cl = QHBoxLayout(cell)
+                cl.setContentsMargins(0, 0, 0, 0)
+                cl.setSpacing(2)
+                cl.addWidget(pill)
+                cl.addWidget(rm, alignment=Qt.AlignmentFlag.AlignTop)
+                self.pills_lay.addWidget(cell)
         self.pills_lay.addStretch()
 
     def _refresh_slots(self):
@@ -438,6 +458,7 @@ class MesEquipesPage(QWidget):
                 slot = TeamSlotCard(name, classes.get(name, ""), i + 1, self.config,
                                      live=name in live_names, is_leader=(name == leader_name))
                 slot.sig_leader.connect(self._set_leader)
+                slot.sig_sexe.connect(self.order_changed.emit)
                 slot.sig_reorder.connect(self._on_slot_reorder)
                 slot.set_select_mode(self._select_mode)
                 self.slots_lay.addWidget(slot, i // 4, i % 4)
@@ -470,6 +491,33 @@ class MesEquipesPage(QWidget):
         self.leader_name_lbl.setStyleSheet(f"color:{TEXT}; font-size:11.5px; font-weight:600; background:transparent;")
 
     # ── actions ─────────────────────────────────────────────────────────
+    def _preset_menu(self, idx, widget):
+        from PyQt6.QtWidgets import QMenu
+        menu = QMenu(self)
+        menu.addAction("▶ Appliquer", lambda: self._apply_preset(self.config.get("presets", [])[idx]))
+        menu.addAction("✏ Modifier", lambda: self._edit_preset(idx))
+        menu.addAction("✕ Supprimer", lambda: self._delete_preset(idx))
+        menu.exec(widget.mapToGlobal(widget.rect().bottomLeft()))
+
+    def _edit_preset(self, idx):
+        from main import PresetEditor  # import tardif — évite le cycle pages<->main
+        editor = PresetEditor(self.config, idx, self)
+        editor.saved.connect(self.refresh)
+        editor.exec()
+
+    def _delete_preset(self, idx):
+        from PyQt6.QtWidgets import QMessageBox
+        presets = self.config.get("presets", [])
+        if not (0 <= idx < len(presets)):
+            return
+        name = presets[idx].get("name", "?")
+        if QMessageBox.question(self, "Supprimer le preset", f"Supprimer le preset « {name} » ?") != QMessageBox.StandardButton.Yes:
+            return
+        presets.pop(idx)
+        self.config.set("presets", presets)
+        self.config.save()
+        self.refresh()
+
     def _apply_preset(self, preset):
         self.logic.apply_preset(preset.get("order", []))
         self.refresh()

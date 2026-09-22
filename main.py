@@ -26,7 +26,7 @@ from sidebar import Sidebar
 from updater import UpdateCheckThread, UpdateDownloadThread, can_self_update, apply_update_and_restart
 
 APP_NAME = "DofusTeam"
-VERSION  = "V2.16"
+VERSION  = "V2.17"
 
 CLASSES = ["Cra","Ecaflip","Eliotrope","Eniripsa","Enutrof","Feca","Forgelance",
            "Huppermage","Iop","Osamodas","Ouginak","Pandawa","Roublard","Sacrieur",
@@ -601,6 +601,7 @@ class PresetPanel(QWidget):
             empty=QLabel("Aucun preset — crée-en un avec +")
             empty.setStyleSheet(f"color:{MUT};font-size:11px;"); self.vlay.insertWidget(0,empty); return
         classes=self.config.get("classes",{})
+        sexes=self.config.get("sexes",{})
         for i,p in enumerate(presets):
             row=QWidget(); rl=QHBoxLayout(row); rl.setContentsMargins(8,4,8,4); rl.setSpacing(8)
             row.setObjectName(f"PresetRow{i}")

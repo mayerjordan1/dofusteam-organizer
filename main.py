@@ -26,7 +26,7 @@ from sidebar import Sidebar
 from updater import UpdateCheckThread, UpdateDownloadThread, can_self_update, apply_update_and_restart
 
 APP_NAME = "DofusTeam"
-VERSION  = "V2.13"
+VERSION  = "V2.14"
 
 CLASSES = ["Cra","Ecaflip","Eliotrope","Eniripsa","Enutrof","Feca","Forgelance",
            "Huppermage","Iop","Osamodas","Ouginak","Pandawa","Roublard","Sacrieur",
@@ -671,8 +671,14 @@ class PresetEditor(QDialog):
 
     def _build_char_list(self):
         self.list.clear()
-        all_known=self.config.get("custom_order",[])
         preset_order=self.preset.get("order",[])
+        # "classes" garde tout perso jamais vu (jamais purgé), contrairement à
+        # custom_order (ne garde que les fenêtres actuellement détectées
+        # depuis un scan) — sans l'union des deux, un perso hors ligne était
+        # invisible ici et se faisait silencieusement retirer du preset au
+        # premier enregistrement, même s'il y était déjà.
+        known=list(self.config.get("classes",{}).keys())
+        all_known=list(dict.fromkeys(list(self.config.get("custom_order",[]))+known+preset_order))
         # Show preset order first, then unselected
         ordered=[n for n in preset_order if n in all_known]+[n for n in all_known if n not in preset_order]
         self.checks={}

@@ -258,6 +258,7 @@ class MesEquipesPage(QWidget):
         self._slot_cards = []
         self._slot_widgets = {}
         self._committed_order = []
+        self._expanded_preset = None
         self._build()
         self.refresh()
 
@@ -303,6 +304,16 @@ class MesEquipesPage(QWidget):
         self.pills_lay.setSpacing(8)
         pills_scroll.setWidget(pills_container)
         llay.addWidget(pills_scroll)
+
+        # Aperçu déplié d'un preset (▾ sur sa pastille) — montre l'ordre sans
+        # ouvrir l'éditeur complet.
+        self.preview_panel = QWidget()
+        self.preview_panel.setStyleSheet(f"background:{BG2}; border-radius:8px;")
+        self._preview_lay = QHBoxLayout(self.preview_panel)
+        self._preview_lay.setContentsMargins(10, 8, 10, 8)
+        self._preview_lay.setSpacing(6)
+        self.preview_panel.hide()
+        llay.addWidget(self.preview_panel)
 
         # Ordre d'initiative
         order_header = QHBoxLayout()
@@ -430,15 +441,30 @@ class MesEquipesPage(QWidget):
                     f"QPushButton:hover{{color:#e05555;}}"
                 )
                 rm.clicked.connect(lambda _, idx=i: self._delete_preset(idx))
+                dep = QPushButton("▾")
+                dep.setFixedSize(20, 20)
+                dep.setToolTip("Déplier — voir l'ordre de ce preset")
+                dep.setCursor(Qt.CursorShape.PointingHandCursor)
+                dep.setStyleSheet(
+                    f"QPushButton{{background:transparent;color:{MUT};border:none;font-size:11px;}}"
+                    f"QPushButton:hover{{color:{ACC};}}"
+                )
+                dep.clicked.connect(lambda _, idx=i: self._toggle_preview(idx))
                 cell = QWidget()
                 cell.setStyleSheet("background:transparent;")
                 cl = QHBoxLayout(cell)
                 cl.setContentsMargins(0, 0, 0, 0)
                 cl.setSpacing(2)
                 cl.addWidget(pill)
+                cl.addWidget(dep, alignment=Qt.AlignmentFlag.AlignTop)
                 cl.addWidget(rm, alignment=Qt.AlignmentFlag.AlignTop)
                 self.pills_lay.addWidget(cell)
         self.pills_lay.addStretch()
+        if self._expanded_preset is not None and self._expanded_preset < len(presets):
+            self._show_preview(self._expanded_preset)
+        else:
+            self._expanded_preset = None
+            self.preview_panel.hide()
 
     def _refresh_slots(self):
         while self.slots_lay.count():
@@ -517,6 +543,58 @@ class MesEquipesPage(QWidget):
         self.config.set("presets", presets)
         self.config.save()
         self.refresh()
+
+    def _toggle_preview(self, idx):
+        self._expanded_preset = None if self._expanded_preset == idx else idx
+        if self._expanded_preset is None:
+            self.preview_panel.hide()
+        else:
+            self._show_preview(idx)
+
+    def _show_preview(self, idx):
+        while self._preview_lay.count():
+            item = self._preview_lay.takeAt(0)
+            if item.widget():
+                item.widget().deleteLater()
+        presets = self.config.get("presets", [])
+        if not (0 <= idx < len(presets)):
+            self.preview_panel.hide()
+            return
+        order = presets[idx].get("order", [])
+        classes = self.config.get("classes", {})
+        live_names = {a.get("name") for a in (self.logic.all_accounts or []) if a.get("hwnd")}
+        if not order:
+            empty = QLabel("Preset vide.")
+            empty.setStyleSheet(f"color:{MUT}; font-size:11px; background:transparent;")
+            self._preview_lay.addWidget(empty)
+        for i, name in enumerate(order):
+            cell = QWidget()
+            cell.setStyleSheet("background:transparent;")
+            cv = QVBoxLayout(cell)
+            cv.setContentsMargins(0, 0, 0, 0)
+            cv.setSpacing(2)
+            num = QLabel(str(i + 1))
+            num.setAlignment(Qt.AlignmentFlag.AlignCenter)
+            num.setStyleSheet(f"color:{MUT}; font-size:9px; background:transparent;")
+            cv.addWidget(num)
+            av = QLabel()
+            av.setFixedSize(28, 28)
+            av.setAlignment(Qt.AlignmentFlag.AlignCenter)
+            op = "" if name in live_names else "opacity:0.4;"
+            av.setStyleSheet(f"background:{BG3}; border-radius:14px; {op}")
+            pix = make_avatar(classes.get(name, ""), 24)
+            if pix:
+                av.setPixmap(pix)
+            cv.addWidget(av)
+            lbl = QLabel(name)
+            lbl.setAlignment(Qt.AlignmentFlag.AlignCenter)
+            lbl.setStyleSheet(f"color:{TEXT if name in live_names else MUT}; font-size:9px; background:transparent;")
+            lbl.setFixedWidth(48)
+            lbl.setWordWrap(True)
+            cv.addWidget(lbl)
+            self._preview_lay.addWidget(cell)
+        self._preview_lay.addStretch()
+        self.preview_panel.show()
 
     def _apply_preset(self, preset):
         self.logic.apply_preset(preset.get("order", []))

@@ -26,7 +26,7 @@ from sidebar import Sidebar
 from updater import UpdateCheckThread, UpdateDownloadThread, can_self_update, apply_update_and_restart
 
 APP_NAME = "DofusTeam"
-VERSION  = "V2.15"
+VERSION  = "V2.16"
 
 CLASSES = ["Cra","Ecaflip","Eliotrope","Eniripsa","Enutrof","Feca","Forgelance",
            "Huppermage","Iop","Osamodas","Ouginak","Pandawa","Roublard","Sacrieur",
@@ -609,7 +609,7 @@ class PresetPanel(QWidget):
             if p_order:
                 icon_av=QLabel(); icon_av.setFixedSize(20,20)
                 icon_av.setStyleSheet("background:transparent;")
-                icon_pix=make_avatar(classes.get(p_order[0],""),20)
+                icon_pix=make_avatar(classes.get(p_order[0],""),20,sexes.get(p_order[0],"h"))
                 if icon_pix: icon_av.setPixmap(icon_pix)
                 rl.addWidget(icon_av)
             name_lbl=QLabel(p["name"]); name_lbl.setStyleSheet(f"font-weight:700;font-size:12px;color:{TEXT};"); rl.addWidget(name_lbl)
@@ -681,28 +681,41 @@ class _AvailCharRow(QWidget):
 class _SelectedCharRow(QWidget):
     """Ligne perso sélectionné (colonne de droite) — avatar + nom + un
     numéro de position (1..N) réassigné directement plutôt que par glisser-
-    déposer, plus simple pour choisir un ordre précis sur 2 à 8 persos."""
+    déposer, plus simple pour choisir un ordre précis sur 2 à 8 persos.
+    Boutons ▲▼ faits main (pas de QSpinBox) : ses flèches natives sont
+    quasi invisibles/peu cliquables sur ce thème sombre personnalisé."""
     removed=pyqtSignal(str)
-    moved=pyqtSignal(str,int)  # (nom, nouvelle position 1-indexée)
+    moved=pyqtSignal(str,int)  # (nom, delta : -1 monte, +1 descend)
 
     def __init__(self,name,pix,pos,count,parent=None):
         super().__init__(parent)
         self.name=name
         self.setObjectName("SelRow")
         self.setStyleSheet(f"QWidget#SelRow{{background:{BG3};border-radius:8px;}}")
-        lay=QHBoxLayout(self); lay.setContentsMargins(10,8,10,8); lay.setSpacing(10)
+        lay=QHBoxLayout(self); lay.setContentsMargins(10,8,10,8); lay.setSpacing(12)
 
-        self.pos_spin=QSpinBox()
-        self.pos_spin.setRange(1,max(count,1))
-        self.pos_spin.setValue(pos)
-        self.pos_spin.setFixedWidth(46)
-        self.pos_spin.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        self.pos_spin.setStyleSheet(
-            f"QSpinBox{{background:{BG};color:{ACC};border:1px solid rgba(255,255,255,0.1);"
-            f"border-radius:5px;padding:3px;font-weight:700;}}"
+        self.pos_lbl=QLabel(str(pos))
+        self.pos_lbl.setFixedSize(30,30)
+        self.pos_lbl.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self.pos_lbl.setStyleSheet(
+            f"background:{BG};color:{ACC};border:1px solid rgba(255,255,255,0.1);"
+            f"border-radius:6px;font-weight:700;font-size:13px;"
         )
-        self.pos_spin.valueChanged.connect(lambda v: self.moved.emit(self.name,v))
-        lay.addWidget(self.pos_spin)
+        lay.addWidget(self.pos_lbl)
+
+        stepper=QVBoxLayout(); stepper.setSpacing(2)
+        up=QPushButton("▲"); dn=QPushButton("▼")
+        for b,delta in ((up,-1),(dn,1)):
+            b.setFixedSize(24,17)
+            b.setCursor(Qt.CursorShape.PointingHandCursor)
+            b.setStyleSheet(
+                f"QPushButton{{background:{BG};color:{MUT};border:1px solid rgba(255,255,255,0.08);"
+                f"border-radius:4px;font-size:9px;}}"
+                f"QPushButton:hover{{color:{ACC};background:rgba(255,138,30,0.15);border-color:{ACC};}}"
+            )
+            b.clicked.connect(lambda _,d=delta: self.moved.emit(self.name,d))
+            stepper.addWidget(b)
+        lay.addLayout(stepper)
 
         av=QLabel(); av.setFixedSize(30,30); av.setStyleSheet("background:transparent;")
         if pix: av.setPixmap(pix)
@@ -710,24 +723,17 @@ class _SelectedCharRow(QWidget):
         lbl=QLabel(name); lbl.setStyleSheet(f"font-weight:600;color:{TEXT};font-size:12.5px;background:transparent;")
         lay.addWidget(lbl,stretch=1)
 
-        rm=QPushButton("✕"); rm.setFixedSize(24,24)
+        rm=QPushButton("✕"); rm.setFixedSize(26,26)
         rm.setCursor(Qt.CursorShape.PointingHandCursor)
         rm.setStyleSheet(
-            f"QPushButton{{background:transparent;color:{MUT};border:none;border-radius:4px;font-size:11px;}}"
+            f"QPushButton{{background:transparent;color:{MUT};border:none;border-radius:4px;font-size:12px;}}"
             f"QPushButton:hover{{color:#e05555;background:rgba(224,85,85,0.1);}}"
         )
         rm.clicked.connect(lambda: self.removed.emit(self.name))
         lay.addWidget(rm)
 
-    def set_count(self,count):
-        self.pos_spin.blockSignals(True)
-        self.pos_spin.setRange(1,max(count,1))
-        self.pos_spin.blockSignals(False)
-
     def set_pos(self,pos):
-        self.pos_spin.blockSignals(True)
-        self.pos_spin.setValue(pos)
-        self.pos_spin.blockSignals(False)
+        self.pos_lbl.setText(str(pos))
 
 
 class _PresetDropZone(QWidget):
@@ -836,6 +842,7 @@ class PresetEditor(QDialog):
         self._clear_lay(self.avail_lay)
         self._clear_lay(self.sel_lay)
         classes=self.config.get("classes",{})
+        sexes=self.config.get("sexes",{})
 
         avail_names=[n for n in self._all_known() if n not in self._selected]
         if not avail_names:
@@ -844,7 +851,7 @@ class PresetEditor(QDialog):
             empty.setWordWrap(True)
             self.avail_lay.addWidget(empty)
         for name in avail_names:
-            pix=make_avatar(classes.get(name,""),30)
+            pix=make_avatar(classes.get(name,""),30,sexes.get(name,"h"))
             self.avail_lay.addWidget(_AvailCharRow(name,pix))
         self.avail_lay.addStretch()
 
@@ -856,7 +863,7 @@ class PresetEditor(QDialog):
         count=len(self._selected)
         self._sel_rows={}
         for i,name in enumerate(self._selected):
-            pix=make_avatar(classes.get(name,""),30)
+            pix=make_avatar(classes.get(name,""),30,sexes.get(name,"h"))
             row=_SelectedCharRow(name,pix,i+1,count)
             row.removed.connect(self._on_removed)
             row.moved.connect(self._on_moved)
@@ -874,11 +881,13 @@ class PresetEditor(QDialog):
             self._selected.remove(name)
             self._rebuild_lists()
 
-    def _on_moved(self,name,new_pos):
+    def _on_moved(self,name,delta):
         if name not in self._selected: return
-        self._selected.remove(name)
-        idx=max(0,min(new_pos-1,len(self._selected)))
-        self._selected.insert(idx,name)
+        idx=self._selected.index(name)
+        new_idx=max(0,min(idx+delta,len(self._selected)-1))
+        if new_idx==idx: return
+        self._selected.pop(idx)
+        self._selected.insert(new_idx,name)
         self._rebuild_lists()
 
     def _save(self):
@@ -921,6 +930,7 @@ class RosterPanel(QWidget):
             empty=QLabel("Aucun roster — crée-en un avec +")
             empty.setStyleSheet(f"color:{MUT};font-size:11px;"); self.vlay.insertWidget(0,empty); return
         classes=self.config.get("classes",{})
+        sexes=self.config.get("sexes",{})
         for i,r in enumerate(rosters):
             row=QWidget(); rl=QHBoxLayout(row); rl.setContentsMargins(8,4,8,4); rl.setSpacing(8)
             row.setObjectName(f"RosterRow{i}")
@@ -929,7 +939,7 @@ class RosterPanel(QWidget):
             if members:
                 icon_av=QLabel(); icon_av.setFixedSize(20,20)
                 icon_av.setStyleSheet("background:transparent;")
-                icon_pix=make_avatar(classes.get(members[0],""),20)
+                icon_pix=make_avatar(classes.get(members[0],""),20,sexes.get(members[0],"h"))
                 if icon_pix: icon_av.setPixmap(icon_pix)
                 rl.addWidget(icon_av)
             name_lbl=QLabel(r["name"]); name_lbl.setStyleSheet(f"font-weight:700;font-size:12px;color:{TEXT};"); rl.addWidget(name_lbl)
@@ -997,7 +1007,7 @@ class RosterEditor(QDialog):
             chk=QCheckBox(); chk.setChecked(name in members); rl.addWidget(chk)
             av=QLabel(); av.setFixedSize(28,28)
             av.setStyleSheet("background:transparent;border:none;")
-            pix=make_avatar(self.config.get("classes",{}).get(name,""),28)
+            pix=make_avatar(self.config.get("classes",{}).get(name,""),28,self.config.get("sexes",{}).get(name,"h"))
             if pix: av.setPixmap(pix)
             rl.addWidget(av)
             lbl=QLabel(name); lbl.setStyleSheet(f"font-weight:600;color:{TEXT};background:transparent;border:none;"); rl.addWidget(lbl)

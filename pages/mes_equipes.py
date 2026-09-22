@@ -424,10 +424,11 @@ class MesEquipesPage(QWidget):
             self.pills_lay.addWidget(empty)
         else:
             classes = self.config.get("classes", {})
+            sexes = self.config.get("sexes", {})
             for i, p in enumerate(presets):
                 p_order = p.get("order", [])
                 subtitle = f"{len(p_order)} position(s)"
-                icon_pix = make_avatar(classes.get(p_order[0], ""), 22) if p_order else None
+                icon_pix = make_avatar(classes.get(p_order[0], ""), 22, sexes.get(p_order[0], "h")) if p_order else None
                 pill = _PresetPill(p.get("name", "?"), subtitle, active=(i == 0), icon_pix=icon_pix)
                 pill.clicked.connect(lambda _, pp=p: self._apply_preset(pp))
                 pill.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)

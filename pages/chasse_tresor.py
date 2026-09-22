@@ -291,6 +291,18 @@ class ChasseTresorPage(QWidget):
         self.direction = idx
         for i, b in self._dir_btns.items():
             b.setChecked(i == idx)
+        self._maybe_auto_search()
+
+    def _maybe_auto_search(self):
+        """Lance la recherche toute seule dès que la position (X/Y) est
+        saisie et qu'une direction est cliquée — plus besoin de cliquer
+        aussi sur « Chercher les indices »."""
+        try:
+            int(self.x_inp.text().strip())
+            int(self.y_inp.text().strip())
+        except ValueError:
+            return
+        self._search()
 
     def _result_card(self):
         c = glass_card(QWidget())
@@ -427,11 +439,16 @@ class ChasseTresorPage(QWidget):
             self.status_lbl.setText(f"❌  Erreur : {error}")
             self.status_lbl.setStyleSheet("color:#ff5c5c; font-size:11px; background:transparent;")
             return
-        self._hints = hints
         if not hints:
+            self._hints = hints
             self.status_lbl.setText("Aucun indice trouvé dans cette direction.")
             self.status_lbl.setStyleSheet(f"color:{MUT}; font-size:11px; background:transparent;")
             return
+        # Tri alphabétique pour l'affichage (hunt.py les renvoie triés par
+        # distance, pratique pour le calcul mais pas pour repérer le sien
+        # dans la liste).
+        hints = sorted(hints, key=lambda h: h["name"])
+        self._hints = hints
         self.status_lbl.setText(f"{len(hints)} indice(s) trouvé(s) — sélectionne le tien.")
         self.status_lbl.setStyleSheet(f"color:{ACC}; font-size:11px; font-weight:600; background:transparent;")
         for h in hints:
@@ -522,13 +539,18 @@ class ChasseTresorPage(QWidget):
         def _do():
             try:
                 import pyautogui
+                # pyautogui.hotkey/press ne sont pas fiables avec le client
+                # Dofus (déjà vu sur le Ctrl+W autofollow des macros zaap) —
+                # SendInput direct marche à tous les coups.
+                from zaap_macro import _send_ctrl_combo_sendinput, _send_vk_sendinput
+                VK_RETURN = 0x0D
                 self.logic.focus_window(hwnd)
                 time.sleep(0.2)
                 pyautogui.click(cp[0], cp[1])
                 time.sleep(0.15)
-                pyautogui.hotkey("ctrl", "v")
-                time.sleep(0.08)
-                pyautogui.press("enter")
+                _send_ctrl_combo_sendinput("v")
+                time.sleep(0.12)
+                _send_vk_sendinput(VK_RETURN)
             except Exception as e:
                 print(f"[chasse_tresor._auto_paste] {e}")
 

@@ -43,6 +43,24 @@ def _send_ctrl_combo_sendinput(key_char):
     _press(vk_key, False);     _time.sleep(0.03)
     _press(VK_CONTROL, False)
 
+
+def _send_vk_sendinput(vk):
+    """Envoie une touche par code virtuel (ex: VK_RETURN=0x0D) via
+    SendInput — même technique que _send_key_sendinput, mais pour les
+    touches qui n'ont pas de caractère imprimable (Entrée, etc.)."""
+    class KEYBDINPUT(_ctypes.Structure):
+        _fields_=[('wVk',_ctypes.c_ushort),('wScan',_ctypes.c_ushort),('dwFlags',_ctypes.c_ulong),
+                  ('time',_ctypes.c_ulong),('dwExtraInfo',_ctypes.c_void_p)]
+    class INPUT(_ctypes.Structure):
+        class _I(_ctypes.Union):
+            _fields_=[('ki',KEYBDINPUT)]
+        _anonymous_=('_i',); _fields_=[('type',_ctypes.c_ulong),('_i',_I)]
+    inp=INPUT(type=1); inp.ki.wVk=vk; inp.ki.dwFlags=0
+    _ctypes.windll.user32.SendInput(1,_ctypes.pointer(inp),_ctypes.sizeof(inp))
+    import time as _time; _time.sleep(0.06)
+    inp.ki.dwFlags=0x0002
+    _ctypes.windll.user32.SendInput(1,_ctypes.pointer(inp),_ctypes.sizeof(inp))
+
 """
 DofusTeam — zaap_macro.py
 Système Auto-Zaap : calibration + exécution en 3 phases

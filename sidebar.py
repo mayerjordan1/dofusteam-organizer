@@ -18,7 +18,6 @@ ICON_SIZE = 20
 GROUPS = [
     ("ORGANISER", [
         ("mes_equipes", "  Mes équipes", "icon_group.png"),
-        ("rosters", "🧩  Rosters"),
         ("raccourcis", "⌨  Raccourcis"),
     ]),
     ("OUTILS", [

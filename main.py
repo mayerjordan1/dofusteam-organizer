@@ -26,7 +26,7 @@ from sidebar import Sidebar
 from updater import UpdateCheckThread, UpdateDownloadThread, can_self_update, apply_update_and_restart
 
 APP_NAME = "DofusTeam"
-VERSION  = "V2.14"
+VERSION  = "V2.15"
 
 CLASSES = ["Cra","Ecaflip","Eliotrope","Eniripsa","Enutrof","Feca","Forgelance",
            "Huppermage","Iop","Osamodas","Ouginak","Pandawa","Roublard","Sacrieur",
@@ -639,6 +639,121 @@ class PresetPanel(QWidget):
     def _open_editor(self,idx):
         dlg=PresetEditor(self.config,idx,self); dlg.saved.connect(self.refresh_presets); dlg.exec()
 
+class _AvailCharRow(QWidget):
+    """Ligne perso disponible (colonne de gauche du PresetEditor) — se
+    glisse vers la colonne de droite pour rejoindre le preset. Même
+    technique de drag manuel que TeamSlotCard (mes_equipes.py) : mimeData
+    texte = nom, un QDrag démarré depuis mouseMoveEvent."""
+    def __init__(self,name,pix,parent=None):
+        super().__init__(parent)
+        self.name=name
+        self._press_pos=None
+        self.setCursor(Qt.CursorShape.OpenHandCursor)
+        self.setObjectName("AvailRow")
+        self.setStyleSheet(
+            f"QWidget#AvailRow{{background:{BG3};border-radius:8px;}}"
+            f"QWidget#AvailRow:hover{{background:rgba(255,138,30,0.10);}}"
+        )
+        lay=QHBoxLayout(self); lay.setContentsMargins(10,8,10,8); lay.setSpacing(10)
+        av=QLabel(); av.setFixedSize(30,30); av.setStyleSheet("background:transparent;")
+        if pix: av.setPixmap(pix)
+        lay.addWidget(av)
+        lbl=QLabel(name); lbl.setStyleSheet(f"font-weight:600;color:{TEXT};font-size:12.5px;background:transparent;")
+        lay.addWidget(lbl,stretch=1)
+        grip=QLabel("⠿"); grip.setStyleSheet(f"color:{MUT};background:transparent;")
+        lay.addWidget(grip)
+
+    def mousePressEvent(self,e):
+        if e.button()==Qt.MouseButton.LeftButton: self._press_pos=e.position().toPoint()
+        super().mousePressEvent(e)
+
+    def mouseMoveEvent(self,e):
+        if self._press_pos is None or not (e.buttons() & Qt.MouseButton.LeftButton):
+            super().mouseMoveEvent(e); return
+        if (e.position().toPoint()-self._press_pos).manhattanLength()<QApplication.startDragDistance():
+            super().mouseMoveEvent(e); return
+        drag=QDrag(self); mime=QMimeData(); mime.setText(self.name); drag.setMimeData(mime)
+        drag.setPixmap(self.grab()); drag.setHotSpot(e.position().toPoint())
+        self._press_pos=None
+        drag.exec(Qt.DropAction.MoveAction)
+
+
+class _SelectedCharRow(QWidget):
+    """Ligne perso sélectionné (colonne de droite) — avatar + nom + un
+    numéro de position (1..N) réassigné directement plutôt que par glisser-
+    déposer, plus simple pour choisir un ordre précis sur 2 à 8 persos."""
+    removed=pyqtSignal(str)
+    moved=pyqtSignal(str,int)  # (nom, nouvelle position 1-indexée)
+
+    def __init__(self,name,pix,pos,count,parent=None):
+        super().__init__(parent)
+        self.name=name
+        self.setObjectName("SelRow")
+        self.setStyleSheet(f"QWidget#SelRow{{background:{BG3};border-radius:8px;}}")
+        lay=QHBoxLayout(self); lay.setContentsMargins(10,8,10,8); lay.setSpacing(10)
+
+        self.pos_spin=QSpinBox()
+        self.pos_spin.setRange(1,max(count,1))
+        self.pos_spin.setValue(pos)
+        self.pos_spin.setFixedWidth(46)
+        self.pos_spin.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self.pos_spin.setStyleSheet(
+            f"QSpinBox{{background:{BG};color:{ACC};border:1px solid rgba(255,255,255,0.1);"
+            f"border-radius:5px;padding:3px;font-weight:700;}}"
+        )
+        self.pos_spin.valueChanged.connect(lambda v: self.moved.emit(self.name,v))
+        lay.addWidget(self.pos_spin)
+
+        av=QLabel(); av.setFixedSize(30,30); av.setStyleSheet("background:transparent;")
+        if pix: av.setPixmap(pix)
+        lay.addWidget(av)
+        lbl=QLabel(name); lbl.setStyleSheet(f"font-weight:600;color:{TEXT};font-size:12.5px;background:transparent;")
+        lay.addWidget(lbl,stretch=1)
+
+        rm=QPushButton("✕"); rm.setFixedSize(24,24)
+        rm.setCursor(Qt.CursorShape.PointingHandCursor)
+        rm.setStyleSheet(
+            f"QPushButton{{background:transparent;color:{MUT};border:none;border-radius:4px;font-size:11px;}}"
+            f"QPushButton:hover{{color:#e05555;background:rgba(224,85,85,0.1);}}"
+        )
+        rm.clicked.connect(lambda: self.removed.emit(self.name))
+        lay.addWidget(rm)
+
+    def set_count(self,count):
+        self.pos_spin.blockSignals(True)
+        self.pos_spin.setRange(1,max(count,1))
+        self.pos_spin.blockSignals(False)
+
+    def set_pos(self,pos):
+        self.pos_spin.blockSignals(True)
+        self.pos_spin.setValue(pos)
+        self.pos_spin.blockSignals(False)
+
+
+class _PresetDropZone(QWidget):
+    """Widget interne posé dans le QScrollArea de droite du PresetEditor —
+    accepte le dépôt d'un nom de perso glissé depuis la colonne de gauche
+    (_AvailCharRow). Doit être le widget réellement sous le curseur (le
+    viewport d'un QScrollArea intercepte les drops avant le QScrollArea
+    lui-même), d'où setWidget(ce widget) plutôt que setAcceptDrops sur le
+    QScrollArea parent."""
+    dropped=pyqtSignal(str)
+
+    def __init__(self,parent=None):
+        super().__init__(parent)
+        self.setAcceptDrops(True)
+
+    def dragEnterEvent(self,e):
+        if e.mimeData().hasText(): e.acceptProposedAction()
+
+    def dragMoveEvent(self,e):
+        e.acceptProposedAction()
+
+    def dropEvent(self,e):
+        self.dropped.emit(e.mimeData().text())
+        e.acceptProposedAction()
+
+
 class PresetEditor(QDialog):
     saved=pyqtSignal()
     def __init__(self,config,idx,parent=None,initial_order=None):
@@ -648,71 +763,128 @@ class PresetEditor(QDialog):
             self.preset=presets[idx].copy()
         else:
             self.preset={"name":"","order":list(initial_order) if initial_order else []}
-        self.setWindowTitle("Preset d'initiative"); self.setFixedSize(360,480); self.setStyleSheet(STYLE)
+        self._selected=list(self.preset.get("order",[]))
+        self.setWindowTitle("Preset d'initiative"); self.setFixedSize(620,480); self.setStyleSheet(STYLE)
         self._build()
 
-    def _build(self):
-        lay=QVBoxLayout(self); lay.setContentsMargins(16,16,16,16); lay.setSpacing(12)
-        lay.addWidget(QLabel("Nom du preset :"))
-        self.name_inp=QLineEdit(self.preset.get("name","")); self.name_inp.setPlaceholderText("Ex: Farm Abysse"); lay.addWidget(self.name_inp)
-        lay.addWidget(QLabel("Ordre des personnages (glisser-déposer pour réordonner) :"))
-
-        # Liste des personnages connus, avec cases à cocher + drag & drop pour réordonner
-        self.list=QListWidget()
-        self.list.setDragDropMode(QAbstractItemView.DragDropMode.InternalMove)
-        self.list.setStyleSheet(f"QListWidget{{background:{BG3};border:none;border-radius:6px;}}QListWidget::item{{border:none;}}")
-        lay.addWidget(self.list)
-        self._build_char_list()
-
-        btns=QHBoxLayout()
-        cancel=ghost_btn("Annuler",self.reject); btns.addWidget(cancel)
-        save=accent_btn("💾 Sauvegarder",self._save); btns.addWidget(save)
-        lay.addLayout(btns)
-
-    def _build_char_list(self):
-        self.list.clear()
-        preset_order=self.preset.get("order",[])
+    def _all_known(self):
         # "classes" garde tout perso jamais vu (jamais purgé), contrairement à
         # custom_order (ne garde que les fenêtres actuellement détectées
         # depuis un scan) — sans l'union des deux, un perso hors ligne était
         # invisible ici et se faisait silencieusement retirer du preset au
         # premier enregistrement, même s'il y était déjà.
         known=list(self.config.get("classes",{}).keys())
-        all_known=list(dict.fromkeys(list(self.config.get("custom_order",[]))+known+preset_order))
-        # Show preset order first, then unselected
-        ordered=[n for n in preset_order if n in all_known]+[n for n in all_known if n not in preset_order]
-        self.checks={}
-        for name in ordered:
-            row=QWidget(); rl=QHBoxLayout(row); rl.setContentsMargins(8,6,8,6); rl.setSpacing(10)
-            chk=QCheckBox(); chk.setChecked(name in preset_order); rl.addWidget(chk)
-            av=QLabel(); av.setFixedSize(28,28)
-            av.setStyleSheet("background:transparent;border:none;")
-            pix=make_avatar(self.config.get("classes",{}).get(name,""),28)
-            if pix: av.setPixmap(pix)
-            rl.addWidget(av)
-            lbl=QLabel(name); lbl.setStyleSheet(f"font-weight:600;color:{TEXT};background:transparent;border:none;"); rl.addWidget(lbl)
-            rl.addStretch()
-            self.checks[name]=chk
-            item=QListWidgetItem()
-            item.setData(Qt.ItemDataRole.UserRole,name)
-            # row.sizeHint() sous-estime la hauteur tant que le widget n'a pas
-            # encore été layouté dans la liste — on force une hauteur minimale
-            # explicite pour éviter que l'avatar/checkbox soient écrasés.
-            hint=row.sizeHint()
-            item.setSizeHint(QSize(hint.width(),max(hint.height(),40)))
-            self.list.addItem(item)
-            self.list.setItemWidget(item,row)
+        return list(dict.fromkeys(list(self.config.get("custom_order",[]))+known+self._selected))
+
+    def _build(self):
+        lay=QVBoxLayout(self); lay.setContentsMargins(20,18,20,18); lay.setSpacing(14)
+
+        name_row=QHBoxLayout(); name_row.setSpacing(10)
+        name_lbl=QLabel("Nom du preset :"); name_lbl.setStyleSheet(f"color:{TEXT};font-weight:600;")
+        name_row.addWidget(name_lbl)
+        self.name_inp=QLineEdit(self.preset.get("name","")); self.name_inp.setPlaceholderText("Ex: Farm Abysse")
+        self.name_inp.setFixedHeight(32)
+        name_row.addWidget(self.name_inp,stretch=1)
+        lay.addLayout(name_row)
+
+        cols=QHBoxLayout(); cols.setSpacing(16)
+
+        left=QVBoxLayout(); left.setSpacing(8)
+        lt=QLabel("Personnages scannés"); lt.setStyleSheet(f"color:{MUT};font-size:11px;font-weight:700;letter-spacing:0.04em;text-transform:uppercase;")
+        left.addWidget(lt)
+        lhint=QLabel("Glisse un perso à droite pour l'ajouter"); lhint.setStyleSheet(f"color:{MUT};font-size:10.5px;")
+        left.addWidget(lhint)
+        self.avail_scroll=QScrollArea(); self.avail_scroll.setWidgetResizable(True)
+        self.avail_scroll.setStyleSheet(f"QScrollArea{{background:{BG2};border:none;border-radius:8px;}}")
+        self.avail_container=QWidget(); self.avail_container.setStyleSheet("background:transparent;")
+        self.avail_lay=QVBoxLayout(self.avail_container)
+        self.avail_lay.setContentsMargins(8,8,8,8); self.avail_lay.setSpacing(6)
+        self.avail_scroll.setWidget(self.avail_container)
+        left.addWidget(self.avail_scroll,stretch=1)
+        cols.addLayout(left,stretch=1)
+
+        right=QVBoxLayout(); right.setSpacing(8)
+        rt=QLabel("Dans ce preset — ordre"); rt.setStyleSheet(f"color:{MUT};font-size:11px;font-weight:700;letter-spacing:0.04em;text-transform:uppercase;")
+        right.addWidget(rt)
+        rhint=QLabel("Change le numéro pour réordonner"); rhint.setStyleSheet(f"color:{MUT};font-size:10.5px;")
+        right.addWidget(rhint)
+        self.sel_zone=QScrollArea(); self.sel_zone.setWidgetResizable(True)
+        self.sel_zone.setStyleSheet(f"QScrollArea{{background:{BG2};border:1px dashed rgba(255,138,30,0.3);border-radius:8px;}}")
+        self.sel_container=_PresetDropZone(); self.sel_container.setStyleSheet("background:transparent;")
+        self.sel_container.dropped.connect(self._on_dropped)
+        self.sel_lay=QVBoxLayout(self.sel_container)
+        self.sel_lay.setContentsMargins(8,8,8,8); self.sel_lay.setSpacing(6)
+        self.sel_zone.setWidget(self.sel_container)
+        right.addWidget(self.sel_zone,stretch=1)
+        cols.addLayout(right,stretch=1)
+
+        lay.addLayout(cols,stretch=1)
+        self._rebuild_lists()
+
+        btns=QHBoxLayout()
+        btns.addStretch()
+        cancel=ghost_btn("Annuler",self.reject); btns.addWidget(cancel)
+        save=accent_btn("💾 Sauvegarder",self._save); btns.addWidget(save)
+        lay.addLayout(btns)
+
+    def _clear_lay(self,lay):
+        while lay.count():
+            item=lay.takeAt(0)
+            if item.widget(): item.widget().deleteLater()
+
+    def _rebuild_lists(self):
+        self._clear_lay(self.avail_lay)
+        self._clear_lay(self.sel_lay)
+        classes=self.config.get("classes",{})
+
+        avail_names=[n for n in self._all_known() if n not in self._selected]
+        if not avail_names:
+            empty=QLabel("Tous les persos connus sont déjà dans ce preset.")
+            empty.setStyleSheet(f"color:{MUT};font-size:11px;")
+            empty.setWordWrap(True)
+            self.avail_lay.addWidget(empty)
+        for name in avail_names:
+            pix=make_avatar(classes.get(name,""),30)
+            self.avail_lay.addWidget(_AvailCharRow(name,pix))
+        self.avail_lay.addStretch()
+
+        if not self._selected:
+            empty=QLabel("Glisse des persos ici pour construire le preset.")
+            empty.setStyleSheet(f"color:{MUT};font-size:11px;")
+            empty.setWordWrap(True)
+            self.sel_lay.addWidget(empty)
+        count=len(self._selected)
+        self._sel_rows={}
+        for i,name in enumerate(self._selected):
+            pix=make_avatar(classes.get(name,""),30)
+            row=_SelectedCharRow(name,pix,i+1,count)
+            row.removed.connect(self._on_removed)
+            row.moved.connect(self._on_moved)
+            self.sel_lay.addWidget(row)
+            self._sel_rows[name]=row
+        self.sel_lay.addStretch()
+
+    def _on_dropped(self,name):
+        if name and name not in self._selected:
+            self._selected.append(name)
+            self._rebuild_lists()
+
+    def _on_removed(self,name):
+        if name in self._selected:
+            self._selected.remove(name)
+            self._rebuild_lists()
+
+    def _on_moved(self,name,new_pos):
+        if name not in self._selected: return
+        self._selected.remove(name)
+        idx=max(0,min(new_pos-1,len(self._selected)))
+        self._selected.insert(idx,name)
+        self._rebuild_lists()
 
     def _save(self):
         name=self.name_inp.text().strip()
         if not name: return
-        order=[]
-        for i in range(self.list.count()):
-            item=self.list.item(i)
-            n=item.data(Qt.ItemDataRole.UserRole)
-            if self.checks[n].isChecked():
-                order.append(n)
-        preset={"name":name,"order":order}
+        preset={"name":name,"order":list(self._selected)}
         presets=self.config.get("presets",[])
         if self.idx>=0 and self.idx<len(presets): presets[self.idx]=preset
         else: presets.append(preset)

@@ -26,7 +26,7 @@ from sidebar import Sidebar
 from updater import UpdateCheckThread, UpdateDownloadThread, can_self_update, apply_update_and_restart
 
 APP_NAME = "DofusTeam"
-VERSION  = "V2.12"
+VERSION  = "V2.13"
 
 CLASSES = ["Cra","Ecaflip","Eliotrope","Eniripsa","Enutrof","Feca","Forgelance",
            "Huppermage","Iop","Osamodas","Ouginak","Pandawa","Roublard","Sacrieur",
@@ -1299,6 +1299,12 @@ class MainWindow(QMainWindow):
         self._navigate("mes_equipes")
         self._update_tag=""; self._update_url=""; self._new_exe_path=None
         QTimer.singleShot(3000,self._check_update)
+        # Scan automatique au lancement : sans ça, self.logic.all_accounts
+        # est vide tant que l'utilisateur n'a pas cliqué "Scanner" une
+        # première fois — appliquer un preset ou trier la barre Windows ne
+        # faisait donc rien juste après un redémarrage (aucune fenêtre
+        # connue), même si Dofus était déjà ouvert.
+        QTimer.singleShot(600,self.page_mes_equipes._scan)
 
     # ── Auto-update ──────────────────────────────────────────────────────────
     def _check_update(self):

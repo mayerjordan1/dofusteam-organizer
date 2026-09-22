@@ -26,7 +26,7 @@ from sidebar import Sidebar
 from updater import UpdateCheckThread, UpdateDownloadThread, can_self_update, apply_update_and_restart
 
 APP_NAME = "DofusTeam"
-VERSION  = "V2.18"
+VERSION  = "V2.19"
 
 CLASSES = ["Cra","Ecaflip","Eliotrope","Eniripsa","Enutrof","Feca","Forgelance",
            "Huppermage","Iop","Osamodas","Ouginak","Pandawa","Roublard","Sacrieur",
@@ -707,11 +707,15 @@ class _SelectedCharRow(QWidget):
         stepper=QVBoxLayout(); stepper.setSpacing(2)
         up=QPushButton("▲"); dn=QPushButton("▼")
         for b,delta in ((up,-1),(dn,1)):
-            b.setFixedSize(24,17)
+            # Boutons trop petits/police trop fine (9px) : la flèche ne
+            # rendait quasiment pas — agrandis + padding à 0 (le padding par
+            # défaut de Qt poussait le glyphe hors de la zone visible sur un
+            # bouton aussi petit).
+            b.setFixedSize(26,20)
             b.setCursor(Qt.CursorShape.PointingHandCursor)
             b.setStyleSheet(
                 f"QPushButton{{background:{BG};color:{MUT};border:1px solid rgba(255,255,255,0.08);"
-                f"border-radius:4px;font-size:9px;}}"
+                f"border-radius:4px;font-size:12px;padding:0;}}"
                 f"QPushButton:hover{{color:{ACC};background:rgba(255,138,30,0.15);border-color:{ACC};}}"
             )
             b.clicked.connect(lambda _,d=delta: self.moved.emit(self.name,d))

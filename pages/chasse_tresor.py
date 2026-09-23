@@ -8,6 +8,7 @@ l'appli (Mes équipes, Fenêtres & scan, ...).
 """
 import threading
 import time
+import unicodedata
 
 from PyQt6.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QGridLayout, QLabel, QLineEdit, QComboBox,
@@ -25,6 +26,13 @@ from hunt import (DIRECTIONS, HintSearchThread, ZaapSearchThread,
 # Codes API réels (vérifiés en direct) : 0=Est, 2=Sud, 4=Ouest, 6=Nord —
 # PAS 0/1/2/3 consécutifs, les codes impairs (1/3/5/7) renvoient une 404.
 _DIR_ARROWS = {0: ("→", 1, 2), 2: ("↓", 2, 1), 4: ("←", 1, 0), 6: ("↑", 0, 1)}
+
+
+def _alpha_key(name):
+    """Clé de tri alphabétique insensible à la casse et aux accents — un
+    tri direct sur la chaîne met les majuscules avant les minuscules et
+    les lettres accentuées (À, É...) après Z en unicode."""
+    return unicodedata.normalize("NFKD", name or "").encode("ascii", "ignore").decode().casefold()
 
 
 def _make_header(title, subtitle):
@@ -464,8 +472,11 @@ class ChasseTresorPage(QWidget):
             return
         # Tri alphabétique pour l'affichage (hunt.py les renvoie triés par
         # distance, pratique pour le calcul mais pas pour repérer le sien
-        # dans la liste).
-        hints = sorted(hints, key=lambda h: h["name"])
+        # dans la liste). Un tri direct sur le nom met "Zaap" avant
+        # "aiguille" (majuscules avant minuscules) et les noms accentués
+        # après "Z" (À/É... viennent après Z en unicode) — clé insensible
+        # à la casse et aux accents pour un ordre vraiment alphabétique.
+        hints = sorted(hints, key=lambda h: _alpha_key(h["name"]))
         self._hints = hints
         self.status_lbl.setText(f"{len(hints)} indice(s) trouvé(s) — sélectionne le tien.")
         self.status_lbl.setStyleSheet(f"color:{ACC}; font-size:11px; font-weight:600; background:transparent;")

@@ -26,7 +26,7 @@ from sidebar import Sidebar
 from updater import UpdateCheckThread, UpdateDownloadThread, can_self_update, apply_update_and_restart
 
 APP_NAME = "DofusTeam"
-VERSION  = "V2.19"
+VERSION  = "V2.20"
 
 CLASSES = ["Cra","Ecaflip","Eliotrope","Eniripsa","Enutrof","Feca","Forgelance",
            "Huppermage","Iop","Osamodas","Ouginak","Pandawa","Roublard","Sacrieur",
@@ -1559,11 +1559,29 @@ class MainWindow(QMainWindow):
         from sidebar import NON_PAGE_KEYS
         if page_key in NON_PAGE_KEYS:
             if page_key=="parametres": self._settings()
+            elif page_key=="chasse_tresor": self._open_chasse_tresor()
             return
         page=self.pages.get(page_key)
         if page is None: return
         self.stack.setCurrentWidget(page)
         self.sidebar.set_active(page_key)
+
+    def _open_chasse_tresor(self):
+        # Popup toujours au-dessus plutôt qu'une page dans la nav — pour
+        # garder la chasse au trésor visible en jouant, sans devoir
+        # ramener toute la fenêtre principale de DofusTeam au premier plan.
+        if not hasattr(self,"_chasse_dialog"):
+            self._chasse_dialog=QDialog(self,Qt.WindowType.Window|Qt.WindowType.WindowStaysOnTopHint)
+            self._chasse_dialog.setWindowTitle("Chasse au trésor")
+            self._chasse_dialog.resize(640,540)
+            self._chasse_dialog.setStyleSheet(STYLE)
+            dlay=QVBoxLayout(self._chasse_dialog)
+            dlay.setContentsMargins(0,0,0,0)
+            dlay.addWidget(self.page_chasse_tresor)
+        self.page_chasse_tresor._refresh_accounts()
+        self._chasse_dialog.show()
+        self._chasse_dialog.raise_()
+        self._chasse_dialog.activateWindow()
 
     # ── Header ────────────────────────────────────────────────────────────────
     def _mk_header(self):

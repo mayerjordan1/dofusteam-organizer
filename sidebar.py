@@ -35,7 +35,7 @@ GROUPS = [
 
 # Entrées qui ne correspondent à aucune page du QStackedWidget — MainWindow
 # les intercepte dans _navigate() pour ouvrir un dialog à la place.
-NON_PAGE_KEYS = {"parametres"}
+NON_PAGE_KEYS = {"parametres", "chasse_tresor"}
 
 
 class Sidebar(QWidget):

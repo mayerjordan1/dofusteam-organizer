@@ -11,7 +11,7 @@ import time
 
 from PyQt6.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QGridLayout, QLabel, QLineEdit, QComboBox,
-    QPushButton, QCheckBox, QFrame, QScrollArea,
+    QPushButton, QCheckBox, QFrame, QScrollArea, QButtonGroup, QRadioButton,
 )
 from PyQt6.QtCore import Qt, QSize
 from PyQt6.QtGui import QIntValidator
@@ -372,31 +372,49 @@ class ChasseTresorPage(QWidget):
 
         clay.addWidget(box)
 
-        self.copy_btn = ghost_btn("📋  Copier la commande /travel", self._copy_travel)
-        self.copy_btn.setEnabled(False)
-        clay.addWidget(self.copy_btn)
-
         sep = QFrame()
         sep.setFrameShape(QFrame.Shape.HLine)
         sep.setStyleSheet(f"background:{BORDER};")
         clay.addWidget(sep)
 
-        self.auto_chk = QCheckBox("Coller auto + valider dans le chat de :")
-        self.auto_chk.setStyleSheet(f"font-size:11px; color:{MUT}; background:transparent;")
-        clay.addWidget(self.auto_chk)
+        # Au clic sur un indice (résolution du zaap), l'action choisie ici
+        # s'applique directement — plus besoin de cliquer un bouton "Copier"
+        # séparé en plus de sélectionner l'indice.
+        mode_lbl = QLabel("Au clic sur un indice :")
+        mode_lbl.setStyleSheet(f"color:{TEXT}; font-size:12px; background:transparent;")
+        clay.addWidget(mode_lbl)
+
+        self.mode_group = QButtonGroup(self)
+        self.radio_copy = QRadioButton("📋  Copier /travel dans le presse-papier")
+        self.radio_paste = QRadioButton("⌨  Coller + valider dans le chat de :")
+        for r in (self.radio_copy, self.radio_paste):
+            r.setStyleSheet(f"font-size:11px; color:{MUT}; background:transparent;")
+            self.mode_group.addButton(r)
+            clay.addWidget(r)
+        self.radio_copy.setChecked(True)
 
         self.char_c = QComboBox()
         self._refresh_accounts()
         clay.addWidget(self.char_c)
 
         can_auto = bool(self.config and self.logic and PYAUTOGUI_OK)
-        self.auto_chk.setEnabled(can_auto)
+        self.radio_paste.setEnabled(can_auto)
         self.char_c.setEnabled(can_auto)
         if not can_auto:
-            self.auto_chk.setText("Coller auto (indisponible)")
+            self.radio_paste.setText("Coller auto (indisponible)")
+
+        self.copy_btn = ghost_btn("🔁  Refaire l'action", self._apply_action)
+        self.copy_btn.setEnabled(False)
+        clay.addWidget(self.copy_btn)
 
         clay.addStretch()
         return c
+
+    def _apply_action(self):
+        if self.radio_paste.isChecked():
+            self._auto_paste()
+        else:
+            self._copy_travel()
 
     def _refresh_accounts(self):
         self.char_c.clear()
@@ -507,9 +525,8 @@ class ChasseTresorPage(QWidget):
         self.zaap_placeholder.setVisible(False)
         self.zaap_error_lbl.setVisible(False)
         self.zaap_result.setVisible(True)
-        self.copy_btn.setEnabled(CLIPBOARD_OK)
-        if self.auto_chk.isEnabled() and self.auto_chk.isChecked():
-            self._auto_paste()
+        self.copy_btn.setEnabled(CLIPBOARD_OK or PYAUTOGUI_OK)
+        self._apply_action()
 
     def _copy_travel(self):
         if not self._travel_cmd or not CLIPBOARD_OK:

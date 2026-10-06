@@ -26,7 +26,7 @@ from sidebar import Sidebar
 from updater import UpdateCheckThread, UpdateDownloadThread, can_self_update, apply_update_and_restart
 
 APP_NAME = "DofusTeam"
-VERSION  = "V2.24"
+VERSION  = "V2.25"
 
 CLASSES = ["Cra","Ecaflip","Eliotrope","Eniripsa","Enutrof","Feca","Forgelance",
            "Huppermage","Iop","Osamodas","Ouginak","Pandawa","Roublard","Sacrieur",
@@ -1619,6 +1619,15 @@ class MainWindow(QMainWindow):
             dlay=QVBoxLayout(self._chasse_dialog)
             dlay.setContentsMargins(0,0,0,0)
             dlay.addWidget(self.page_chasse_tresor)
+            # page_chasse_tresor a aussi été ajoutée à self.stack (boucle
+            # "for page in self.pages.values(): self.stack.addWidget(page)")
+            # — un QStackedWidget cache tout widget qui n'est pas sa page
+            # courante, et cet état caché survit au changement de parent vers
+            # ce QDialog : sans ce setVisible(True) explicite, le contenu
+            # restait invisible dans la popup (fond noir = le QDialog se
+            # peint bien via STYLE, mais la page à l'intérieur ne se montre
+            # jamais).
+            self.page_chasse_tresor.setVisible(True)
         self.page_chasse_tresor._refresh_accounts()
         self._chasse_dialog.show()
         self._chasse_dialog.raise_()

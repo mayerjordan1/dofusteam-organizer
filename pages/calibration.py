@@ -32,7 +32,7 @@ def _make_header(title, subtitle):
 class _CharStatusRow(QFrame):
     recalibrate = pyqtSignal(str, str)  # (mode, nom)
 
-    def __init__(self, name, classe, zaap_ok, parent=None):
+    def __init__(self, name, classe, chat_ok, parent=None):
         super().__init__(parent)
         self.setObjectName("CharStatusRow")
         self.setStyleSheet(f"QFrame#CharStatusRow {{ background:{BG2}; border:1px solid {BORDER}; border-radius:8px; }}")
@@ -53,16 +53,16 @@ class _CharStatusRow(QFrame):
         lay.addWidget(name_lbl)
         lay.addStretch()
 
-        status = QLabel("✅ Zaap calibré" if zaap_ok else "❌ Zaap non calibré")
-        status.setStyleSheet(f"color:{GREEN if zaap_ok else RED}; font-size:11px; font-weight:600; background:transparent; border:none;")
+        status = QLabel("✅ Chat calibré" if chat_ok else "❌ Chat non calibré")
+        status.setStyleSheet(f"color:{GREEN if chat_ok else RED}; font-size:11px; font-weight:600; background:transparent; border:none;")
         lay.addWidget(status)
 
-        recal = QPushButton("🎯 Recalibrer" if zaap_ok else "🎯 Calibrer")
+        recal = QPushButton("🎯 Recalibrer" if chat_ok else "🎯 Calibrer")
         recal.setStyleSheet(
             f"background:rgba(255,138,30,0.1);color:{ACC};border:1px solid rgba(255,138,30,0.25);"
             f"border-radius:5px;padding:3px 10px;font-size:11px;font-weight:700;"
         )
-        recal.clicked.connect(lambda _: self.recalibrate.emit("zaap", name))
+        recal.clicked.connect(lambda _: self.recalibrate.emit("chat_multi", name))
         lay.addWidget(recal)
 
     def flash_ok(self):
@@ -76,7 +76,10 @@ class _CharStatusRow(QFrame):
 
 class CalibrationPage(QWidget):
     """Page pleine largeur — statut de calibration par personnage + lancement
-    des deux calibrations (Havre-sac + Zaap, Chat)."""
+    des calibrations chat (chef, et 3.7 par personnage). La calibration
+    Havre-sac + Zaap (ancien flow de téléportation, remplacé par /zaap) n'a
+    plus de bouton ici — CalibrationManager mode "zaap" reste dans
+    calibrator.py, dormant, pour l'ancien flow gardé en fallback."""
 
     open_calibration = pyqtSignal(str, str)  # mode, nom du personnage cible ("" = tous)
 
@@ -94,7 +97,7 @@ class CalibrationPage(QWidget):
 
         lay.addWidget(_make_header(
             "Calibration",
-            "Enregistre la position des boutons havre-sac/zaap et de la barre de chat, une fois par personnage.",
+            "Enregistre la position de la barre de chat — une fois sur le chef, et une fois par personnage pour /zaap.",
         ))
 
         body = QWidget()
@@ -135,16 +138,8 @@ class CalibrationPage(QWidget):
         lay.setContentsMargins(16, 16, 16, 16)
         lay.setSpacing(10)
 
-        lay.addWidget(section_label("Havre-sac + Zaap"))
-        desc = QLabel("Passe sur chaque personnage et enregistre l'icône havre-sac puis le bouton zaap.")
-        desc.setWordWrap(True)
-        desc.setStyleSheet(f"color:{MUT}; font-size:11px; background:transparent;")
-        lay.addWidget(desc)
-        lay.addWidget(accent_btn("🧭 Lancer la calibration", lambda: self.open_calibration.emit("zaap", "")))
-
-        lay.addSpacing(10)
         lay.addWidget(section_label("Chat (chef)"))
-        desc2 = QLabel("Calibre une seule fois, sur le chef de groupe — utilisé pour les invitations (classique et groupée 3.7).")
+        desc2 = QLabel("Calibre une seule fois, sur le chef de groupe — utilisé pour l'invitation groupée.")
         desc2.setWordWrap(True)
         desc2.setStyleSheet(f"color:{MUT}; font-size:11px; background:transparent;")
         lay.addWidget(desc2)
@@ -152,11 +147,11 @@ class CalibrationPage(QWidget):
 
         lay.addSpacing(10)
         lay.addWidget(section_label("Chat (3.7 — par personnage)"))
-        desc3 = QLabel("À calibrer sur CHAQUE personnage — nécessaire pour la nouvelle commande /zaap, collée dans toutes les fenêtres.")
+        desc3 = QLabel("À calibrer sur CHAQUE personnage — nécessaire pour /zaap, collé dans toutes les fenêtres.")
         desc3.setWordWrap(True)
         desc3.setStyleSheet(f"color:{MUT}; font-size:11px; background:transparent;")
         lay.addWidget(desc3)
-        lay.addWidget(ghost_btn("💬 Calibrer le chat (tous)", lambda: self.open_calibration.emit("chat_multi", "")))
+        lay.addWidget(accent_btn("💬 Calibrer le chat (tous)", lambda: self.open_calibration.emit("chat_multi", "")))
 
         lay.addStretch()
 
@@ -176,7 +171,7 @@ class CalibrationPage(QWidget):
         order = self.config.get("custom_order", [])
         classes = self.config.get("classes", {})
         macro_pos = self.config.get("macro_positions", {})
-        zaaps = macro_pos.get("zaaps", {})
+        chat_positions = macro_pos.get("chat_positions", {})
 
         if not order:
             empty = QLabel("Aucun compte — scanne d'abord depuis « Fenêtres & scan ».")
@@ -184,19 +179,16 @@ class CalibrationPage(QWidget):
             self.rows_lay.addWidget(empty)
         else:
             for name in order:
-                row = _CharStatusRow(name, classes.get(name, ""), name in zaaps)
+                row = _CharStatusRow(name, classes.get(name, ""), name in chat_positions)
                 row.recalibrate.connect(lambda mode, n: self.open_calibration.emit(mode, n))
                 self.rows_lay.addWidget(row)
                 if name == just_calibrated:
                     row.flash_ok()
         self.rows_lay.addStretch()
 
-        chat_positions = macro_pos.get("chat_positions", {})
-        calibrated = len([n for n in order if n in zaaps])
         chat_multi_ok = len([n for n in order if n in chat_positions])
-        chat_ok = bool(self.config.get("macro_positions", {}).get("chat_position"))
+        chat_ok = bool(macro_pos.get("chat_position"))
         self.status_lbl.setText(
-            f"Zaap : {calibrated}/{len(order)} personnage(s) calibré(s)\n"
             f"Chat (chef) : {'✅ calibré' if chat_ok else '❌ non calibré'}\n"
             f"Chat 3.7 (par perso) : {chat_multi_ok}/{len(order)} calibré(s)"
         )

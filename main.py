@@ -1203,9 +1203,14 @@ class MiniToolbar(QWidget):
         quick_havresac_zaap(self.config, self.logic, on_status=lambda m:print(f"[hsac]{m}"))
 
     def _show_zaap_menu(self):
-        """Right-click on zaap button → favorites menu."""
+        """Clic sur ⚡ Zaap → menu des favoris. Envoie désormais la commande
+        3.7 (send_zaap_command — /zaap x, y collé dans chaque fenêtre
+        calibrée "Chat (3.7)"), plutôt que l'ancien run_zaap_to_destination
+        (havre-sac + clic zaap + recherche), resté dans zaap_favorites.py en
+        fallback mais plus déclenché depuis ce menu."""
         from zaap_data import ZAAPS, get_favorites
-        from zaap_favorites import run_zaap_to_destination
+        from zaap_macro import send_zaap_command
+        coords_by_name = {z["name"]: z["coords"] for z in ZAAPS}
         favs = get_favorites(self.config)
         menu = QMenu(self)
         menu.setStyleSheet(f"""
@@ -1218,8 +1223,11 @@ class MiniToolbar(QWidget):
         if favs:
             menu.addSeparator()
             for name in favs:
+                coords = coords_by_name.get(name)
+                if not coords: continue
+                x, y = coords
                 menu.addAction(f"⚡  {name}").triggered.connect(
-                    lambda _, n=name: run_zaap_to_destination(self.config, self.logic, n,
+                    lambda _, x=x, y=y: send_zaap_command(self.config, self.logic, x, y,
                         on_status=lambda m: print(f"[zaap_fav]{m}"))
                 )
         menu.exec(self.b_hsac.mapToGlobal(self.b_hsac.rect().bottomLeft()))

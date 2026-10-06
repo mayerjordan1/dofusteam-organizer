@@ -26,7 +26,7 @@ from sidebar import Sidebar
 from updater import UpdateCheckThread, UpdateDownloadThread, can_self_update, apply_update_and_restart
 
 APP_NAME = "DofusTeam"
-VERSION  = "V2.22"
+VERSION  = "V2.23"
 
 CLASSES = ["Cra","Ecaflip","Eliotrope","Eniripsa","Enutrof","Feca","Forgelance",
            "Huppermage","Iop","Osamodas","Ouginak","Pandawa","Roublard","Sacrieur",
@@ -1124,7 +1124,7 @@ class MiniToolbar(QWidget):
         lay.addWidget(sep())
 
         self.b_hsac=mkb("🏠","Havre-sac + Zaap\n1. Appuie H sur tous les persos\n2. Clique zaap calibré sur tous","transparent",icon_file="havre-sac.png",size=(40,30),icon_size=28)
-        self.b_zaap=mkb("⚡","Zaap favoris ⭐\nOuvre havre-sac + zaap puis colle/valide directement la destination favorite sur tous les persos","transparent",icon_file="icon_zaap.png",size=(40,30),icon_size=28)
+        self.b_zaap=mkb("⚡","Zaap favoris ⭐ (3.7)\nColle /zaap x y dans le chat de chaque perso calibré — plus besoin d'ouvrir le havre-sac","transparent",icon_file="icon_zaap.png",size=(40,30),icon_size=28)
         self.b_recall=mkb("🧪","Potion de rappel\nSwitch de fenêtre + renvoie le raccourci de rappel sur tous les persos (déjà bind côté jeu)","transparent",icon_file="potion-rappel.png",size=(40,30),icon_size=28)
         self.b_bonta=mkb("🔵","Potion de Bonta\nSwitch de fenêtre + renvoie le raccourci Bonta sur tous les persos (déjà bind côté jeu)","transparent",icon_file="potion-bonta.png",size=(40,30),icon_size=28)
         self.b_brakmar=mkb("🔴","Potion de Brakmar\nSwitch de fenêtre + renvoie le raccourci Brakmar sur tous les persos (déjà bind côté jeu)","transparent",icon_file="potion-brakmar.png",size=(40,30),icon_size=28)
@@ -1204,7 +1204,7 @@ class MiniToolbar(QWidget):
 
     def _show_zaap_menu(self):
         """Clic sur ⚡ Zaap → menu des favoris. Envoie désormais la commande
-        3.7 (send_zaap_command — /zaap x, y collé dans chaque fenêtre
+        3.7 (send_zaap_command — /zaap x y collé dans chaque fenêtre
         calibrée "Chat (3.7)"), plutôt que l'ancien run_zaap_to_destination
         (havre-sac + clic zaap + recherche), resté dans zaap_favorites.py en
         fallback mais plus déclenché depuis ce menu."""

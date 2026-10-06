@@ -85,7 +85,7 @@ class ZaapMenuPage(QWidget):
             "Zaap",
             "Consulte les 42 zaaps et marque tes favoris ⭐ — clic droit sur la barre "
             "flottante pour la macro classique, ou ⚡ ici pour la commande 3.7 "
-            "(/zaap x, y — nécessite la calibration \"Chat (3.7)\" par personnage).",
+            "(/zaap x y — nécessite la calibration \"Chat (3.7)\" par personnage).",
         ))
 
         body = QWidget()
@@ -278,7 +278,7 @@ class ZaapMenuPage(QWidget):
         rl.addLayout(coord_row)
 
         send_btn = QPushButton("⚡ /zaap")
-        send_btn.setToolTip("Envoyer /zaap x, y dans le chat de chaque personnage calibré (3.7)")
+        send_btn.setToolTip("Envoyer /zaap x y dans le chat de chaque personnage calibré (3.7)")
         send_btn.setCursor(Qt.CursorShape.PointingHandCursor)
         send_btn.setStyleSheet(
             f"background:rgba(79,163,224,0.15); color:{BLUE}; border:1px solid rgba(79,163,224,0.35);"

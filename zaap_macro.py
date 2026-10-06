@@ -495,7 +495,8 @@ def quick_havresac_zaap(config, logic, on_status=None):
 
 def send_zaap_command(config, logic, x, y, on_status=None, on_done=None):
     """Macro 3.7 — remplace le trio havre-sac/clic-zaap/recherche-destination
-    par une seule commande chat "/zaap x, y" collée dans CHAQUE fenêtre.
+    par une seule commande chat "/zaap x y" (sans virgule — syntaxe confirmée
+    en jeu) collée dans CHAQUE fenêtre.
     Nécessite la calibration 'chat_multi' (position du chat par personnage,
     cf. calibrator.py) — les persos non calibrés sont ignorés avec un
     avertissement plutôt que de planter la macro. L'ancien flow 3 phases
@@ -517,7 +518,7 @@ def send_zaap_command(config, logic, x, y, on_status=None, on_done=None):
 
         chat_positions = config.get("macro_positions", {}).get("chat_positions", {})
         paste_delay = float(config.get("zaap_paste_delay", 0.35))
-        cmd = f"/zaap {x}, {y}"
+        cmd = f"/zaap {x} {y}"
 
         abort_flag = [False]
         stop_watching = threading.Event()

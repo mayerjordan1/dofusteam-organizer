@@ -72,11 +72,11 @@ class InviteDialog(QDialog):
         self.status_lbl.setStyleSheet(f"color:{ACC};font-size:11px;font-weight:600;"); self.status_lbl.setWordWrap(True)
         cl.addWidget(self.status_lbl)
 
-        # Buttons — retour à l'invitation classique (1 message/perso) comme
-        # seul flow exposé : la commande groupée "/invite n1 ; n2 ; ..."
-        # (3.7) ne fonctionne pas en jeu (contrairement à /zaap, qui lui
-        # marche). _invite_grouped reste dans le code, dormant, à réessayer
-        # si ça se débloque côté jeu plus tard.
+        # Buttons — invitation groupée en avant : syntaxe correcte trouvée et
+        # confirmée en jeu ("/invite n1; /invite n2; ..."). L'ancien flow
+        # classique (_invite_all, 1 message/perso) reste dans le code,
+        # dormant, pas de bouton pour éviter de dupliquer deux boutons qui
+        # font la même chose.
         btns = QHBoxLayout()
         refresh_btn = QPushButton("↻ Actualiser")
         refresh_btn.setStyleSheet(f"background:{BG3};border-radius:6px;padding:6px 14px;")
@@ -84,9 +84,9 @@ class InviteDialog(QDialog):
         btns.addStretch()
         cl.addLayout(btns)
 
-        go = QPushButton("🚀  Lancer les invitations")
+        go = QPushButton("🚀  Invitation groupée")
         go.setStyleSheet(f"background:{ACC};color:#0f1115;border:none;border-radius:6px;padding:8px 20px;font-weight:700;font-size:13px;")
-        go.clicked.connect(self._invite_all); cl.addWidget(go)
+        go.clicked.connect(self._invite_grouped); cl.addWidget(go)
 
         lay.addWidget(content)
 
@@ -200,11 +200,12 @@ class InviteDialog(QDialog):
         threading.Thread(target=_do, daemon=True).start()
 
     def _invite_grouped(self):
-        """Nouvelle commande 3.7 — "/invite n1 ; n2 ; ..." en un seul message
-        au lieu d'un /invite par personnage. Reste chef-only (comme avant),
-        donc réutilise chat_position (absolue, calibration existante) sans
-        besoin de la nouvelle calibration par-personnage (chat_multi), qui
-        ne sert qu'à la macro /zaap collée dans chaque fenêtre."""
+        """Commande 3.7 confirmée en jeu — pas "/invite n1 ; n2 ; ..." (ça ne
+        marchait pas) mais une chaîne de commandes /invite complètes séparées
+        par "; " : "/invite n1; /invite n2; /invite n3". Reste chef-only
+        (comme avant), donc réutilise chat_position (absolue, calibration
+        existante) sans besoin de la calibration par-personnage (chat_multi),
+        qui ne sert qu'à la macro /zaap collée dans chaque fenêtre."""
         if not PYAUTOGUI_OK:
             QMessageBox.warning(self, "Erreur", "pyautogui non installé."); return
 
@@ -224,7 +225,7 @@ class InviteDialog(QDialog):
         if self.logic: self.logic.switch_to_leader()
         time.sleep(random.uniform(0.06, 0.14))
 
-        cmd = "/invite " + " ; ".join(to_invite)
+        cmd = "; ".join(f"/invite {name}" for name in to_invite)
 
         def _do():
             self._status_sig.emit(f"Invitation groupée — {len(to_invite)} perso(s)...")

@@ -571,18 +571,18 @@ class ChasseTresorPage(QWidget):
         def _do():
             try:
                 import pyautogui
-                # pyautogui.hotkey/press ne sont pas fiables avec le client
-                # Dofus (déjà vu sur le Ctrl+W autofollow des macros zaap) —
-                # SendInput direct marche à tous les coups.
-                from zaap_macro import _send_ctrl_combo_sendinput, _send_vk_sendinput
-                VK_RETURN = 0x0D
+                # pyautogui.hotkey/press direct (pas les helpers SendInput de
+                # zaap_macro) — c'est cette méthode-ci qui s'est révélée
+                # fiable pour /zaap (confirmé en jeu), alors que la version
+                # SendInput utilisée ici avant positionnait bien le curseur
+                # dans le chat mais ne collait/envoyait jamais rien.
                 self.logic.focus_window(hwnd)
                 time.sleep(0.2)
                 pyautogui.click(cp[0], cp[1])
                 time.sleep(0.15)
-                _send_ctrl_combo_sendinput("v")
-                time.sleep(0.12)
-                _send_vk_sendinput(VK_RETURN)
+                pyautogui.hotkey("ctrl", "v")
+                time.sleep(0.15)
+                pyautogui.press("enter")
             except Exception as e:
                 print(f"[chasse_tresor._auto_paste] {e}")
 

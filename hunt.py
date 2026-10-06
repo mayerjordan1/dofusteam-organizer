@@ -121,7 +121,7 @@ class ZaapSearchThread(QThread):
                 best = min(ZAAPS, key=lambda z: abs(z["coords"][0]-self.x)+abs(z["coords"][1]-self.y))
                 dist = abs(best["coords"][0]-self.x)+abs(best["coords"][1]-self.y)
                 self.done.emit({
-                    "name": f"{best['name']} (approx. — API indisponible)",
+                    "name": best["name"],
                     "x": best["coords"][0], "y": best["coords"][1],
                     "dist": dist,
                 }, "")

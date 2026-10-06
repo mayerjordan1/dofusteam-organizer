@@ -26,7 +26,7 @@ from sidebar import Sidebar
 from updater import UpdateCheckThread, UpdateDownloadThread, can_self_update, apply_update_and_restart
 
 APP_NAME = "DofusTeam"
-VERSION  = "V2.23"
+VERSION  = "V2.24"
 
 CLASSES = ["Cra","Ecaflip","Eliotrope","Eniripsa","Enutrof","Feca","Forgelance",
            "Huppermage","Iop","Osamodas","Ouginak","Pandawa","Roublard","Sacrieur",
@@ -1557,8 +1557,15 @@ class MainWindow(QMainWindow):
 
     def _on_update_downloaded(self,ok,err):
         if not ok:
-            self.version_btn.setText(f"{VERSION} · À jour")
-            self._paint_version_btn(GREEN)
+            # Avant : réaffichait "À jour" en vert sur échec — indiscernable
+            # d'une vraie absence de mise à jour, donc un téléchargement qui
+            # échoue en silence (antivirus/Accès contrôlé aux dossiers
+            # Windows Defender bloquant l'écriture d'un .exe non signé sur le
+            # Bureau, p.ex.) passait inaperçu : la popup de redémarrage
+            # n'apparaissait jamais et rien n'expliquait pourquoi.
+            self.version_btn.setText(f"❌ Échec mise à jour — {err[:40]}" if err else "❌ Échec de la mise à jour")
+            self._paint_version_btn(RED)
+            self.version_btn.clicked.connect(self._start_update_download)
             return
         self._new_exe_path=APP_DIR/"DofusTeam_new.exe"
         self.version_btn.setText(f"🔄 Redémarrer pour appliquer {self._update_tag}")

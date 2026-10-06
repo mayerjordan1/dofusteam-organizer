@@ -528,11 +528,11 @@ class ChasseTresorPage(QWidget):
             self.copy_btn.setEnabled(False)
             self._travel_cmd = None
             return
-        # Sans virgule : même syntaxe que /zaap, confirmée en jeu après la
-        # maj 3.7 (l'ancienne "/travel x,y" avec virgule n'a jamais été
-        # vérifiée en jeu pour cette commande précise, mais /zaap et /travel
-        # sont la même famille de commande de téléportation par coordonnées).
-        self._travel_cmd = f"/travel {zaap['x']} {zaap['y']}"
+        # Avec virgule — confirmé en jeu ("/travel 13,1"). Contrairement à
+        # /zaap, /travel garde la virgule malgré la maj 3.7 : les deux
+        # commandes ne partagent pas la même syntaxe, ne pas supposer l'une
+        # à partir de l'autre.
+        self._travel_cmd = f"/travel {zaap['x']},{zaap['y']}"
         self.zaap_name_lbl.setText(zaap["name"])
         self.zaap_coord_lbl.setText(f"📍  ({zaap['x']}, {zaap['y']})")
         self.zaap_dist_lbl.setText(f"🧭  {zaap['dist']} map(s) de distance")

@@ -75,6 +75,7 @@ class DofusLogic:
 
     def __init__(self,config):
         self.config=config; self.all_accounts=[]; self.leader_hwnd=None; self._idx=0
+        self.app_hwnd=None  # hwnd DofusTeam — réglé par MainWindow, utilisé par sort_taskbar(return_focus=True)
         self._last_switch_t=0.0
         # Verrou partagé par TOUTE action qui vole le focus + envoie des touches/
         # clics (switch_next/prev via _switch_worker, paste_active) — sans lui,
@@ -347,14 +348,23 @@ class DofusLogic:
             try: win32api.PostMessage(a["hwnd"],win32con.WM_KEYDOWN,win32con.VK_F5,0)
             except: pass
 
-    def sort_taskbar(self):
+    def sort_taskbar(self,return_focus=False):
+        """return_focus=True : une fois le tri fini, refocus DofusTeam
+        (app_hwnd) au lieu du chef — pour le bouton "Trier" de l'UI, où
+        l'utilisateur veut continuer à travailler dans l'app plutôt que se
+        retrouver renvoyé dans le jeu et devoir rouvrir DofusTeam à la main.
+        Le raccourci clavier global garde le défaut (retour au chef), lui est
+        pressé EN jeu — y rester est le but recherché dans ce cas-là."""
         active=self.get_cycle_list()
         if not active: return
         def _s():
             for a in active: win32gui.ShowWindow(a["hwnd"],win32con.SW_HIDE)
             time.sleep(0.3)
             for a in active: win32gui.ShowWindow(a["hwnd"],win32con.SW_SHOW); time.sleep(0.1)
-            if self.leader_hwnd: self.focus_window(self.leader_hwnd)
+            if return_focus and self.app_hwnd:
+                self.focus_window(self.app_hwnd)
+            elif self.leader_hwnd:
+                self.focus_window(self.leader_hwnd)
         threading.Thread(target=_s,daemon=True).start()
 
     def paste_active(self):
@@ -418,11 +428,11 @@ class HotkeyManager:
 
     def __init__(self,config,logic):
         self.config=config; self.logic=logic; self.active=False
-        self._hold_keys={}; self._hold_state={}
+        self._hold_keys={}; self._hold_state={}; self.last_errors=[]
         self._poll_timer=QTimer(); self._poll_timer.timeout.connect(self._poll_hold)
     def enable(self):
         if not KEYBOARD_OK or self.active: return
-        self.active=True; self._reg_all(); self._poll_timer.start(self._POLL_MS)
+        self.active=True; self.last_errors=[]; self._reg_all(); self._poll_timer.start(self._POLL_MS)
     def disable(self):
         if not self.active: return
         self.active=False
@@ -436,7 +446,13 @@ class HotkeyManager:
                 if _typing_in_app(): return
                 fn()
             try: keyboard.add_hotkey(key,guarded,suppress=False)
-            except Exception as e: print(f"[HK] {key}: {e}")
+            except Exception as e:
+                # print() seul est invisible dans l'exe packagé (--noconsole) —
+                # sans last_errors, une touche qui échoue à l'enregistrement
+                # (ex: nom de touche mal reconnu par la lib keyboard) ne se
+                # manifeste que par "rien ne se passe" en jeu, sans indice.
+                print(f"[HK] {key}: {e}")
+                self.last_errors.append((key,str(e)))
     def _reg_all(self):
         c=self.config
         def on(name): return c.get(f"{name}_on",True)
@@ -1389,6 +1405,7 @@ class MainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
         self.config=Config(); self.logic=DofusLogic(self.config)
+        self.logic.app_hwnd=int(self.winId())  # pour sort_taskbar(return_focus=True)
         self.hk=HotkeyManager(self.config,self.logic)
         self._hk=False; self._spam=False
         self.mini=MiniToolbar(self.config,self.logic,self._show_self,on_navigate=self._navigate)
@@ -1571,7 +1588,16 @@ class MainWindow(QMainWindow):
         # garder la chasse au trésor visible en jouant, sans devoir
         # ramener toute la fenêtre principale de DofusTeam au premier plan.
         if not hasattr(self,"_chasse_dialog"):
-            self._chasse_dialog=QDialog(self,Qt.WindowType.Window|Qt.WindowType.WindowStaysOnTopHint)
+            # parent=None (comme MiniToolbar/CalibOverlay) plutôt que self :
+            # un QDialog parenté à la fenêtre principale devient une "owned
+            # window" Win32, que Windows ne garde au-dessus que de son
+            # propriétaire (la fenêtre DofusTeam) — pas au-dessus de Dofus.
+            # Combiné à WindowStaysOnTopHint, ça produit aussi un rendu non
+            # rafraîchi (fond noir) au premier affichage sur certaines
+            # machines. Sans parent, c'est une fenêtre top-level indépendante
+            # et réellement topmost, comme les deux autres popups "toujours
+            # au-dessus" de l'appli.
+            self._chasse_dialog=QDialog(None,Qt.WindowType.Window|Qt.WindowType.WindowStaysOnTopHint)
             self._chasse_dialog.setWindowTitle("Chasse au trésor")
             self._chasse_dialog.resize(640,540)
             self._chasse_dialog.setStyleSheet(STYLE)
@@ -1582,6 +1608,7 @@ class MainWindow(QMainWindow):
         self._chasse_dialog.show()
         self._chasse_dialog.raise_()
         self._chasse_dialog.activateWindow()
+        self._chasse_dialog.repaint()
 
     # ── Header ────────────────────────────────────────────────────────────────
     def _mk_header(self):
@@ -1720,7 +1747,13 @@ class MainWindow(QMainWindow):
             self.hk.enable()
             self.hk_btn.setText("Raccourcis : activés")
             self.hk_btn.setStyleSheet(f"background:rgba(63,185,80,0.1);color:{GREEN};border:1px solid rgba(63,185,80,0.3);border-radius:6px;padding:0 12px;font-size:11px;font-weight:600;")
-            self.scan_msg.setText("✅  Raccourcis actifs — " + (self.config.get("next_key","?") or "?") + " = perso suivant")
+            if self.hk.last_errors:
+                bad=", ".join(k for k,_ in self.hk.last_errors)
+                self.scan_msg.setText(f"⚠️  Raccourcis actifs mais touche(s) invalide(s) : {bad}")
+                self.scan_msg.setStyleSheet(f"color:{GOLD}; font-weight:700;")
+            else:
+                self.scan_msg.setText("✅  Raccourcis actifs — " + (self.config.get("next_key","?") or "?") + " = perso suivant")
+                self.scan_msg.setStyleSheet(f"color:{MUT};")
         else:
             self.hk.disable()
             self.hk_btn.setText("Raccourcis : désactivés")
@@ -1744,7 +1777,7 @@ class MainWindow(QMainWindow):
 
     def _open_calib_mode(self, mode, target_name=""):
         from calibrator import CalibrationManager
-        label = {"zaap":"Zaap","chat":"Chat","inventaire":"Inventaire"}.get(mode, mode)
+        label = {"zaap":"Zaap","chat":"Chat","chat_multi":"Chat (3.7)","inventaire":"Inventaire"}.get(mode, mode)
         if target_name:
             label = f"{label} — {target_name}"
         if not self.logic.scan_slots():

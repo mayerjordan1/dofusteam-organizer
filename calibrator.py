@@ -113,6 +113,9 @@ class CalibrationManager(QObject):
             if self.mode=='chat':
                 self._do_chat(accounts); return
 
+            if self.mode=='chat_multi':
+                self._do_chat_multi(accounts); return
+
             # Havre-sac + Zaap calibration (2 clics par perso : icône havre-sac
             # d'abord — fallback si la touche H ne marche pas — puis bouton zaap
             # une fois le havre-sac ouvert par ce clic).
@@ -166,6 +169,45 @@ class CalibrationManager(QObject):
             self.overlay._done_sig.emit()
             self.config.set("calibration_done",True); self.config.save()
             self.status.emit("✅ Zaap calibré pour tous les personnages !")
+            self.finished.emit()
+        except Exception as e:
+            self.status.emit(f"❌ Erreur: {e}"); self.finished.emit()
+
+    def _do_chat_multi(self,accounts):
+        """Calibration chat 3.7 — une position par personnage (relative à sa
+        fenêtre), nécessaire pour la nouvelle macro /zaap qui colle la commande
+        dans CHAQUE fenêtre (contrairement à l'invitation, restée chef-only sur
+        la position absolue existante 'chat_position'). N'écrase pas celle-ci —
+        stockée séparément sous macro_positions.chat_positions."""
+        try:
+            total=len(accounts)
+            for i,acc in enumerate(accounts):
+                if not self._running: break
+                name=acc["name"]; hwnd=acc["hwnd"]; classe=acc.get("classe","")
+                self.logic.focus_window(hwnd); time.sleep(0.4)
+                self.overlay.center_on_screen()
+                self.overlay._update_sig.emit(name,classe,i+1,total)
+                self.overlay._inst_sig.emit(
+                    f"Calibrer Chat — {name}",
+                    "Clique sur la barre de chat dans Dofus",
+                    f"{i+1}/{total} personnages",
+                )
+                self.overlay.show(); self.overlay.raise_()
+                self.status.emit(f"[{i+1}/{total}] Chat de {name}...")
+                clicked=self._wait_click(timeout=30)
+                if clicked and not self.overlay._skip_requested:
+                    rel=abs_to_rel(hwnd,clicked[0],clicked[1])
+                    if rel:
+                        pos=self.config.get("macro_positions",{})
+                        pos.setdefault("chat_positions",{})[name]=list(rel)
+                        self.config.set("macro_positions",pos); self.config.save()
+                        self.status.emit(f"✅ Chat {name} calibré")
+                        self.overlay._inst_sig.emit(f"✅ Chat calibré — {name}","Position enregistrée.","")
+                        time.sleep(0.5)
+                self.overlay._skip_requested=False
+                self.overlay._hide_sig.emit(); time.sleep(0.3)
+            self.overlay._done_sig.emit()
+            self.status.emit("✅ Chat calibré pour tous les personnages !")
             self.finished.emit()
         except Exception as e:
             self.status.emit(f"❌ Erreur: {e}"); self.finished.emit()

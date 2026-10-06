@@ -143,12 +143,20 @@ class CalibrationPage(QWidget):
         lay.addWidget(accent_btn("🧭 Lancer la calibration", lambda: self.open_calibration.emit("zaap", "")))
 
         lay.addSpacing(10)
-        lay.addWidget(section_label("Chat"))
-        desc2 = QLabel("Calibre une seule fois, sur le chef de groupe — utilisé pour les invitations et le collage de destination.")
+        lay.addWidget(section_label("Chat (chef)"))
+        desc2 = QLabel("Calibre une seule fois, sur le chef de groupe — utilisé pour les invitations (classique et groupée 3.7).")
         desc2.setWordWrap(True)
         desc2.setStyleSheet(f"color:{MUT}; font-size:11px; background:transparent;")
         lay.addWidget(desc2)
         lay.addWidget(ghost_btn("💬 Calibrer le chat", lambda: self.open_calibration.emit("chat", "")))
+
+        lay.addSpacing(10)
+        lay.addWidget(section_label("Chat (3.7 — par personnage)"))
+        desc3 = QLabel("À calibrer sur CHAQUE personnage — nécessaire pour la nouvelle commande /zaap, collée dans toutes les fenêtres.")
+        desc3.setWordWrap(True)
+        desc3.setStyleSheet(f"color:{MUT}; font-size:11px; background:transparent;")
+        lay.addWidget(desc3)
+        lay.addWidget(ghost_btn("💬 Calibrer le chat (tous)", lambda: self.open_calibration.emit("chat_multi", "")))
 
         lay.addStretch()
 
@@ -183,9 +191,12 @@ class CalibrationPage(QWidget):
                     row.flash_ok()
         self.rows_lay.addStretch()
 
+        chat_positions = macro_pos.get("chat_positions", {})
         calibrated = len([n for n in order if n in zaaps])
+        chat_multi_ok = len([n for n in order if n in chat_positions])
         chat_ok = bool(self.config.get("macro_positions", {}).get("chat_position"))
         self.status_lbl.setText(
             f"Zaap : {calibrated}/{len(order)} personnage(s) calibré(s)\n"
-            f"Chat : {'✅ calibré' if chat_ok else '❌ non calibré'}"
+            f"Chat (chef) : {'✅ calibré' if chat_ok else '❌ non calibré'}\n"
+            f"Chat 3.7 (par perso) : {chat_multi_ok}/{len(order)} calibré(s)"
         )

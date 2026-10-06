@@ -326,7 +326,10 @@ class FenetresScanPage(QWidget):
         self._rescan_refresh()
 
     def _sort_taskbar(self):
-        self.logic.sort_taskbar()
+        # return_focus=True : le tri ne doit pas voler le focus vers le jeu
+        # quand il est déclenché depuis l'UI — sinon DofusTeam se retrouve
+        # derrière Dofus et il faut la rouvrir manuellement pour continuer.
+        self.logic.sort_taskbar(return_focus=True)
 
     def _toggle_spam(self, on):
         if not PYAUTOGUI_OK:

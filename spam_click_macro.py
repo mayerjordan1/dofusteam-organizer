@@ -38,21 +38,28 @@ def quick_spam_click(config, logic, on_status=None, on_done=None):
                 return
 
             if on_status: on_status(f"🖱 Spam clic sur {len(accounts)} perso(s)...")
-            for acc in accounts:
-                hwnd = acc["hwnd"]
-                logic.focus_window(hwnd)
-                for _ in range(15):
+            # _focus_lock : cette macro ne bloque pas le clavier/souris (pas de
+            # BlockInput comme les macros zaap), donc un Tab (switch_next) pressé
+            # pendant son exécution tombait en pleine course avec son propre
+            # focus_window() — les deux threads se marchaient dessus sur
+            # SetForegroundWindow, d'où des gels/sautes de fenêtre ressentis
+            # comme moins fluides qu'un switch Tab seul seul.
+            with logic._focus_lock:
+                for acc in accounts:
+                    hwnd = acc["hwnd"]
+                    logic.focus_window(hwnd)
+                    for _ in range(15):
+                        try:
+                            if win32gui.GetForegroundWindow() == hwnd: break
+                        except Exception:
+                            pass
+                        time.sleep(0.1)
+                    time.sleep(0.08)
                     try:
-                        if win32gui.GetForegroundWindow() == hwnd: break
-                    except Exception:
-                        pass
-                    time.sleep(0.1)
-                time.sleep(0.08)
-                try:
-                    pyautogui.click()
-                except Exception as e:
-                    if on_status: on_status(f"⚠ Spam clic {acc['name']}: {e}")
-                time.sleep(0.15)
+                        pyautogui.click()
+                    except Exception as e:
+                        if on_status: on_status(f"⚠ Spam clic {acc['name']}: {e}")
+                    time.sleep(0.15)
 
             logic.switch_to_leader()
             if on_status: on_status("✅ Spam clic envoyé à tous !")

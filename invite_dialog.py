@@ -22,7 +22,7 @@ class InviteDialog(QDialog):
         self.config = config
         self.logic  = logic
         self.setWindowTitle("👥 Inviter le groupe")
-        self.setFixedSize(420, 500)
+        self.setFixedSize(420, 540)
         self.setStyleSheet(STYLE)
         self._status_sig.connect(lambda m: self.status_lbl.setText(m))
         self._done_sig.connect(lambda: QTimer.singleShot(900, self.close))
@@ -72,16 +72,20 @@ class InviteDialog(QDialog):
         self.status_lbl.setStyleSheet(f"color:{ACC};font-size:11px;font-weight:600;"); self.status_lbl.setWordWrap(True)
         cl.addWidget(self.status_lbl)
 
-        # Buttons
+        # Buttons — l'invitation groupée (3.7, 1 seul message) est le seul
+        # flow exposé ici. L'ancien _invite_all (1 message/perso) reste dans
+        # le code, dormant, pour pouvoir être réactivé si besoin, mais n'a
+        # plus de bouton dans l'UI.
         btns = QHBoxLayout()
         refresh_btn = QPushButton("↻ Actualiser")
         refresh_btn.setStyleSheet(f"background:{BG3};border-radius:6px;padding:6px 14px;")
         refresh_btn.clicked.connect(self._populate_list); btns.addWidget(refresh_btn)
         btns.addStretch()
-        go = QPushButton("🚀  Lancer les invitations")
-        go.setStyleSheet(f"background:{ACC};color:#0f1115;border:none;border-radius:6px;padding:8px 20px;font-weight:700;font-size:13px;")
-        go.clicked.connect(self._invite_all); btns.addWidget(go)
         cl.addLayout(btns)
+
+        go = QPushButton("🚀  Invitation groupée")
+        go.setStyleSheet(f"background:{ACC};color:#0f1115;border:none;border-radius:6px;padding:8px 20px;font-weight:700;font-size:13px;")
+        go.clicked.connect(self._invite_grouped); cl.addWidget(go)
 
         lay.addWidget(content)
 
@@ -190,6 +194,44 @@ class InviteDialog(QDialog):
                 pyautogui.press("enter")
                 time.sleep(0.2)
             self._status_sig.emit(f"✅ {total} invitation(s) envoyée(s) !")
+            self._done_sig.emit()
+
+        threading.Thread(target=_do, daemon=True).start()
+
+    def _invite_grouped(self):
+        """Nouvelle commande 3.7 — "/invite n1 ; n2 ; ..." en un seul message
+        au lieu d'un /invite par personnage. Reste chef-only (comme avant),
+        donc réutilise chat_position (absolue, calibration existante) sans
+        besoin de la nouvelle calibration par-personnage (chat_multi), qui
+        ne sert qu'à la macro /zaap collée dans chaque fenêtre."""
+        if not PYAUTOGUI_OK:
+            QMessageBox.warning(self, "Erreur", "pyautogui non installé."); return
+
+        cp = self.config.get("macro_positions", {}).get("chat_position")
+        if not cp:
+            self._status_sig.emit("⚠ Chat non calibré.")
+            return
+
+        leader = self.config.get("leader_name", "")
+        to_invite = [name for name, chk in self.checkboxes.items()
+                     if chk.isChecked() and name != leader]
+
+        if not to_invite:
+            self._status_sig.emit("⚠ Aucun personnage sélectionné.")
+            return
+
+        if self.logic: self.logic.switch_to_leader()
+        time.sleep(random.uniform(0.06, 0.14))
+
+        cmd = "/invite " + " ; ".join(to_invite)
+
+        def _do():
+            self._status_sig.emit(f"Invitation groupée — {len(to_invite)} perso(s)...")
+            pyautogui.click(cp[0], cp[1]); time.sleep(0.08)
+            pyperclip.copy(cmd)
+            pyautogui.hotkey("ctrl", "v"); time.sleep(0.08)
+            pyautogui.press("enter")
+            self._status_sig.emit(f"✅ {len(to_invite)} invitation(s) envoyée(s) en un seul message !")
             self._done_sig.emit()
 
         threading.Thread(target=_do, daemon=True).start()

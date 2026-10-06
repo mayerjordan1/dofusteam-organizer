@@ -13,9 +13,9 @@ from PyQt6.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QLabel, QLineEdit, QPushButton,
     QScrollArea,
 )
-from PyQt6.QtCore import Qt
+from PyQt6.QtCore import Qt, pyqtSignal
 
-from theme import TEXT, MUT, ACC, GOLD, BG2, BORDER, glass_card, section_label, mono, load_icon
+from theme import TEXT, MUT, ACC, GOLD, BLUE, BG2, BORDER, glass_card, section_label, mono, load_icon
 from zaap_data import ZAAPS, get_favorites, toggle_favorite
 
 
@@ -62,13 +62,19 @@ def _make_header(title, subtitle):
 class ZaapMenuPage(QWidget):
     """Recherche + liste complète des zaaps, étoile pour favoris."""
 
+    _status_sig = pyqtSignal(str)
+
     def __init__(self, config, logic, parent=None):
         super().__init__(parent)
         self.config = config
         self.logic = logic
         self._rows = []
+        self._status_sig.connect(self._set_status)
         self._build()
         self._filter()
+
+    def _set_status(self, msg):
+        self.status_lbl.setText(msg)
 
     def _build(self):
         lay = QVBoxLayout(self)
@@ -77,8 +83,9 @@ class ZaapMenuPage(QWidget):
 
         lay.addWidget(_make_header(
             "Zaap",
-            "Consulte les 42 zaaps et marque tes favoris ⭐ — utilisés ensuite d'un "
-            "clic droit sur la barre flottante pour lancer la macro de téléportation.",
+            "Consulte les 42 zaaps et marque tes favoris ⭐ — clic droit sur la barre "
+            "flottante pour la macro classique, ou ⚡ ici pour la commande 3.7 "
+            "(/zaap x, y — nécessite la calibration \"Chat (3.7)\" par personnage).",
         ))
 
         body = QWidget()
@@ -88,6 +95,11 @@ class ZaapMenuPage(QWidget):
 
         body_lay.addWidget(self._search_row())
         body_lay.addWidget(self._list_card(), 1)
+
+        self.status_lbl = QLabel("")
+        self.status_lbl.setStyleSheet(f"color:{ACC};font-size:11px;font-weight:600;background:transparent;")
+        self.status_lbl.setWordWrap(True)
+        body_lay.addWidget(self.status_lbl)
 
         lay.addWidget(body, 1)
 
@@ -265,8 +277,33 @@ class ZaapMenuPage(QWidget):
         coord_row.addWidget(coord_lbl)
         rl.addLayout(coord_row)
 
+        send_btn = QPushButton("⚡ /zaap")
+        send_btn.setToolTip("Envoyer /zaap x, y dans le chat de chaque personnage calibré (3.7)")
+        send_btn.setCursor(Qt.CursorShape.PointingHandCursor)
+        send_btn.setStyleSheet(
+            f"background:rgba(79,163,224,0.15); color:{BLUE}; border:1px solid rgba(79,163,224,0.35);"
+            f"border-radius:6px; padding:5px 10px; font-size:11px; font-weight:700;"
+        )
+        send_btn.clicked.connect(lambda _, zz=z: self._send(zz))
+        rl.addWidget(send_btn)
+
         return row
 
     def _toggle(self, name):
         toggle_favorite(self.config, name)
         self._filter()
+
+    def _send(self, z):
+        """Lance la commande /zaap 3.7 vers cette destination — macro distincte
+        de run_zaap_to_destination (zaap_favorites.py), laissée intacte en
+        secours. Nécessite macro_positions.chat_positions (calibration "Chat
+        (3.7)" par personnage, page Calibration)."""
+        if not self.logic:
+            self._set_status("⚠ Aucune connexion au jeu.")
+            return
+        from zaap_macro import send_zaap_command
+        x, y = z["coords"]
+        send_zaap_command(
+            self.config, self.logic, x, y,
+            on_status=lambda m: self._status_sig.emit(m),
+        )

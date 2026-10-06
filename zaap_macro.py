@@ -491,6 +491,96 @@ def quick_havresac_zaap(config, logic, on_status=None):
     threading.Thread(target=_run, daemon=True).start()
 
 
+# ── Zaap par commande chat (Dofus 3.7) ────────────────────────────────────────
+
+def send_zaap_command(config, logic, x, y, on_status=None, on_done=None):
+    """Macro 3.7 — remplace le trio havre-sac/clic-zaap/recherche-destination
+    par une seule commande chat "/zaap x, y" collée dans CHAQUE fenêtre.
+    Nécessite la calibration 'chat_multi' (position du chat par personnage,
+    cf. calibrator.py) — les persos non calibrés sont ignorés avec un
+    avertissement plutôt que de planter la macro. L'ancien flow 3 phases
+    (ZaapExecutor / quick_havresac_zaap / run_zaap_to_destination) reste
+    intact et utilisable en secours si cette commande ne marche pas en jeu."""
+    try:
+        import pyperclip
+    except ImportError:
+        if on_status: on_status("❌ pyperclip manquant")
+        if on_done: on_done()
+        return
+
+    def _run():
+        accounts = logic.get_cycle_list()
+        if not accounts:
+            if on_status: on_status("⚠ Aucun compte actif")
+            if on_done: on_done()
+            return
+
+        chat_positions = config.get("macro_positions", {}).get("chat_positions", {})
+        paste_delay = float(config.get("zaap_paste_delay", 0.35))
+        cmd = f"/zaap {x}, {y}"
+
+        abort_flag = [False]
+        stop_watching = threading.Event()
+        start_kill_switch(abort_flag, stop_watching, on_status=on_status)
+
+        pyperclip.copy(cmd)
+        freeze_mouse()
+        missing = []
+        try:
+            for i, acc in enumerate(accounts):
+                if abort_flag[0]:
+                    break
+                name = acc["name"]; hwnd = acc["hwnd"]
+                pos = chat_positions.get(name)
+                if not pos:
+                    missing.append(name)
+                    continue
+                if on_status: on_status(f"{cmd} — [{i+1}/{len(accounts)}] {name}")
+                logic.focus_window(hwnd)
+                for _ in range(15):
+                    try:
+                        if win32gui.GetForegroundWindow() == hwnd: break
+                    except: pass
+                    time.sleep(0.1)
+                time.sleep(_jitter(0.08))
+                try:
+                    ax, ay = rel_to_abs(hwnd, pos[0], pos[1])
+                    pyautogui.click(ax, ay)
+                    time.sleep(_jitter(0.12))
+                    pyautogui.hotkey("ctrl", "v")
+                    time.sleep(_jitter(0.15))
+                    pyautogui.press("enter")
+                except Exception as e:
+                    if on_status: on_status(f"⚠ {name}: {e}")
+                time.sleep(_jitter(paste_delay))
+        finally:
+            stop_watching.set()
+            leader_hwnd = getattr(logic, "leader_hwnd", None)
+            if leader_hwnd:
+                logic.focus_window(leader_hwnd)
+                for _ in range(15):
+                    try:
+                        if win32gui.GetForegroundWindow() == leader_hwnd: break
+                    except Exception: pass
+                    time.sleep(0.1)
+                time.sleep(_jitter(0.35))
+                try: _send_ctrl_combo_sendinput("w")
+                except Exception: pass
+            unfreeze_mouse()
+
+        if abort_flag[0]:
+            if on_status: on_status("⛔ Arrêt d'urgence (Échap).")
+        else:
+            sent = len(accounts) - len(missing)
+            msg = f"✅ {cmd} envoyé à {sent} perso(s) !"
+            if missing:
+                msg += f" ⚠ non calibré(s) : {', '.join(missing)}"
+            if on_status: on_status(msg)
+        if on_done: on_done()
+
+    threading.Thread(target=_run, daemon=True).start()
+
+
 def quick_paste_zaap(config, logic, on_status=None):
     """
     Bouton 2 toolbar :

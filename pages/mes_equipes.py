@@ -696,7 +696,10 @@ class MesEquipesPage(QWidget):
         self._scan_thread.start()
 
     def _sort_taskbar(self):
-        self.logic.sort_taskbar()
+        # return_focus=True : le tri ne doit pas voler le focus vers le jeu
+        # quand il est déclenché depuis l'UI — sinon DofusTeam se retrouve
+        # derrière Dofus et il faut la rouvrir manuellement pour continuer.
+        self.logic.sort_taskbar(return_focus=True)
 
     def _open_invite(self):
         from invite_dialog import InviteDialog  # import tardif — évite le cycle pages<->main

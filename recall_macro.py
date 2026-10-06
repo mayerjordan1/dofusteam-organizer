@@ -39,21 +39,27 @@ def quick_recall_potion(config, logic, key, on_status=None, on_done=None):
                 return
 
             if on_status: on_status(f"🧪 Potion de rappel sur {len(accounts)} perso(s)...")
-            for acc in accounts:
-                hwnd = acc["hwnd"]
-                logic.focus_window(hwnd)
-                for _ in range(15):
+            # _focus_lock : pas de BlockInput ici (contrairement aux macros
+            # zaap) — sans ce verrou, un Tab (switch_next) pressé pendant
+            # l'exécution entre en course avec ce focus_window() sur
+            # SetForegroundWindow (même souci que paste_active, cf. son
+            # commentaire dans DofusLogic.__init__).
+            with logic._focus_lock:
+                for acc in accounts:
+                    hwnd = acc["hwnd"]
+                    logic.focus_window(hwnd)
+                    for _ in range(15):
+                        try:
+                            if win32gui.GetForegroundWindow() == hwnd: break
+                        except Exception:
+                            pass
+                        time.sleep(0.1)
+                    time.sleep(0.08)
                     try:
-                        if win32gui.GetForegroundWindow() == hwnd: break
-                    except Exception:
-                        pass
-                    time.sleep(0.1)
-                time.sleep(0.08)
-                try:
-                    _kb.send(key)
-                except Exception as e:
-                    if on_status: on_status(f"⚠ Potion {acc['name']}: {e}")
-                time.sleep(0.15)
+                        _kb.send(key)
+                    except Exception as e:
+                        if on_status: on_status(f"⚠ Potion {acc['name']}: {e}")
+                    time.sleep(0.15)
 
             logic.switch_to_leader()
             if on_status: on_status("✅ Potion de rappel envoyée à tous !")

@@ -72,10 +72,11 @@ class InviteDialog(QDialog):
         self.status_lbl.setStyleSheet(f"color:{ACC};font-size:11px;font-weight:600;"); self.status_lbl.setWordWrap(True)
         cl.addWidget(self.status_lbl)
 
-        # Buttons — l'invitation groupée (3.7, 1 seul message) est le seul
-        # flow exposé ici. L'ancien _invite_all (1 message/perso) reste dans
-        # le code, dormant, pour pouvoir être réactivé si besoin, mais n'a
-        # plus de bouton dans l'UI.
+        # Buttons — retour à l'invitation classique (1 message/perso) comme
+        # seul flow exposé : la commande groupée "/invite n1 ; n2 ; ..."
+        # (3.7) ne fonctionne pas en jeu (contrairement à /zaap, qui lui
+        # marche). _invite_grouped reste dans le code, dormant, à réessayer
+        # si ça se débloque côté jeu plus tard.
         btns = QHBoxLayout()
         refresh_btn = QPushButton("↻ Actualiser")
         refresh_btn.setStyleSheet(f"background:{BG3};border-radius:6px;padding:6px 14px;")
@@ -83,9 +84,9 @@ class InviteDialog(QDialog):
         btns.addStretch()
         cl.addLayout(btns)
 
-        go = QPushButton("🚀  Invitation groupée")
+        go = QPushButton("🚀  Lancer les invitations")
         go.setStyleSheet(f"background:{ACC};color:#0f1115;border:none;border-radius:6px;padding:8px 20px;font-weight:700;font-size:13px;")
-        go.clicked.connect(self._invite_grouped); cl.addWidget(go)
+        go.clicked.connect(self._invite_all); cl.addWidget(go)
 
         lay.addWidget(content)
 

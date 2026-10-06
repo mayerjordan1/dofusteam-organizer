@@ -64,20 +64,26 @@ class HintSearchThread(QThread):
 class ZaapSearchThread(QThread):
     done = pyqtSignal(dict, str)
 
-    def __init__(self, map_id):
+    def __init__(self, map_id, x=None, y=None):
         super().__init__()
         self.map_id = map_id
+        # Position de la map-indice (x, y) — sert uniquement au fallback
+        # local si l'API ne renvoie rien (cf. run()).
+        self.x = x
+        self.y = y
 
     def run(self):
+        entries = []
         try:
             r = requests.get(API_ZAAP, params={
                 "id": self.map_id, "$sort": "distance", "$limit": 1, "lang": "fr",
             }, timeout=8)
             r.raise_for_status()
             entries = r.json().get("data", [])
-            if not entries:
-                self.done.emit({}, "Aucun zaap trouvé pour cette map.")
-                return
+        except Exception:
+            entries = []
+
+        if entries:
             e = entries[0]
             hint = e.get("hint") or {}
             # Le nom du "hint" est toujours générique ("Zaap") : c'est un type de
@@ -99,5 +105,29 @@ class ZaapSearchThread(QThread):
                 "x": hint.get("x"), "y": hint.get("y"),
                 "dist": e.get("distance"),
             }, "")
-        except Exception as e:
-            self.done.emit({}, str(e))
+            return
+
+        # Fallback local — observé le jour de la maj 3.7 : transport-from-maps
+        # renvoie total:0 côté DofusDB même sans aucun filtre (base pas encore
+        # réindexée après le patch, ou endpoint cassé). Plutôt que de bloquer
+        # toute la chasse au trésor en attendant que ça se répare côté
+        # DofusDB, on calcule nous-mêmes le zaap connu le plus proche
+        # (zaap_data.ZAAPS, distance de Manhattan en nombre de maps depuis la
+        # position de l'indice) — approximatif (pas le vrai plus court chemin
+        # en jeu) mais largement suffisant pour une destination /travel.
+        if self.x is not None and self.y is not None:
+            try:
+                from zaap_data import ZAAPS
+                best = min(ZAAPS, key=lambda z: abs(z["coords"][0]-self.x)+abs(z["coords"][1]-self.y))
+                dist = abs(best["coords"][0]-self.x)+abs(best["coords"][1]-self.y)
+                self.done.emit({
+                    "name": f"{best['name']} (approx. — API indisponible)",
+                    "x": best["coords"][0], "y": best["coords"][1],
+                    "dist": dist,
+                }, "")
+                return
+            except Exception as e:
+                self.done.emit({}, str(e))
+                return
+
+        self.done.emit({}, "Aucun zaap trouvé pour cette map.")

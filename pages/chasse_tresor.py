@@ -515,7 +515,7 @@ class ChasseTresorPage(QWidget):
         self.zaap_result.setVisible(False)
         self.zaap_error_lbl.setVisible(False)
         self.copy_btn.setEnabled(False)
-        self._zaap_thread = ZaapSearchThread(h["mapId"])
+        self._zaap_thread = ZaapSearchThread(h["mapId"], h["x"], h["y"])
         self._zaap_thread.done.connect(lambda z, err, hh=h: self._on_zaap(hh, z, err))
         self._zaap_thread.start()
 
@@ -528,7 +528,11 @@ class ChasseTresorPage(QWidget):
             self.copy_btn.setEnabled(False)
             self._travel_cmd = None
             return
-        self._travel_cmd = f"/travel {zaap['x']},{zaap['y']}"
+        # Sans virgule : même syntaxe que /zaap, confirmée en jeu après la
+        # maj 3.7 (l'ancienne "/travel x,y" avec virgule n'a jamais été
+        # vérifiée en jeu pour cette commande précise, mais /zaap et /travel
+        # sont la même famille de commande de téléportation par coordonnées).
+        self._travel_cmd = f"/travel {zaap['x']} {zaap['y']}"
         self.zaap_name_lbl.setText(zaap["name"])
         self.zaap_coord_lbl.setText(f"📍  ({zaap['x']}, {zaap['y']})")
         self.zaap_dist_lbl.setText(f"🧭  {zaap['dist']} map(s) de distance")

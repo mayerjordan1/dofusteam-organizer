@@ -324,6 +324,7 @@ class Toast(QWidget):
 class CaptureControls(QWidget):
     start_clicked = pyqtSignal()
     stop_clicked = pyqtSignal()
+    close_clicked = pyqtSignal()
 
     def __init__(self):
         super().__init__(None)
@@ -349,6 +350,13 @@ class CaptureControls(QWidget):
                             f"QPushButton:hover{{border-color:rgba(255,255,255,0.3);}}")
         self.start_btn.clicked.connect(self.start_clicked.emit)
         self.stop_btn.clicked.connect(self.stop_clicked.emit)
+        self.close_btn = QPushButton("✕")
+        self.close_btn.setToolTip("Fermer le cadre")
+        self.close_btn.setCursor(Qt.CursorShape.PointingHandCursor)
+        self.close_btn.setFixedSize(28, 28)
+        self.close_btn.setStyleSheet(f"QPushButton{{background:transparent;color:{MUT};border:1px solid rgba(255,255,255,0.13);border-radius:7px;font-size:12px;padding:0;}}"
+                                     f"QPushButton:hover{{color:{TEXT};background:#252d38;}}")
+        self.close_btn.clicked.connect(self.close_clicked.emit)
         lay = QHBoxLayout(self)
         lay.setContentsMargins(12, 6, 8, 6)
         lay.setSpacing(8)
@@ -358,6 +366,7 @@ class CaptureControls(QWidget):
         lay.addSpacing(6)
         lay.addWidget(self.start_btn)
         lay.addWidget(self.stop_btn)
+        lay.addWidget(self.close_btn)
         self.set_running(False)
         self.adjustSize()
 
@@ -392,6 +401,7 @@ class HdvCapture(QObject):
         self.controls = CaptureControls()
         self.controls.start_clicked.connect(self.start_capture)
         self.controls.stop_clicked.connect(self.stop_capture)
+        self.controls.close_clicked.connect(self.toggle_frame)
         self.frame.moved_or_resized.connect(self._place_controls)
         self.running = False
         self.seen = {}            # objets déjà pris pendant la session : nom → prix lus (évite de les reprendre)

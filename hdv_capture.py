@@ -203,14 +203,14 @@ class _Check(QWidget):
             p.setPen(QPen(QColor(GOLD), 2.5, Qt.PenStyle.SolidLine, Qt.PenCapStyle.RoundCap, Qt.PenJoinStyle.RoundJoin))
             p.drawPolyline([QPointF(9.5, 15.5), QPointF(13.5, 19.5), QPointF(20.5, 11)])
             return
-        col = QColor(GREEN if self.mode == "ok" else "#fb923c")
+        col = QColor(GREEN if self.mode == "ok" else MUT if self.mode == "dash" else "#fb923c")
         p.setPen(Qt.PenStyle.NoPen)
         c = QColor(col); c.setAlpha(int(40 + 40 * self.progress))
         p.setBrush(c)
         p.drawEllipse(r)
         pen = QPen(col, 3); pen.setCapStyle(Qt.PenCapStyle.RoundCap); pen.setJoinStyle(Qt.PenJoinStyle.RoundJoin)
         p.setPen(pen)
-        pts = [(9, 15.5), (13.5, 20), (21, 10.5)] if self.mode == "ok" else [(15, 8.5), (15, 17)]
+        pts = [(9, 15.5), (13.5, 20), (21, 10.5)] if self.mode == "ok" else [(9.5, 15), (20.5, 15)] if self.mode == "dash" else [(15, 8.5), (15, 17)]
         lens = [((pts[i + 1][0] - pts[i][0]) ** 2 + (pts[i + 1][1] - pts[i][1]) ** 2) ** 0.5 for i in range(len(pts) - 1)]
         left = max(0.001, self.progress) * sum(lens)       # tracé progressif de la coche
         x, y = pts[0]
@@ -309,21 +309,24 @@ class Toast(QWidget):
     def set_result(self, status, name, icon_url, prices, stale=False):
         ok = status == "found"
         dup = status == "duplicate"
-        self._edge = GREEN if ok else (MUT if dup else "#fb923c")
+        empty = status == "empty"
+        self._edge = GREEN if ok else (MUT if (dup or empty) else "#fb923c")
         label = name or ("Objet non reconnu" if status != "error" else "Lecture impossible")
         self.name.setText(self.name.fontMetrics().elidedText(label, Qt.TextElideMode.ElideRight, 232))
         shown = [f"×{k} {int(v):,}".replace(",", " ") for k, v in sorted(((int(k), v) for k, v in (prices or {}).items()), key=lambda kv: kv[0]) if v]
         self.prices.setText("  ·  ".join(shown) if shown else ("Aucun prix lu" if status != "ambiguous" else "Plusieurs objets possibles"))
+        if empty:
+            self.prices.setText("Aucun lot en vente · rien à enregistrer")
         if dup:
             self.prices.setText("Déjà pris · " + ("  ·  ".join(shown) if shown else "prix inchangés"))
-        self.check.finish("ok" if (ok or dup) and shown else ("warn" if not dup else "ok"))
+        self.check.finish("dash" if empty else "ok" if (ok or dup) and shown else ("warn" if not dup else "ok"))
         if icon_url:
             self._fetcher = _IconFetcher(icon_url)
             self._fetcher.done.connect(lambda pix: self.icon.setPixmap(pix.scaled(38, 38, Qt.AspectRatioMode.KeepAspectRatio, Qt.TransformationMode.SmoothTransformation)))
             self._fetcher.start()
         self.update()
         # résultat tardif (une autre capture est déjà partie) : bref rappel, sans retenir l'attention
-        self._hide_timer.start(1400 if stale else 2600 if dup else 3600 if ok else 5200)
+        self._hide_timer.start(1400 if stale else 2600 if (dup or empty) else 3600 if ok else 5200)
 
     def fade_out(self):
         o = QPropertyAnimation(self, b"windowOpacity", self); o.setDuration(260)
@@ -645,6 +648,8 @@ class HdvCapture(QObject):
         status = msg.get("status", "error")
         name = msg.get("name") or ""
         prices = msg.get("prices") or {}
+        if status == "found" and not prices:
+            status = "empty"      # fiche reconnue sans aucun lot en vente : rien à prendre, l'objet pourra l'être plus tard
         if status == "found":
             # Objet déjà pris pendant la session : on ne le reprend pas (le site fusionne aussi les doublons)
             if name in self.seen:
@@ -655,7 +660,7 @@ class HdvCapture(QObject):
         elif status == "duplicate":
             self.seen[name] = prices
         self.controls.set_count(len(self.seen))
-        self.frame.set_state("ok" if status == "found" else "warn" if status != "duplicate" else "idle", 1400)
+        self.frame.set_state("ok" if status == "found" else "idle" if status in ("duplicate", "empty") else "warn", 1400)
         t.set_result(status, name, msg.get("icon"), prices, stale=self.sent > getattr(t, "seq", self.sent))
         self.status_changed.emit()
 

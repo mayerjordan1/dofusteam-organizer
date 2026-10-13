@@ -528,18 +528,30 @@ class HdvCapture(QObject):
         pix = screen.grabWindow(0, r.x() - sg.x(), r.y() - sg.y(), r.width(), r.height())
         return pix.toImage()
 
-    @staticmethod
-    def _signature(img):
-        small = img.scaled(48, 24, Qt.AspectRatioMode.IgnoreAspectRatio, Qt.TransformationMode.FastTransformation) \
-                   .convertToFormat(QImage.Format.Format_Grayscale8)
-        ptr = small.constBits(); ptr.setsize(small.sizeInBytes())
-        return bytes(ptr)
+    # Signature : image réduite en gris. La comparaison compte la part de pixels qui ont changé (et non l'écart moyen) :
+    # quand seul le nom et les prix changent dans un cadre identique, c'est une petite zone de l'image qui bouge.
+    SIG_W, SIG_H = 160, 80
+    PIXEL_DELTA = 28          # écart de gris à partir duquel un pixel compte comme changé
+    CHANGE_RATIO = 0.005      # part de pixels changés qui fait considérer l image comme différente (0,5 %)
+    SAME_RATIO = 0.003        # en dessous, l'image est considérée comme immobile
 
-    @staticmethod
-    def _diff(a, b):
+    @classmethod
+    def _signature(cls, img):
+        small = img.scaled(cls.SIG_W, cls.SIG_H, Qt.AspectRatioMode.IgnoreAspectRatio, Qt.TransformationMode.SmoothTransformation) \
+                   .convertToFormat(QImage.Format.Format_Grayscale8)
+        # Grayscale8 : chaque ligne est alignée sur 4 octets, on lit pixel par pixel via bytesPerLine
+        bpl = small.bytesPerLine()
+        ptr = small.constBits(); ptr.setsize(small.sizeInBytes())
+        raw = bytes(ptr)
+        return b"".join(raw[y * bpl:y * bpl + cls.SIG_W] for y in range(cls.SIG_H))
+
+    @classmethod
+    def _ratio(cls, a, b):
+        """Part (0-1) de pixels dont le gris a changé de plus de PIXEL_DELTA ; 1.0 si on ne peut pas comparer."""
         if a is None or b is None or len(a) != len(b):
-            return 255.0
-        return sum(abs(x - y) for x, y in zip(a, b)) / len(a)
+            return 1.0
+        d = cls.PIXEL_DELTA
+        return sum(1 for x, y in zip(a, b) if abs(x - y) > d) / len(a)
 
     def _tick(self):
         if not (self.running and self.auto and self.frame.isVisible()):
@@ -549,18 +561,20 @@ class HdvCapture(QObject):
         sig = self._signature(img)
         # image quasi uniforme (fenêtre fermée, écran noir) : rien à lire
         mean = sum(sig) / len(sig)
-        spread = sum(abs(v - mean) for v in sig) / len(sig)
-        if spread < 4:
+        if sum(abs(v - mean) for v in sig) / len(sig) < 4:
             self._prev = sig
             return
-        if self._diff(self._prev, sig) > 5:
+        if self._ratio(self._prev, sig) > self.CHANGE_RATIO:
             self._stable = 0
             self._changed = True
         else:
             self._stable += 1
         self._prev = sig
-        # Pas de nouvelle capture tant que le contenu n'a pas vraiment changé (autre objet) et pas plus d'une toutes les 1,2 s
-        if self._changed and self._stable >= 2 and self._diff(self._last_sent_sig, sig) > 10 and time.time() - self._last_send_at > 1.2:
+        # Nouvelle capture quand l'image a bougé puis s'est stabilisée (~0,7 s), qu'elle diffère de la dernière envoyée
+        # (autre objet, même si le cadre est identique et que seuls le nom et les prix changent) et pas plus d'une
+        # fois toutes les 0,8 s
+        if self._changed and self._stable >= 2 and self._ratio(self._last_sent_sig, sig) > self.CHANGE_RATIO \
+                and time.time() - self._last_send_at > 0.8:
             self._send(img, sig)
 
     def capture_now(self):

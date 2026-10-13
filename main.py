@@ -26,7 +26,7 @@ from sidebar import Sidebar
 from updater import UpdateCheckThread, UpdateDownloadThread, can_self_update, apply_update_and_restart
 
 APP_NAME = "DofusTeam"
-VERSION  = "V2.31"
+VERSION  = "V2.32"
 
 CLASSES = ["Cra","Ecaflip","Eliotrope","Eniripsa","Enutrof","Feca","Forgelance",
            "Huppermage","Iop","Osamodas","Ouginak","Pandawa","Roublard","Sacrieur",
@@ -48,7 +48,7 @@ DEFAULT = {
     "mini_toolbar_x":100,"mini_toolbar_y":100,
     "presets":[],"team_presets":[],
     "radial_menu_active":True,"radial_menu_hotkey":"alt+left_click",
-    "hdv_hotkey":"f8","hdv_auto":True,
+    "hdv_hotkey":"f8","hdv_toggle_hotkey":"f9","hdv_auto":True,
 }
 
 class Config:
@@ -1521,6 +1521,10 @@ class MainWindow(QMainWindow):
         hdv_key=self.config.get("hdv_hotkey","f8")
         if hdv_key and KEYBOARD_OK:
             try: keyboard.add_hotkey(hdv_key,lambda: QTimer.singleShot(0,self.hdv_capture.capture_now),suppress=False)
+            except: pass
+        hdv_toggle=self.config.get("hdv_toggle_hotkey","f9")
+        if hdv_toggle and KEYBOARD_OK:
+            try: keyboard.add_hotkey(hdv_toggle,lambda: QTimer.singleShot(0,self.hdv_capture.toggle_capture),suppress=False)
             except: pass
 
         self.pages={

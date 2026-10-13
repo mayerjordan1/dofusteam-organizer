@@ -26,6 +26,7 @@ STATE_COLORS = {"idle": ACC, "reading": GOLD, "ok": GREEN, "warn": "#fb923c", "o
 # ── Cadre de viseur ───────────────────────────────────────────────────────────
 class CaptureFrame(QWidget):
     geometry_settled = pyqtSignal()
+    moved_or_resized = pyqtSignal()
 
     def __init__(self):
         super().__init__(None)
@@ -35,7 +36,8 @@ class CaptureFrame(QWidget):
         self.setAttribute(Qt.WidgetAttribute.WA_ShowWithoutActivating)
         self.setMouseTracking(True)
         self.setMinimumSize(MIN_W + 2 * HB, MIN_H + 2 * HB)
-        self.state = "idle"
+        self.state = "off"
+        self.base_state = "off"      # état affiché hors animation : "off" (arrêté) ou "idle" (capture en cours)
         self._mode = None
         self._press_global = QPoint()
         self._press_geo = QRect()
@@ -44,7 +46,7 @@ class CaptureFrame(QWidget):
         self._save_timer.timeout.connect(self.geometry_settled.emit)
         self._reset_state_timer = QTimer(self)
         self._reset_state_timer.setSingleShot(True)
-        self._reset_state_timer.timeout.connect(lambda: self.set_state("idle"))
+        self._reset_state_timer.timeout.connect(lambda: self.set_state(self.base_state))
 
     # Zone réellement lue (coordonnées d'écran)
     def capture_rect(self):
@@ -68,7 +70,16 @@ class CaptureFrame(QWidget):
 
     def resizeEvent(self, e):
         self._update_mask()
+        self.moved_or_resized.emit()
         super().resizeEvent(e)
+
+    def moveEvent(self, e):
+        self.moved_or_resized.emit()
+        super().moveEvent(e)
+
+    def set_base_state(self, state):
+        self.base_state = state
+        self.set_state(state)
 
     def showEvent(self, e):
         self._update_mask()
@@ -280,18 +291,21 @@ class Toast(QWidget):
 
     def set_result(self, status, name, icon_url, prices):
         ok = status == "found"
-        self._edge = GREEN if ok else "#fb923c"
+        dup = status == "duplicate"
+        self._edge = GREEN if ok else (MUT if dup else "#fb923c")
         label = name or ("Objet non reconnu" if status != "error" else "Lecture impossible")
         self.name.setText(self.name.fontMetrics().elidedText(label, Qt.TextElideMode.ElideRight, 232))
         shown = [f"×{k} {int(v):,}".replace(",", " ") for k, v in sorted(((int(k), v) for k, v in (prices or {}).items()), key=lambda kv: kv[0]) if v]
         self.prices.setText("  ·  ".join(shown) if shown else ("Aucun prix lu" if status != "ambiguous" else "Plusieurs objets possibles"))
-        self.check.finish("ok" if ok and shown else "warn")
+        if dup:
+            self.prices.setText("Déjà pris · " + ("  ·  ".join(shown) if shown else "prix inchangés"))
+        self.check.finish("ok" if (ok or dup) and shown else ("warn" if not dup else "ok"))
         if icon_url:
             self._fetcher = _IconFetcher(icon_url)
             self._fetcher.done.connect(lambda pix: self.icon.setPixmap(pix.scaled(38, 38, Qt.AspectRatioMode.KeepAspectRatio, Qt.TransformationMode.SmoothTransformation)))
             self._fetcher.start()
         self.update()
-        self._hide_timer.start(3600 if ok else 5200)
+        self._hide_timer.start(2600 if dup else 3600 if ok else 5200)
 
     def fade_out(self):
         o = QPropertyAnimation(self, b"windowOpacity", self); o.setDuration(260)
@@ -305,6 +319,67 @@ class Toast(QWidget):
         self.deleteLater()
 
 
+
+# ── Barre de commandes collée au cadre ────────────────────────────────────────
+class CaptureControls(QWidget):
+    start_clicked = pyqtSignal()
+    stop_clicked = pyqtSignal()
+
+    def __init__(self):
+        super().__init__(None)
+        self.setWindowFlags(Qt.WindowType.FramelessWindowHint | Qt.WindowType.WindowStaysOnTopHint
+                            | Qt.WindowType.Tool | Qt.WindowType.WindowDoesNotAcceptFocus)
+        self.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground)
+        self.setAttribute(Qt.WidgetAttribute.WA_ShowWithoutActivating)
+        self.setFixedHeight(40)
+        from PyQt6.QtWidgets import QPushButton
+        self.dot = QLabel("●")
+        self.dot.setStyleSheet(f"color:{MUT}; background:transparent; font-size:10px;")
+        self.label = QLabel("Arrêté")
+        self.label.setStyleSheet(f"color:{TEXT}; background:transparent; font-size:12px; font-weight:700;")
+        self.count = QLabel("")
+        self.count.setFont(mono(9))
+        self.count.setStyleSheet(f"color:{MUT}; background:transparent;")
+        self.start_btn = QPushButton("Démarrer")
+        self.stop_btn = QPushButton("Arrêter")
+        for b, bg, fg in ((self.start_btn, ACC, "#080b10"), (self.stop_btn, "#1c2128", TEXT)):
+            b.setCursor(Qt.CursorShape.PointingHandCursor)
+            b.setFixedHeight(28)
+            b.setStyleSheet(f"QPushButton{{background:{bg};color:{fg};border:1px solid rgba(255,255,255,0.13);border-radius:7px;padding:0 14px;font-size:12px;font-weight:700;}}"
+                            f"QPushButton:hover{{border-color:rgba(255,255,255,0.3);}}")
+        self.start_btn.clicked.connect(self.start_clicked.emit)
+        self.stop_btn.clicked.connect(self.stop_clicked.emit)
+        lay = QHBoxLayout(self)
+        lay.setContentsMargins(12, 6, 8, 6)
+        lay.setSpacing(8)
+        lay.addWidget(self.dot)
+        lay.addWidget(self.label)
+        lay.addWidget(self.count)
+        lay.addSpacing(6)
+        lay.addWidget(self.start_btn)
+        lay.addWidget(self.stop_btn)
+        self.set_running(False)
+        self.adjustSize()
+
+    def paintEvent(self, _):
+        p = QPainter(self)
+        p.setRenderHint(QPainter.RenderHint.Antialiasing)
+        p.setPen(QPen(QColor(255, 255, 255, 56), 1))
+        p.setBrush(QColor(BG2))
+        p.drawRoundedRect(self.rect().adjusted(1, 1, -1, -1), 10, 10)
+        p.end()
+
+    def set_running(self, running):
+        self.start_btn.setVisible(not running)
+        self.stop_btn.setVisible(running)
+        self.label.setText("Capture en cours" if running else "Arrêté")
+        self.dot.setStyleSheet(f"color:{GREEN if running else MUT}; background:transparent; font-size:10px;")
+        self.adjustSize()
+
+    def set_count(self, n):
+        self.count.setText(f"{n} objet{'s' if n > 1 else ''}" if n else "")
+        self.adjustSize()
+
 # ── Contrôleur ────────────────────────────────────────────────────────────────
 class HdvCapture(QObject):
     status_changed = pyqtSignal()
@@ -314,6 +389,13 @@ class HdvCapture(QObject):
         self.config = config
         self.frame = CaptureFrame()
         self.frame.geometry_settled.connect(self._save_geometry)
+        self.controls = CaptureControls()
+        self.controls.start_clicked.connect(self.start_capture)
+        self.controls.stop_clicked.connect(self.stop_capture)
+        self.frame.moved_or_resized.connect(self._place_controls)
+        self.running = False
+        self.seen = {}            # objets déjà pris pendant la session : nom → prix lus (évite de les reprendre)
+        self._last_send_at = 0.0
         self.bridge = HdvBridge(config.get("hdv_origins", None))
         self.bridge.connection_changed.connect(lambda _n: self.status_changed.emit())
         self.bridge.result_received.connect(self._on_result)
@@ -348,6 +430,7 @@ class HdvCapture(QObject):
     def shutdown(self):
         self._timer.stop()
         self.bridge.stop()
+        self.controls.close()
         self.frame.close()
 
     def set_auto(self, on):
@@ -358,9 +441,59 @@ class HdvCapture(QObject):
     # ── Cadre ─────────────────────────────────────────────────────────────────
     def toggle_frame(self):
         if self.frame.isVisible():
+            self.stop_capture()
             self.frame.hide()
+            self.controls.hide()
         else:
             self.frame.show()
+            self.controls.show()
+            self._place_controls()
+        self.status_changed.emit()
+
+    def _place_controls(self):
+        if not self.controls.isVisible():
+            return
+        r = self.frame.geometry()
+        scr = (QApplication.screenAt(r.center()) or QApplication.primaryScreen()).availableGeometry()
+        x = min(max(scr.left() + 4, r.x()), scr.right() - self.controls.width() - 4)
+        y = r.bottom() + 6
+        if y + self.controls.height() > scr.bottom():
+            y = r.y() - self.controls.height() - 6
+        self.controls.move(x, y)
+
+    # ── Démarrer / arrêter ────────────────────────────────────────────────────
+    def start_capture(self):
+        if not self.frame.isVisible():
+            self.toggle_frame()
+        self.running = True
+        self._prev = None
+        self._stable = 0
+        self._changed = False
+        self.frame.set_base_state("idle")
+        self.controls.set_running(True)
+        self._place_controls()
+        self.status_changed.emit()
+
+    def stop_capture(self):
+        self.running = False
+        self.frame.set_base_state("off")
+        self.controls.set_running(False)
+        self._place_controls()
+        self.status_changed.emit()
+
+    def toggle_capture(self):
+        if self.running:
+            self.stop_capture()
+        else:
+            self.start_capture()
+
+    def new_session(self):
+        """Oublie les objets déjà pris : ils pourront être repris."""
+        self.seen.clear()
+        self.sent = 0
+        self.read = 0
+        self._last_sent_sig = None
+        self.controls.set_count(0)
         self.status_changed.emit()
 
     def reset_frame(self):
@@ -370,6 +503,8 @@ class HdvCapture(QObject):
         self._save_geometry()
         if not self.frame.isVisible():
             self.frame.show()
+            self.controls.show()
+        self._place_controls()
         self.status_changed.emit()
 
     def _restore_geometry(self):
@@ -407,7 +542,7 @@ class HdvCapture(QObject):
         return sum(abs(x - y) for x, y in zip(a, b)) / len(a)
 
     def _tick(self):
-        if not (self.auto and self.frame.isVisible()):
+        if not (self.running and self.auto and self.frame.isVisible()):
             self._prev = None
             return
         img = self._grab()
@@ -424,7 +559,8 @@ class HdvCapture(QObject):
         else:
             self._stable += 1
         self._prev = sig
-        if self._changed and self._stable >= 2 and self._diff(self._last_sent_sig, sig) > 7:
+        # Pas de nouvelle capture tant que le contenu n'a pas vraiment changé (autre objet) et pas plus d'une toutes les 1,2 s
+        if self._changed and self._stable >= 2 and self._diff(self._last_sent_sig, sig) > 10 and time.time() - self._last_send_at > 1.2:
             self._send(img, sig)
 
     def capture_now(self):
@@ -436,6 +572,7 @@ class HdvCapture(QObject):
     def _send(self, img, sig):
         self._changed = False
         self._last_sent_sig = sig
+        self._last_send_at = time.time()
         if not self.connected:
             self.last_error = "Ouvre la page « Contribution au marché » du site pour recevoir les captures."
             self._warn_toast("Site non connecté", self.last_error)
@@ -457,10 +594,20 @@ class HdvCapture(QObject):
         if t is None:      # résultat inconnu ou déjà traité
             return
         status = msg.get("status", "error")
+        name = msg.get("name") or ""
+        prices = msg.get("prices") or {}
         if status == "found":
-            self.read += 1
-        self.frame.set_state("ok" if status == "found" else "warn", 1400)
-        t.set_result(status, msg.get("name"), msg.get("icon"), msg.get("prices"))
+            # Objet déjà pris pendant la session : on ne le reprend pas (le site fusionne aussi les doublons)
+            if name in self.seen:
+                status = "duplicate"
+            else:
+                self.read += 1
+            self.seen[name] = prices
+        elif status == "duplicate":
+            self.seen[name] = prices
+        self.controls.set_count(len(self.seen))
+        self.frame.set_state("ok" if status == "found" else "warn" if status != "duplicate" else "idle", 1400)
+        t.set_result(status, name, msg.get("icon"), prices)
         self.status_changed.emit()
 
     def _on_failed(self, text):
@@ -493,7 +640,7 @@ class HdvCapture(QObject):
         scr = (QApplication.screenAt(r.center()) or QApplication.primaryScreen()).availableGeometry()
         x = min(max(scr.left() + 8, r.x()), scr.right() - 340 - 8)
         above = r.y() - (index + 1) * 72 >= scr.top() + 4
-        y = r.y() - (index + 1) * 72 if above else r.bottom() + 8 + index * 72
+        y = r.y() - (index + 1) * 72 if above else r.bottom() + 54 + index * 72
         return QPoint(x, y)
 
     def _layout_toasts(self, first=None):

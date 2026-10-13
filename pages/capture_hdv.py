@@ -85,12 +85,19 @@ class CaptureHdvPage(QWidget):
         ll.addSpacing(6)
         row = QHBoxLayout()
         row.setSpacing(8)
-        self.toggle_btn = accent_btn("Afficher le cadre", self._toggle)
+        self.toggle_btn = ghost_btn("Afficher le cadre", self._toggle)
         row.addWidget(self.toggle_btn)
         row.addWidget(ghost_btn("Recentrer", self.capture.reset_frame))
-        row.addWidget(ghost_btn("Capturer maintenant", self.capture.capture_now))
         row.addStretch()
         ll.addLayout(row)
+        row2 = QHBoxLayout()
+        row2.setSpacing(8)
+        self.run_btn = accent_btn("Démarrer la capture", self.capture.toggle_capture)
+        row2.addWidget(self.run_btn)
+        row2.addWidget(ghost_btn("Capturer maintenant", self.capture.capture_now))
+        row2.addWidget(ghost_btn("Nouvelle session", self.capture.new_session))
+        row2.addStretch()
+        ll.addLayout(row2)
         ll.addWidget(ghost_btn("Ouvrir la page du site", lambda: webbrowser.open(SITE_URL)))
 
         ll.addSpacing(8)
@@ -100,6 +107,7 @@ class CaptureHdvPage(QWidget):
         self.auto_chk.toggled.connect(self.capture.set_auto)
         ll.addWidget(self.auto_chk)
         ll.addWidget(_muted("Lit la zone dès qu'elle change puis reste stable. Sans elle, utilise le raccourci ou le bouton ci-dessus."))
+        ll.addWidget(_muted("Un objet déjà pris pendant la session n'est pas repris. « Nouvelle session » les oublie."))
         self.hk_lbl = _muted("")
         ll.addWidget(self.hk_lbl)
         ll.addStretch()
@@ -115,7 +123,7 @@ class CaptureHdvPage(QWidget):
         for n, text in (
             ("1", "Ouvre la page Contribution au marché du site dans ton navigateur et laisse-la ouverte."),
             ("2", "Affiche le cadre, glisse-le par son contour sur le tableau des prix de l'HDV, ajuste sa taille par un coin."),
-            ("3", "Ouvre tes fiches en jeu : à chaque lecture, une petite carte montre l'objet et ses prix."),
+            ("3", "Clique sur « Démarrer » (sous le cadre ou ici), puis ouvre tes fiches en jeu : à chaque lecture, une petite carte montre l'objet et ses prix."),
             ("4", "À la fin de ta session, valide la liste sur le site avec « Mettre à jour les prix »."),
         ):
             r = QHBoxLayout()
@@ -149,8 +157,13 @@ class CaptureHdvPage(QWidget):
             self.site_hint.setText("Ouvre la page Contribution au marché du site dans ton navigateur (Chrome conseillé).")
         self.frame_lbl.setText("Cadre : affiché" if c.frame_visible else "Cadre : masqué")
         self.toggle_btn.setText("Masquer le cadre" if c.frame_visible else "Afficher le cadre")
-        self.count_lbl.setText(f"Session : {c.sent} envoyée(s) · {c.read} reconnue(s)")
+        self.run_btn.setText("Arrêter la capture" if c.running else "Démarrer la capture")
+        self.count_lbl.setText(f"Session : {c.sent} envoyée(s) · {len(c.seen)} objet(s) distinct(s)")
         self.err_lbl.setText(c.last_error)
         self.err_lbl.setVisible(bool(c.last_error))
         hk = self.config.get("hdv_hotkey", "f8")
-        self.hk_lbl.setText(f"Capture manuelle : raccourci {hk.upper()}" if hk else "Capture manuelle : aucun raccourci défini")
+        tk = self.config.get("hdv_toggle_hotkey", "f9")
+        parts = []
+        if tk: parts.append(f"démarrer / arrêter : {tk.upper()}")
+        if hk: parts.append(f"capture manuelle : {hk.upper()}")
+        self.hk_lbl.setText("Raccourcis — " + " · ".join(parts) if parts else "Aucun raccourci défini")

@@ -53,11 +53,11 @@ class _CharStatusRow(QFrame):
         lay.addWidget(name_lbl)
         lay.addStretch()
 
-        status = QLabel("✅ Chat calibré" if chat_ok else "❌ Chat non calibré")
+        status = QLabel("Chat calibré" if chat_ok else "Chat non calibré")
         status.setStyleSheet(f"color:{GREEN if chat_ok else RED}; font-size:11px; font-weight:600; background:transparent; border:none;")
         lay.addWidget(status)
 
-        recal = QPushButton("🎯 Recalibrer" if chat_ok else "🎯 Calibrer")
+        recal = QPushButton("Recalibrer" if chat_ok else "Calibrer")
         recal.setStyleSheet(
             f"background:rgba(255,138,30,0.1);color:{ACC};border:1px solid rgba(255,138,30,0.25);"
             f"border-radius:5px;padding:3px 10px;font-size:11px;font-weight:700;"
@@ -143,15 +143,15 @@ class CalibrationPage(QWidget):
         desc2.setWordWrap(True)
         desc2.setStyleSheet(f"color:{MUT}; font-size:11px; background:transparent;")
         lay.addWidget(desc2)
-        lay.addWidget(ghost_btn("💬 Calibrer le chat", lambda: self.open_calibration.emit("chat", "")))
+        lay.addWidget(ghost_btn("Calibrer le chat", lambda: self.open_calibration.emit("chat", "")))
 
         lay.addSpacing(10)
-        lay.addWidget(section_label("Chat (3.7 — par personnage)"))
+        lay.addWidget(section_label("Chat (par personnage)"))
         desc3 = QLabel("À calibrer sur CHAQUE personnage — nécessaire pour /zaap, collé dans toutes les fenêtres.")
         desc3.setWordWrap(True)
         desc3.setStyleSheet(f"color:{MUT}; font-size:11px; background:transparent;")
         lay.addWidget(desc3)
-        lay.addWidget(accent_btn("💬 Calibrer le chat (tous)", lambda: self.open_calibration.emit("chat_multi", "")))
+        lay.addWidget(accent_btn("Calibrer le chat (tous)", lambda: self.open_calibration.emit("chat_multi", "")))
 
         lay.addStretch()
 
@@ -189,6 +189,6 @@ class CalibrationPage(QWidget):
         chat_multi_ok = len([n for n in order if n in chat_positions])
         chat_ok = bool(macro_pos.get("chat_position"))
         self.status_lbl.setText(
-            f"Chat (chef) : {'✅ calibré' if chat_ok else '❌ non calibré'}\n"
+            f"Chat (chef) : {'calibré' if chat_ok else 'non calibré'}\n"
             f"Chat 3.7 (par perso) : {chat_multi_ok}/{len(order)} calibré(s)"
         )

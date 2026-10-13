@@ -21,7 +21,7 @@ class InviteDialog(QDialog):
         super().__init__(parent)
         self.config = config
         self.logic  = logic
-        self.setWindowTitle("👥 Inviter le groupe")
+        self.setWindowTitle("Inviter le groupe")
         self.setFixedSize(420, 540)
         self.setStyleSheet(STYLE)
         self._status_sig.connect(lambda m: self.status_lbl.setText(m))
@@ -34,7 +34,7 @@ class InviteDialog(QDialog):
         # Header
         hdr = QWidget(); hdr.setStyleSheet(f"background:{BG2};border-bottom:1px solid rgba(255,255,255,0.06);"); hdr.setFixedHeight(50)
         hl = QHBoxLayout(hdr); hl.setContentsMargins(16,0,16,0)
-        tl = QLabel("👥  Inviter le groupe"); tl.setStyleSheet(f"font-size:15px;font-weight:700;font-family:'Space Mono',monospace;color:{TEXT};"); hl.addWidget(tl)
+        tl = QLabel("Inviter le groupe"); tl.setStyleSheet(f"font-size:15px;font-weight:700;font-family:'Space Mono',monospace;color:{TEXT};"); hl.addWidget(tl)
         lay.addWidget(hdr)
 
         content = QWidget(); cl = QVBoxLayout(content); cl.setContentsMargins(16,14,16,14); cl.setSpacing(12)
@@ -84,8 +84,8 @@ class InviteDialog(QDialog):
         btns.addStretch()
         cl.addLayout(btns)
 
-        go = QPushButton("🚀  Invitation groupée")
-        go.setStyleSheet(f"background:{ACC};color:#0f1115;border:none;border-radius:6px;padding:8px 20px;font-weight:700;font-size:13px;")
+        go = QPushButton("Invitation groupée")
+        go.setStyleSheet(f"background:{ACC};color:#080b10;border:none;border-radius:6px;padding:8px 20px;font-weight:700;font-size:13px;")
         go.clicked.connect(self._invite_grouped); cl.addWidget(go)
 
         lay.addWidget(content)
@@ -142,19 +142,19 @@ class InviteDialog(QDialog):
     def _update_calib_btn(self):
         cp = self.config.get("macro_positions", {}).get("chat_position")
         if cp:
-            self.calib_btn.setText("✅  Chat calibré")
+            self.calib_btn.setText("Chat calibré")
             self.calib_btn.setStyleSheet(
                 f"background:transparent;color:#27ae60;border:none;font-size:12px;font-weight:700;padding:4px 8px;"
             )
         else:
-            self.calib_btn.setText("🔍  Calibrer le chat")
+            self.calib_btn.setText("Calibrer le chat")
             self.calib_btn.setStyleSheet(
                 f"background:{BG3};color:{TEXT};border-radius:6px;padding:6px 12px;font-size:12px;font-weight:600;"
             )
 
     def _calibrate_chat(self):
         if not self.logic:
-            self._status_sig.emit("⚠ Aucune connexion au jeu.")
+            self._status_sig.emit("Aucune connexion au jeu.")
             return
         from calibrator import CalibrationManager
         self._calib_mgr = CalibrationManager(self.config, self.logic, self, mode="chat")
@@ -168,7 +168,7 @@ class InviteDialog(QDialog):
 
         cp = self.config.get("macro_positions", {}).get("chat_position")
         if not cp:
-            self._status_sig.emit("⚠ Chat non calibré.")
+            self._status_sig.emit("Chat non calibré.")
             return
 
         # Get selected accounts (those checked and not leader)
@@ -177,7 +177,7 @@ class InviteDialog(QDialog):
                      if chk.isChecked() and name != leader]
 
         if not to_invite:
-            self._status_sig.emit("⚠ Aucun personnage sélectionné.")
+            self._status_sig.emit("Aucun personnage sélectionné.")
             return
 
         # Switch to leader first
@@ -194,7 +194,7 @@ class InviteDialog(QDialog):
                 pyautogui.hotkey("ctrl", "v"); time.sleep(0.05)
                 pyautogui.press("enter")
                 time.sleep(0.2)
-            self._status_sig.emit(f"✅ {total} invitation(s) envoyée(s) !")
+            self._status_sig.emit(f"{total} invitation(s) envoyée(s) !")
             self._done_sig.emit()
 
         threading.Thread(target=_do, daemon=True).start()
@@ -211,7 +211,7 @@ class InviteDialog(QDialog):
 
         cp = self.config.get("macro_positions", {}).get("chat_position")
         if not cp:
-            self._status_sig.emit("⚠ Chat non calibré.")
+            self._status_sig.emit("Chat non calibré.")
             return
 
         leader = self.config.get("leader_name", "")
@@ -219,7 +219,7 @@ class InviteDialog(QDialog):
                      if chk.isChecked() and name != leader]
 
         if not to_invite:
-            self._status_sig.emit("⚠ Aucun personnage sélectionné.")
+            self._status_sig.emit("Aucun personnage sélectionné.")
             return
 
         if self.logic: self.logic.switch_to_leader()
@@ -233,7 +233,7 @@ class InviteDialog(QDialog):
             pyperclip.copy(cmd)
             pyautogui.hotkey("ctrl", "v"); time.sleep(0.08)
             pyautogui.press("enter")
-            self._status_sig.emit(f"✅ {len(to_invite)} invitation(s) envoyée(s) en un seul message !")
+            self._status_sig.emit(f"{len(to_invite)} invitation(s) envoyée(s) en un seul message !")
             self._done_sig.emit()
 
         threading.Thread(target=_do, daemon=True).start()

@@ -37,13 +37,13 @@ def run_zaap_to_destination(config, logic, destination_name, on_status=None):
     3. Paste destination on all windows + Enter
     """
     if not MACRO_OK:
-        if on_status: on_status("❌ pyautogui manquant")
+        if on_status: on_status("pyautogui manquant")
         return
 
     def _run():
         accounts  = logic.get_cycle_list()
         if not accounts:
-            if on_status: on_status("⚠ Aucun compte actif"); return
+            if on_status: on_status("Aucun compte actif"); return
 
         zaaps      = config.get("macro_positions", {}).get("zaaps", {})
         haven_key  = config.get("game_haven_key", "h")
@@ -84,11 +84,11 @@ def run_zaap_to_destination(config, logic, destination_name, on_status=None):
                 except: pyautogui.press(haven_key)
             time.sleep(0.12)
 
-        if on_status: on_status(f"⏳ Chargement havresacs... ({open_delay}s)")
+        if on_status: on_status(f"Chargement havresacs... ({open_delay}s)")
         time.sleep(open_delay)
 
         # Phase 2: Click zaap on all windows
-        if on_status: on_status("⚡ Clic zaaps...")
+        if on_status: on_status("Clic zaaps...")
         for acc in accounts:
             if abort_flag[0]:
                 stop_watching.set()
@@ -108,13 +108,13 @@ def run_zaap_to_destination(config, logic, destination_name, on_status=None):
                 rx,ry = zaaps[name]
                 pyautogui.click(int(rect[0]+w*rx), int(rect[1]+h*ry))
             except Exception as e:
-                if on_status: on_status(f"⚠ Zaap clic {name}: {e}")
+                if on_status: on_status(f"Zaap clic {name}: {e}")
             time.sleep(0.25)
 
         time.sleep(0.5)
 
         # Phase 3: Paste destination on all windows + Enter
-        if on_status: on_status(f"📋 Destination: {destination_name}")
+        if on_status: on_status(f"Destination: {destination_name}")
         pyperclip.copy(destination_name)
 
         for i, acc in enumerate(accounts):
@@ -158,7 +158,7 @@ def run_zaap_to_destination(config, logic, destination_name, on_status=None):
         stop_watching.set()
         try: import ctypes; ctypes.windll.user32.BlockInput(False)
         except: pass
-        if on_status: on_status(f"✅ Tous zaapés → {destination_name} !")
+        if on_status: on_status(f"Tous zaapés → {destination_name} !")
 
     threading.Thread(target=_run, daemon=True).start()
 
@@ -169,7 +169,7 @@ class ZaapFavoritesDialog(QDialog):
     def __init__(self, config, parent=None):
         super().__init__(parent)
         self.config = config
-        self.setWindowTitle("⚡ Zaap Favoris")
+        self.setWindowTitle("Zaap Favoris")
         self.setFixedSize(560, 580)
         self.setStyleSheet(STYLE)
         self._build()
@@ -181,7 +181,7 @@ class ZaapFavoritesDialog(QDialog):
         hdr = QWidget(); hdr.setObjectName("FavHeader")
         hdr.setStyleSheet(f"QWidget#FavHeader{{background:{BG2};border-bottom:1px solid rgba(255,255,255,0.06);}}"); hdr.setFixedHeight(52)
         hl = QHBoxLayout(hdr); hl.setContentsMargins(16,0,16,0)
-        title = QLabel("⚡  Zaap Favoris")
+        title = QLabel("Zaap Favoris")
         title.setStyleSheet(f"font-size:15px;font-weight:700;font-family:'Space Mono';color:{TEXT};")
         hl.addWidget(title); hl.addStretch()
         info = QLabel("☆ = marquer comme favori")
@@ -192,7 +192,7 @@ class ZaapFavoritesDialog(QDialog):
 
         # Search
         search_row = QHBoxLayout(); search_row.setSpacing(6)
-        self.search = QLineEdit(); self.search.setPlaceholderText("🔍 Rechercher un territoire...")
+        self.search = QLineEdit(); self.search.setPlaceholderText("Rechercher un territoire...")
         self.search.textChanged.connect(self._filter); search_row.addWidget(self.search)
         self.clear_search = QPushButton("✕"); self.clear_search.setFixedSize(26,26)
         self.clear_search.setToolTip("Effacer la recherche")

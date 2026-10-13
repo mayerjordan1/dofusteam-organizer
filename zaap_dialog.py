@@ -33,7 +33,7 @@ class ZaapDialog(QDialog):
     def __init__(self,config,logic,parent=None):
         super().__init__(parent); self.config=config; self.logic=logic
         self.executor=None; self._calib_active=False
-        self.setWindowTitle("⚡ Auto-Zaap"); self.setFixedSize(520,540); self.setStyleSheet(STYLE)
+        self.setWindowTitle("Auto-Zaap"); self.setFixedSize(520,540); self.setStyleSheet(STYLE)
         self._status_sig.connect(self._on_status)
         self._phase2_sig.connect(self._on_phase2)
         self._done_sig.connect(self._on_done)
@@ -42,11 +42,11 @@ class ZaapDialog(QDialog):
     def _build(self):
         lay=QVBoxLayout(self); lay.setContentsMargins(0,0,0,0); lay.setSpacing(0)
         # Header + tabs
-        hdr=QWidget(); hdr.setStyleSheet("background:#151922;border-bottom:1px solid rgba(255,255,255,0.06);"); hdr.setFixedHeight(50)
+        hdr=QWidget(); hdr.setStyleSheet("background:#0d1117;border-bottom:1px solid rgba(255,255,255,0.06);"); hdr.setFixedHeight(50)
         hl=QHBoxLayout(hdr); hl.setContentsMargins(16,0,16,0)
-        hl.addWidget(QLabel("⚡  Auto-Zaap").setStyleSheet("font-size:15px;font-weight:700;") or QLabel("⚡  Auto-Zaap")); hl.addStretch()
-        self.tab_calib=QPushButton("📍 Calibration"); self.tab_exec=QPushButton("🚀 Exécution")
-        for b in (self.tab_calib,self.tab_exec): b.setStyleSheet("background:transparent;border:none;color:#9ca3af;padding:5px 14px;font-size:12px;")
+        hl.addWidget(QLabel("Auto-Zaap").setStyleSheet("font-size:15px;font-weight:700;") or QLabel("Auto-Zaap")); hl.addStretch()
+        self.tab_calib=QPushButton("Calibration"); self.tab_exec=QPushButton("Exécution")
+        for b in (self.tab_calib,self.tab_exec): b.setStyleSheet("background:transparent;border:none;color:#7a7d8a;padding:5px 14px;font-size:12px;")
         self.tab_calib.clicked.connect(lambda:self._tab(0)); self.tab_exec.clicked.connect(lambda:self._tab(1))
         hl.addWidget(self.tab_calib); hl.addWidget(self.tab_exec); lay.addWidget(hdr)
         self.stack=QStackedWidget(); self.stack.addWidget(self._calib_page()); self.stack.addWidget(self._exec_page())
@@ -55,13 +55,13 @@ class ZaapDialog(QDialog):
     def _tab(self,idx):
         self.stack.setCurrentIndex(idx)
         active="background:rgba(255,138,30,0.1);border-bottom:2px solid #ff8a1e;color:#ff8a1e;padding:5px 14px;font-size:12px;"
-        inactive="background:transparent;border:none;color:#9ca3af;padding:5px 14px;font-size:12px;"
+        inactive="background:transparent;border:none;color:#7a7d8a;padding:5px 14px;font-size:12px;"
         self.tab_calib.setStyleSheet(active if idx==0 else inactive)
         self.tab_exec.setStyleSheet(active if idx==1 else inactive)
 
     def _calib_page(self):
         page=QWidget(); lay=QVBoxLayout(page); lay.setContentsMargins(16,12,16,12); lay.setSpacing(10)
-        desc=QLabel("Pour chaque personnage, clique <b>Calibrer</b> puis\nclique sur le bouton Zaap dans son havre-sac Dofus."); desc.setStyleSheet("color:#9ca3af;font-size:11px;"); desc.setWordWrap(True); lay.addWidget(desc)
+        desc=QLabel("Pour chaque personnage, clique <b>Calibrer</b> puis\nclique sur le bouton Zaap dans son havre-sac Dofus."); desc.setStyleSheet("color:#7a7d8a;font-size:11px;"); desc.setWordWrap(True); lay.addWidget(desc)
         dr=QHBoxLayout()
         dr.addWidget(QLabel("Délai ouverture havre-sac (s) :"))
         self.dh=QLineEdit(str(self.config.get("zaap_open_delay","0.8"))); self.dh.setFixedWidth(50); dr.addWidget(self.dh)
@@ -87,9 +87,9 @@ class ZaapDialog(QDialog):
             if pix: av.setPixmap(pix)
             rl.addWidget(av)
             lbl=QLabel(name); lbl.setMinimumWidth(110); lbl.setStyleSheet("font-weight:600;"); rl.addWidget(lbl)
-            sl=QLabel(f"✅ ({coords[0]:.3f}, {coords[1]:.3f})" if coords else "❌ Non calibré")
+            sl=QLabel(f"({coords[0]:.3f}, {coords[1]:.3f})" if coords else "Non calibré")
             sl.setStyleSheet(f"color:{'#ff8a1e' if coords else '#ff5c5c'};font-size:10px;"); sl.setMinimumWidth(160); rl.addWidget(sl); rl.addStretch()
-            cb=QPushButton("📍 Calibrer"); cb.setStyleSheet("background:#c8a000;color:white;border:none;border-radius:5px;padding:4px 10px;font-size:11px;")
+            cb=QPushButton("Calibrer"); cb.setStyleSheet("background:#c8a000;color:white;border:none;border-radius:5px;padding:4px 10px;font-size:11px;")
             cb.clicked.connect(lambda _,n=name,s=sl:self._start_calib(n,s)); rl.addWidget(cb)
             self.calib_layout.addWidget(row)
         self.calib_layout.addStretch()
@@ -100,8 +100,8 @@ class ZaapDialog(QDialog):
         hwnd=next((a["hwnd"] for a in self.logic.all_accounts if a["name"]==name),None)
         if hwnd: self.logic.focus_window(hwnd)
         self._calib_active=True
-        self.calib_status.setText(f"🎯 Clique sur le zaap de {name} dans Dofus...")
-        status_lbl.setText("⏳ En attente..."); status_lbl.setStyleSheet("color:#f4a700;font-size:10px;")
+        self.calib_status.setText(f"Clique sur le zaap de {name} dans Dofus...")
+        status_lbl.setText("En attente..."); status_lbl.setStyleSheet("color:#f4a700;font-size:10px;")
         def _wait():
             time.sleep(0.4)
             while True:
@@ -114,25 +114,25 @@ class ZaapDialog(QDialog):
                             pos=self.config.get("macro_positions",{})
                             pos.setdefault("zaaps",{})[name]=[rel[0],rel[1]]
                             self.config.set("macro_positions",pos); self.config.save()
-                            status_lbl.setText(f"✅ ({rel[0]:.3f},{rel[1]:.3f})"); status_lbl.setStyleSheet("color:#ff8a1e;font-size:10px;")
-                            self.calib_status.setText(f"✅ {name} calibré !")
+                            status_lbl.setText(f"({rel[0]:.3f},{rel[1]:.3f})"); status_lbl.setStyleSheet("color:#ff8a1e;font-size:10px;")
+                            self.calib_status.setText(f"{name} calibré !")
                             return
-                    self.calib_status.setText("❌ Erreur"); status_lbl.setText("❌ Échec"); status_lbl.setStyleSheet("color:#ff5c5c;font-size:10px;"); return
+                    self.calib_status.setText("Erreur"); status_lbl.setText("Échec"); status_lbl.setStyleSheet("color:#ff5c5c;font-size:10px;"); return
                 time.sleep(0.02)
         threading.Thread(target=_wait,daemon=True).start()
 
     def _exec_page(self):
         page=QWidget(); lay=QVBoxLayout(page); lay.setContentsMargins(16,12,16,12); lay.setSpacing(12)
         inst=QLabel("1️⃣  <b>Phase 1</b> — L'app ouvre tous les havresacs et zaaps\n2️⃣  Sur le 1er perso : tape destination → Ctrl+A → Ctrl+C\n3️⃣  <b>Exécuter</b> — L'app colle et confirme sur tous les persos")
-        inst.setStyleSheet("color:#9ca3af;font-size:11px;"); inst.setWordWrap(True); lay.addWidget(inst)
+        inst.setStyleSheet("color:#7a7d8a;font-size:11px;"); inst.setWordWrap(True); lay.addWidget(inst)
         sep=QFrame(); sep.setFrameShape(QFrame.Shape.HLine); sep.setStyleSheet("background:rgba(255,255,255,0.07);"); lay.addWidget(sep)
         self.status_box=QLabel("En attente...")
-        self.status_box.setStyleSheet("background:#151922;border:1px solid rgba(255,255,255,0.07);border-radius:6px;padding:10px;font-size:12px;"); self.status_box.setWordWrap(True); self.status_box.setMinimumHeight(80); lay.addWidget(self.status_box)
-        warn=QLabel("⚠️  Ne touchez pas la souris pendant l'exécution."); warn.setStyleSheet("color:#f4a700;font-size:10px;"); lay.addWidget(warn)
+        self.status_box.setStyleSheet("background:#0d1117;border:1px solid rgba(255,255,255,0.07);border-radius:6px;padding:10px;font-size:12px;"); self.status_box.setWordWrap(True); self.status_box.setMinimumHeight(80); lay.addWidget(self.status_box)
+        warn=QLabel("Ne touchez pas la souris pendant l'exécution."); warn.setStyleSheet("color:#f4a700;font-size:10px;"); lay.addWidget(warn)
         lay.addStretch()
         self.p1_btn=QPushButton("▶  Lancer Phase 1 — Ouvrir les Zaaps")
-        self.p1_btn.setStyleSheet("background:#ff8a1e;color:#0f1115;border:none;border-radius:6px;padding:10px;font-weight:700;font-size:13px;"); self.p1_btn.clicked.connect(self._launch_p1); lay.addWidget(self.p1_btn)
-        self.exec_btn=QPushButton("⚡  Exécuter — Coller la destination")
+        self.p1_btn.setStyleSheet("background:#ff8a1e;color:#080b10;border:none;border-radius:6px;padding:10px;font-weight:700;font-size:13px;"); self.p1_btn.clicked.connect(self._launch_p1); lay.addWidget(self.p1_btn)
+        self.exec_btn=QPushButton("Exécuter — Coller la destination")
         self.exec_btn.setStyleSheet("background:#c8a000;color:white;border:none;border-radius:6px;padding:10px;font-weight:700;font-size:13px;"); self.exec_btn.setEnabled(False); self.exec_btn.clicked.connect(self._launch_p3); lay.addWidget(self.exec_btn)
         self.stop_btn=QPushButton("■  Arrêter")
         self.stop_btn.setStyleSheet("background:#ff5c5c;color:white;border:none;border-radius:6px;padding:6px;"); self.stop_btn.setEnabled(False); self.stop_btn.clicked.connect(self._stop); lay.addWidget(self.stop_btn)
@@ -160,5 +160,5 @@ class ZaapDialog(QDialog):
         self.p1_btn.setEnabled(True); self.exec_btn.setEnabled(False); self.stop_btn.setEnabled(False); self._on_status("Arrêté.")
 
     def _on_status(self,msg): self.status_box.setText(msg)
-    def _on_phase2(self): self.exec_btn.setEnabled(True); self.exec_btn.setStyleSheet("background:#ff8a1e;color:#0f1115;border:none;border-radius:6px;padding:10px;font-weight:700;font-size:13px;")
+    def _on_phase2(self): self.exec_btn.setEnabled(True); self.exec_btn.setStyleSheet("background:#ff8a1e;color:#080b10;border:none;border-radius:6px;padding:10px;font-weight:700;font-size:13px;")
     def _on_done(self): self.p1_btn.setEnabled(True); self.exec_btn.setEnabled(False); self.stop_btn.setEnabled(False)

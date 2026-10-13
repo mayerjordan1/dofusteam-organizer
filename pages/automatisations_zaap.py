@@ -105,7 +105,7 @@ class AutomatisationsZaapPage(QWidget):
         txt.addWidget(desc)
         cl.addLayout(txt, stretch=1)
 
-        cl.addWidget(ghost_btn("📍 Aller à la Calibration", self.open_calibration.emit))
+        cl.addWidget(ghost_btn("Aller à la Calibration", self.open_calibration.emit))
         return c
 
     def _exec_card(self):
@@ -131,24 +131,24 @@ class AutomatisationsZaapPage(QWidget):
 
         self.status_box = QLabel("En attente...")
         self.status_box.setStyleSheet(
-            "background:#151922;border:1px solid rgba(255,255,255,0.07);border-radius:6px;padding:10px;font-size:12px;"
+            "background:#0d1117;border:1px solid rgba(255,255,255,0.07);border-radius:6px;padding:10px;font-size:12px;"
         )
         self.status_box.setWordWrap(True)
         self.status_box.setMinimumHeight(80)
         lay.addWidget(self.status_box)
 
-        warn = QLabel("⚠️  Ne touchez pas la souris pendant l'exécution.")
+        warn = QLabel("Ne touchez pas la souris pendant l'exécution.")
         warn.setStyleSheet(f"color:{GOLD};font-size:10px;")
         lay.addWidget(warn)
 
         self.p1_btn = QPushButton("▶  Lancer Phase 1 — Ouvrir les Zaaps")
         self.p1_btn.setStyleSheet(
-            "background:#ff8a1e;color:#0f1115;border:none;border-radius:6px;padding:10px;font-weight:700;font-size:13px;"
+            "background:#ff8a1e;color:#080b10;border:none;border-radius:6px;padding:10px;font-weight:700;font-size:13px;"
         )
         self.p1_btn.clicked.connect(self._launch_p1)
         lay.addWidget(self.p1_btn)
 
-        self.exec_btn = QPushButton("⚡  Exécuter — Coller la destination")
+        self.exec_btn = QPushButton("Exécuter — Coller la destination")
         self.exec_btn.setStyleSheet(
             "background:#c8a000;color:white;border:none;border-radius:6px;padding:10px;font-weight:700;font-size:13px;"
         )
@@ -200,7 +200,7 @@ class AutomatisationsZaapPage(QWidget):
     def _on_phase2(self):
         self.exec_btn.setEnabled(True)
         self.exec_btn.setStyleSheet(
-            "background:#ff8a1e;color:#0f1115;border:none;border-radius:6px;padding:10px;font-weight:700;font-size:13px;"
+            "background:#ff8a1e;color:#080b10;border:none;border-radius:6px;padding:10px;font-weight:700;font-size:13px;"
         )
 
     def _on_done(self):

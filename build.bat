@@ -34,6 +34,7 @@ echo.
     --icon "skin\logo.ico" ^
     --add-data "skin;skin" ^
     --add-data "sounds;sounds" ^
+    --add-data "fonts;fonts" ^
     --add-data "settings.json;." ^
     --hidden-import "win32gui" ^
     --hidden-import "win32con" ^

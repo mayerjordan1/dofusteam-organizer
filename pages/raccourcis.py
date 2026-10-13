@@ -161,7 +161,7 @@ class RaccourcisPage(QWidget):
             grid.addWidget(self._tile(label, key, icon), r, c)
         body_lay.addLayout(grid)
 
-        hint = QLabel("💡 Potion de rappel / Bonta / Brakmar / Inventaire : ces raccourcis doivent être exactement les mêmes que ceux bind côté jeu — pas de calibration nécessaire. Décoche pour retirer le bouton de la barre flottante.")
+        hint = QLabel("Potion de rappel / Bonta / Brakmar / Inventaire : ces raccourcis doivent être exactement les mêmes que ceux bind côté jeu — pas de calibration nécessaire. Décoche pour retirer le bouton de la barre flottante.")
         hint.setStyleSheet(f"color:{MUT};font-size:11px;")
         hint.setWordWrap(True)
         body_lay.addWidget(hint)

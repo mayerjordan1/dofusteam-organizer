@@ -136,10 +136,10 @@ class ChasseTresorPage(QWidget):
         clay.setContentsMargins(16, 14, 16, 14)
         clay.setSpacing(10)
 
-        clay.addWidget(section_label("🔍 Recherche d'indice"))
+        clay.addWidget(section_label("Recherche d'indice"))
 
         if not REQUESTS_OK:
-            warn = QLabel("⚠️  Module 'requests' manquant.\nAjoute-le à requirements.txt et réinstalle les dépendances.")
+            warn = QLabel("Module 'requests' manquant.\nAjoute-le à requirements.txt et réinstalle les dépendances.")
             warn.setStyleSheet("color:#ff5c5c; font-size:11px; background:transparent;")
             warn.setWordWrap(True)
             clay.addWidget(warn)
@@ -172,7 +172,7 @@ class ChasseTresorPage(QWidget):
         self.direction = DIRECTIONS[0][1]
         crit_lay.addWidget(self._dir_pad())
 
-        self.search_btn = accent_btn("🔍  Chercher les indices", self._search)
+        self.search_btn = accent_btn("Chercher les indices", self._search)
         crit_lay.addWidget(self.search_btn)
 
         clay.addWidget(criteria)
@@ -277,7 +277,7 @@ class ChasseTresorPage(QWidget):
             b.setStyleSheet(
                 f"QPushButton{{background:{BG3};color:{TEXT};border:1px solid {BORDER};"
                 f"border-radius:8px;font-size:16px;font-weight:700;}}"
-                f"QPushButton:checked{{background:{ACC};color:#0f1115;border-color:{ACC};}}"
+                f"QPushButton:checked{{background:{ACC};color:#080b10;border-color:{ACC};}}"
                 f"QPushButton:hover{{border-color:{ACC};}}"
             )
             b.clicked.connect(lambda _, i=idx: self._set_direction(i))
@@ -319,7 +319,7 @@ class ChasseTresorPage(QWidget):
         clay.setContentsMargins(16, 14, 16, 14)
         clay.setSpacing(10)
 
-        clay.addWidget(section_label("🧭 Zaap le plus proche"))
+        clay.addWidget(section_label("Zaap le plus proche"))
 
         box = QWidget()
         box.setObjectName("ZaapBox")
@@ -393,7 +393,7 @@ class ChasseTresorPage(QWidget):
         clay.addWidget(mode_lbl)
 
         self.mode_group = QButtonGroup(self)
-        self.radio_copy = QRadioButton("📋  Copier /travel dans le presse-papier")
+        self.radio_copy = QRadioButton("Copier /travel dans le presse-papier")
         self.radio_paste = QRadioButton("⌨  Coller + valider dans le chat de :")
         for r in (self.radio_copy, self.radio_paste):
             r.setStyleSheet(f"font-size:11px; color:{MUT}; background:transparent;")
@@ -411,7 +411,7 @@ class ChasseTresorPage(QWidget):
         if not can_auto:
             self.radio_paste.setText("Coller auto (indisponible)")
 
-        self.copy_btn = ghost_btn("🔁  Refaire l'action", self._apply_action)
+        self.copy_btn = ghost_btn("Refaire l'action", self._apply_action)
         self.copy_btn.setEnabled(False)
         clay.addWidget(self.copy_btn)
 
@@ -444,7 +444,7 @@ class ChasseTresorPage(QWidget):
             x = int(self.x_inp.text().strip())
             y = int(self.y_inp.text().strip())
         except ValueError:
-            self.status_lbl.setText("⚠️  Coordonnées X/Y invalides.")
+            self.status_lbl.setText("Coordonnées X/Y invalides.")
             self.status_lbl.setStyleSheet("color:#ff5c5c; font-size:11px; background:transparent;")
             return
         direction = self.direction
@@ -462,7 +462,7 @@ class ChasseTresorPage(QWidget):
     def _on_hints(self, hints, error):
         self.search_btn.setEnabled(True)
         if error:
-            self.status_lbl.setText(f"❌  Erreur : {error}")
+            self.status_lbl.setText(f"Erreur : {error}")
             self.status_lbl.setStyleSheet("color:#ff5c5c; font-size:11px; background:transparent;")
             return
         if not hints:
@@ -508,7 +508,7 @@ class ChasseTresorPage(QWidget):
         # rater la chasse.
         self.x_inp.setText(str(h["x"]))
         self.y_inp.setText(str(h["y"]))
-        self.status_lbl.setText(f"📍  Position mise à jour : ({h['x']}, {h['y']}) — prêt pour le prochain indice.")
+        self.status_lbl.setText(f"Position mise à jour : ({h['x']}, {h['y']}) — prêt pour le prochain indice.")
         self.status_lbl.setStyleSheet(f"color:{ACC}; font-size:11px; font-weight:600; background:transparent;")
         self.zaap_placeholder.setText("Recherche du zaap le plus proche...")
         self.zaap_placeholder.setVisible(True)
@@ -523,7 +523,7 @@ class ChasseTresorPage(QWidget):
         if error or not zaap:
             self.zaap_placeholder.setVisible(False)
             self.zaap_result.setVisible(False)
-            self.zaap_error_lbl.setText(f"⚠️  {error or 'Zaap introuvable.'}")
+            self.zaap_error_lbl.setText(f"{error or 'Zaap introuvable.'}")
             self.zaap_error_lbl.setVisible(True)
             self.copy_btn.setEnabled(False)
             self._travel_cmd = None
@@ -534,8 +534,8 @@ class ChasseTresorPage(QWidget):
         # à partir de l'autre.
         self._travel_cmd = f"/travel {zaap['x']},{zaap['y']}"
         self.zaap_name_lbl.setText(zaap["name"])
-        self.zaap_coord_lbl.setText(f"📍  ({zaap['x']}, {zaap['y']})")
-        self.zaap_dist_lbl.setText(f"🧭  {zaap['dist']} map(s) de distance")
+        self.zaap_coord_lbl.setText(f"({zaap['x']}, {zaap['y']})")
+        self.zaap_dist_lbl.setText(f"{zaap['dist']} map(s) de distance")
         self.zaap_cmd_lbl.setText(self._travel_cmd)
         self.zaap_placeholder.setVisible(False)
         self.zaap_error_lbl.setVisible(False)
@@ -548,7 +548,7 @@ class ChasseTresorPage(QWidget):
             return
         import pyperclip
         pyperclip.copy(self._travel_cmd)
-        self.status_lbl.setText(f"✅  Copié : {self._travel_cmd}")
+        self.status_lbl.setText(f"Copié : {self._travel_cmd}")
         self.status_lbl.setStyleSheet(f"color:{ACC}; font-size:11px; font-weight:600; background:transparent;")
 
     def _auto_paste(self):
@@ -556,12 +556,12 @@ class ChasseTresorPage(QWidget):
             return
         hwnd = self.char_c.currentData()
         if not hwnd:
-            self.status_lbl.setText("⚠️  Aucun personnage sélectionné.")
+            self.status_lbl.setText("Aucun personnage sélectionné.")
             self.status_lbl.setStyleSheet("color:#ff5c5c; font-size:11px; background:transparent;")
             return
         cp = self.config.get("macro_positions", {}).get("chat_position")
         if not cp:
-            self.status_lbl.setText("⚠️  Position du chat non calibrée (bouton CALIB CHAT).")
+            self.status_lbl.setText("Position du chat non calibrée (bouton CALIB CHAT).")
             self.status_lbl.setStyleSheet("color:#ff5c5c; font-size:11px; background:transparent;")
             return
         import pyperclip
@@ -587,5 +587,5 @@ class ChasseTresorPage(QWidget):
                 print(f"[chasse_tresor._auto_paste] {e}")
 
         threading.Thread(target=_do, daemon=True).start()
-        self.status_lbl.setText(f"✅  Collé automatiquement : {cmd}")
+        self.status_lbl.setText(f"Collé automatiquement : {cmd}")
         self.status_lbl.setStyleSheet(f"color:{ACC}; font-size:11px; font-weight:600; background:transparent;")

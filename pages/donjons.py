@@ -315,8 +315,8 @@ class BossNotesDialog(QDialog):
         img_title.setStyleSheet(f"color:{MUT}; font-size:10px; font-weight:700; letter-spacing:1px; background:transparent; border:none;")
         img_row.addWidget(img_title)
         img_row.addStretch()
-        img_row.addWidget(ghost_btn("📋  Coller", self._paste_image))
-        img_row.addWidget(ghost_btn("📁  Ajouter", self._add_image_file))
+        img_row.addWidget(ghost_btn("Coller", self._paste_image))
+        img_row.addWidget(ghost_btn("Ajouter", self._add_image_file))
         bl.addLayout(img_row)
 
         self._strip_scroll = QScrollArea()
@@ -381,8 +381,8 @@ class BossNotesDialog(QDialog):
             # le Guide est bien plus grand par défaut, sans rien à ajuster.
             tab_row = QHBoxLayout()
             tab_row.setSpacing(6)
-            self._tab_guide_btn = self._tab_btn("📖  Guide", lambda: self._switch_tab("guide"))
-            self._tab_notes_btn = self._tab_btn("📝  Mes notes && images", lambda: self._switch_tab("notes"))
+            self._tab_guide_btn = self._tab_btn("Guide", lambda: self._switch_tab("guide"))
+            self._tab_notes_btn = self._tab_btn("Mes notes && images", lambda: self._switch_tab("notes"))
             tab_row.addWidget(self._tab_guide_btn)
             tab_row.addWidget(self._tab_notes_btn)
             tab_row.addStretch()
@@ -551,7 +551,7 @@ class DonjonsPage(QWidget):
         general_path = SKIN_DIR / "deplacement.png"
         if general_path.exists():
             ref_row = QHBoxLayout()
-            ref_row.addWidget(ghost_btn("📍  États de déplacement", lambda: self._view_general(general_path)))
+            ref_row.addWidget(ghost_btn("États de déplacement", lambda: self._view_general(general_path)))
             ref_row.addStretch()
             body_lay.addLayout(ref_row)
 

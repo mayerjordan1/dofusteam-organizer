@@ -358,9 +358,9 @@ class MesEquipesPage(QWidget):
         clay.setContentsMargins(16, 14, 16, 14)
         clay.setSpacing(10)
 
-        clay.addWidget(section_label("🖥 Fenêtre"))
-        clay.addWidget(ghost_btn("🔍 Scanner les fenêtres", self._scan))
-        clay.addWidget(ghost_btn("📊 Trier la barre Windows", self._sort_taskbar))
+        clay.addWidget(section_label("Fenêtre"))
+        clay.addWidget(ghost_btn("Scanner les fenêtres", self._scan))
+        clay.addWidget(ghost_btn("Trier la barre Windows", self._sort_taskbar))
 
         self.status_lbl = QLabel("—")
         self.status_lbl.setWordWrap(True)
@@ -375,10 +375,10 @@ class MesEquipesPage(QWidget):
         clay.setContentsMargins(16, 14, 16, 14)
         clay.setSpacing(10)
 
-        clay.addWidget(section_label("👥 Groupe"))
+        clay.addWidget(section_label("Groupe"))
         clay.addWidget(accent_btn("Invitation de groupe", self._open_invite, icon_file="icon_group.png"))
 
-        self.chef_btn = ghost_btn("👑 Définir le chef", self._arm_leader_select)
+        self.chef_btn = ghost_btn("Définir le chef", self._arm_leader_select)
         clay.addWidget(self.chef_btn)
 
         self.leader_row = QWidget()
@@ -439,7 +439,7 @@ class MesEquipesPage(QWidget):
                 rm.setCursor(Qt.CursorShape.PointingHandCursor)
                 rm.setStyleSheet(
                     f"QPushButton{{background:transparent;color:{MUT};border:none;font-size:11px;}}"
-                    f"QPushButton:hover{{color:#e05555;}}"
+                    f"QPushButton:hover{{color:#ff5c5c;}}"
                 )
                 rm.clicked.connect(lambda _, idx=i: self._delete_preset(idx))
                 dep = QPushButton("▾")
@@ -646,13 +646,13 @@ class MesEquipesPage(QWidget):
         for slot in self._slot_cards:
             slot.set_select_mode(self._select_mode)
         if self._select_mode:
-            self.chef_btn.setText("👑 Clique un personnage…")
+            self.chef_btn.setText("Clique un personnage…")
             self.chef_btn.setStyleSheet(
                 f"background:rgba(255,138,30,0.15); color:{ACC}; border:1px solid rgba(255,138,30,0.35);"
                 f"border-radius:6px; padding:5px 12px; font-size:12px; font-weight:700;"
             )
         else:
-            self.chef_btn.setText("👑 Définir le chef")
+            self.chef_btn.setText("Définir le chef")
             self.chef_btn.setStyleSheet(
                 f"background:transparent; color:{MUT}; border:1px solid {BORDER};"
                 f"border-radius:6px; padding:5px 12px; font-size:12px;"
@@ -661,7 +661,7 @@ class MesEquipesPage(QWidget):
     def _set_leader(self, name):
         self.logic.set_leader(name)
         self._select_mode = False
-        self.chef_btn.setText("👑 Définir le chef")
+        self.chef_btn.setText("Définir le chef")
         self.chef_btn.setStyleSheet(
             f"background:transparent; color:{MUT}; border:1px solid {BORDER};"
             f"border-radius:6px; padding:5px 12px; font-size:12px;"
@@ -681,9 +681,9 @@ class MesEquipesPage(QWidget):
         def on_done(accounts):
             lv = len(accounts)
             if lv > 0:
-                self.status_lbl.setText(f"✅  {lv} fenêtre(s) Dofus détectée(s)")
+                self.status_lbl.setText(f"{lv} fenêtre(s) Dofus détectée(s)")
             else:
-                self.status_lbl.setText("⚠  Aucune fenêtre Dofus — Dofus est-il ouvert ?")
+                self.status_lbl.setText("Aucune fenêtre Dofus — Dofus est-il ouvert ?")
             self.refresh()
             # Un perso déconnecté disparaît de logic.all_accounts après le scan
             # (scan_slots() ne renvoie que les fenêtres encore ouvertes) — sans

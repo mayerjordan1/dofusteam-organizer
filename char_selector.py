@@ -38,7 +38,7 @@ class CharCell(QPushButton):
         nl.setStyleSheet(f"color:{ACC if is_current else TEXT};font-size:10px;font-weight:{'700' if is_current else '600'};background:transparent;")
         lay.addWidget(nl)
         dot = QLabel("● EN JEU" if live else "○"); dot.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        dot.setStyleSheet(f"color:{'#3fb950' if live else MUT};font-size:8px;font-family:'Space Mono';background:transparent;")
+        dot.setStyleSheet(f"color:{'#6dc96d' if live else MUT};font-size:8px;font-family:'Space Mono';background:transparent;")
         lay.addWidget(dot)
 
 

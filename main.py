@@ -26,7 +26,7 @@ from sidebar import Sidebar
 from updater import UpdateCheckThread, UpdateDownloadThread, can_self_update, apply_update_and_restart
 
 APP_NAME = "DofusTeam"
-VERSION  = "V2.29"
+VERSION  = "V2.30"
 
 CLASSES = ["Cra","Ecaflip","Eliotrope","Eniripsa","Enutrof","Feca","Forgelance",
            "Huppermage","Iop","Osamodas","Ouginak","Pandawa","Roublard","Sacrieur",
@@ -749,7 +749,7 @@ class _SelectedCharRow(QWidget):
         rm.setCursor(Qt.CursorShape.PointingHandCursor)
         rm.setStyleSheet(
             f"QPushButton{{background:transparent;color:{MUT};border:none;border-radius:4px;font-size:12px;}}"
-            f"QPushButton:hover{{color:#e05555;background:rgba(224,85,85,0.1);}}"
+            f"QPushButton:hover{{color:#ff5c5c;background:rgba(224,85,85,0.1);}}"
         )
         rm.clicked.connect(lambda: self.removed.emit(self.name))
         lay.addWidget(rm)
@@ -852,7 +852,7 @@ class PresetEditor(QDialog):
         btns=QHBoxLayout()
         btns.addStretch()
         cancel=ghost_btn("Annuler",self.reject); btns.addWidget(cancel)
-        save=accent_btn("💾 Sauvegarder",self._save); btns.addWidget(save)
+        save=accent_btn("Sauvegarder",self._save); btns.addWidget(save)
         lay.addLayout(btns)
 
     def _clear_lay(self,lay):
@@ -1017,7 +1017,7 @@ class RosterEditor(QDialog):
 
         btns=QHBoxLayout()
         cancel=ghost_btn("Annuler",self.reject); btns.addWidget(cancel)
-        save=accent_btn("💾 Sauvegarder",self._save); btns.addWidget(save)
+        save=accent_btn("Sauvegarder",self._save); btns.addWidget(save)
         lay.addLayout(btns)
 
     def _build_char_list(self,list_l):
@@ -1075,7 +1075,7 @@ class MiniToolbar(QWidget):
 
         def mkb(icon,tip,color=BG3,ck=False,icon_file=None,icon_pixmap=None,size=(32,30),icon_size=18):
             b=QPushButton("" if (icon_file or icon_pixmap) else icon); b.setFixedSize(*size); b.setToolTip(tip); b.setCheckable(ck)
-            b.setStyleSheet(f"QPushButton{{background:{color};color:white;border:none;border-radius:6px;font-size:14px;}}QPushButton:checked{{background:{ACC};color:#0f1115;}}")
+            b.setStyleSheet(f"QPushButton{{background:{color};color:white;border:none;border-radius:6px;font-size:14px;}}QPushButton:checked{{background:{ACC};color:#080b10;}}")
             if icon_file:
                 ic=load_icon(icon_file,icon_size)
                 if ic: b.setIcon(ic); b.setIconSize(QSize(icon_size,icon_size))
@@ -1133,7 +1133,7 @@ class MiniToolbar(QWidget):
         self.b_hsac.clicked.connect(self._quick_hsac)
         self.b_hsac.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
         self.b_hsac.customContextMenuRequested.connect(lambda: self._show_zaap_menu())
-        self.b_hsac.setToolTip("🏠 Havre-sac + Zaap\nClic gauche: ouvrir tous les havresacs\nClic droit: zaap favoris ⭐")
+        self.b_hsac.setToolTip("Havre-sac + Zaap\nClic gauche: ouvrir tous les havresacs\nClic droit: zaap favoris ⭐")
         self.b_zaap.clicked.connect(self._quick_zaap)
         self.b_recall.clicked.connect(lambda: self.logic.trigger_recall_potion() if self.logic else None)
         self.b_bonta.clicked.connect(lambda: self.logic.trigger_bonta_potion() if self.logic else None)
@@ -1215,19 +1215,19 @@ class MiniToolbar(QWidget):
         favs = get_favorites(self.config)
         menu = QMenu(self)
         menu.setStyleSheet(f"""
-            QMenu{{background:#151922;color:#f3f4f6;border:1px solid rgba(255,138,30,0.3);border-radius:8px;padding:4px;}}
+            QMenu{{background:#0d1117;color:#e8e9ed;border:1px solid rgba(255,138,30,0.3);border-radius:8px;padding:4px;}}
             QMenu::item{{padding:7px 20px;border-radius:5px;font-size:12px;}}
-            QMenu::item:selected{{background:#1b2130;color:#ff8a1e;}}
+            QMenu::item:selected{{background:#1c2128;color:#ff8a1e;}}
             QMenu::separator{{background:rgba(255,255,255,0.07);height:1px;margin:4px 8px;}}
         """)
-        menu.addAction("⭐  Gérer les favoris").triggered.connect(self._open_fav_manager)
+        menu.addAction("Gérer les favoris").triggered.connect(self._open_fav_manager)
         if favs:
             menu.addSeparator()
             for name in favs:
                 coords = coords_by_name.get(name)
                 if not coords: continue
                 x, y = coords
-                menu.addAction(f"⚡  {name}").triggered.connect(
+                menu.addAction(f"{name}").triggered.connect(
                     lambda _, x=x, y=y: send_zaap_command(self.config, self.logic, x, y,
                         on_status=lambda m: print(f"[zaap_fav]{m}"))
                 )
@@ -1546,24 +1546,24 @@ class MainWindow(QMainWindow):
         if not tag: return
         self._update_tag=tag; self._update_url=url
         if can_self_update():
-            self.version_btn.setText(f"⬇ {tag} disponible")
+            self.version_btn.setText(f"{tag} disponible")
             self._paint_version_btn(GOLD)
             try: self.version_btn.clicked.disconnect()
             except Exception: pass
             self.version_btn.clicked.connect(self._start_update_download)
         else:
-            self.version_btn.setText(f"⬇ {tag} disponible (git pull)")
+            self.version_btn.setText(f"{tag} disponible (git pull)")
             self._paint_version_btn(GOLD)
 
     def _start_update_download(self):
         if not self._update_url: return
         try: self.version_btn.clicked.disconnect()
         except Exception: pass
-        self.version_btn.setText("⏳ Téléchargement… 0%")
+        self.version_btn.setText("Téléchargement… 0%")
         self._paint_version_btn(BLUE)
         dest=APP_DIR/"DofusTeam_new.exe"
         self._downloader=UpdateDownloadThread(self._update_url,dest)
-        self._downloader.progress.connect(lambda p: self.version_btn.setText(f"⏳ Téléchargement… {p}%"))
+        self._downloader.progress.connect(lambda p: self.version_btn.setText(f"Téléchargement… {p}%"))
         self._downloader.done.connect(self._on_update_downloaded)
         self._downloader.start()
 
@@ -1575,12 +1575,12 @@ class MainWindow(QMainWindow):
             # Windows Defender bloquant l'écriture d'un .exe non signé sur le
             # Bureau, p.ex.) passait inaperçu : la popup de redémarrage
             # n'apparaissait jamais et rien n'expliquait pourquoi.
-            self.version_btn.setText(f"❌ Échec mise à jour — {err[:40]}" if err else "❌ Échec de la mise à jour")
+            self.version_btn.setText(f"Échec mise à jour — {err[:40]}" if err else "Échec de la mise à jour")
             self._paint_version_btn(RED)
             self.version_btn.clicked.connect(self._start_update_download)
             return
         self._new_exe_path=APP_DIR/"DofusTeam_new.exe"
-        self.version_btn.setText(f"🔄 Redémarrer pour appliquer {self._update_tag}")
+        self.version_btn.setText(f"Redémarrer pour appliquer {self._update_tag}")
         self._paint_version_btn(ACC)
         self.version_btn.clicked.connect(self._apply_update)
 
@@ -1785,10 +1785,10 @@ class MainWindow(QMainWindow):
             self.hk_btn.setStyleSheet(f"background:rgba(63,185,80,0.1);color:{GREEN};border:1px solid rgba(63,185,80,0.3);border-radius:6px;padding:0 12px;font-size:11px;font-weight:600;")
             if self.hk.last_errors:
                 bad=", ".join(k for k,_ in self.hk.last_errors)
-                self.scan_msg.setText(f"⚠️  Raccourcis actifs mais touche(s) invalide(s) : {bad}")
+                self.scan_msg.setText(f"Raccourcis actifs mais touche(s) invalide(s) : {bad}")
                 self.scan_msg.setStyleSheet(f"color:{GOLD}; font-weight:700;")
             else:
-                self.scan_msg.setText("✅  Raccourcis actifs — " + (self.config.get("next_key","?") or "?") + " = perso suivant")
+                self.scan_msg.setText("Raccourcis actifs — " + (self.config.get("next_key","?") or "?") + " = perso suivant")
                 self.scan_msg.setStyleSheet(f"color:{MUT};")
         else:
             self.hk.disable()
@@ -1821,7 +1821,7 @@ class MainWindow(QMainWindow):
         self._calib_mgr=CalibrationManager(self.config,self.logic,self,mode=mode,target_name=target_name or None)
         self._calib_mgr.status.connect(lambda m: self.scan_msg.setText(m[:60]))
         def _done():
-            self.scan_msg.setText(f"✅  {label} calibré")
+            self.scan_msg.setText(f"{label} calibré")
             self.scan_msg.setStyleSheet(f"color:{GREEN}; font-weight:700;")
             QTimer.singleShot(1500, lambda: self.scan_msg.setStyleSheet(f"color:{MUT};"))
             self.page_fenetres_scan._refresh()
@@ -1872,7 +1872,7 @@ class MainWindow(QMainWindow):
         lay.addLayout(sr)
 
         lay.addStretch()
-        sv=accent_btn("💾  Sauvegarder",lambda:None)
+        sv=accent_btn("Sauvegarder",lambda:None)
         sv.setFixedHeight(38)
         def _sv():
             self.config.set("cycle_row_binds",[i.text().strip() for i in inps])
@@ -1912,6 +1912,7 @@ def main():
             pass
     tk_root=tk.Tk(); tk_root.withdraw()
     app=QApplication(sys.argv); app.setApplicationName(APP_NAME); app.setQuitOnLastWindowClosed(False)
+    from theme import load_fonts; load_fonts()
     if (SKIN_DIR/"logo.png").exists(): app.setWindowIcon(QIcon(str(SKIN_DIR/"logo.png")))
     window=MainWindow(); window.show(); tray=AppTray(app,window)
 

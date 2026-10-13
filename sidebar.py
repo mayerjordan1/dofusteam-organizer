@@ -18,19 +18,19 @@ ICON_SIZE = 20
 GROUPS = [
     ("ORGANISER", [
         ("mes_equipes", "  Mes équipes", "icon_group.png"),
-        ("raccourcis", "⌨  Raccourcis"),
+        ("raccourcis", "  Raccourcis", "icon_keys.png"),
     ]),
     ("OUTILS", [
         ("chasse_tresor", "  Chasse au trésor", "carte.png"),
         ("zaap_menu", "  Zaap", "icon_zaap.png"),
-        ("capture_hdv", "📷  Capture HDV"),
+        ("capture_hdv", "  Capture HDV", "icon_capture.png"),
     ]),
     ("DONJON", [
         ("donjons", "  Donjons", "donjon.png"),
     ]),
     ("SYSTÈME", [
-        ("calibration", "🎯  Calibration"),
-        ("parametres", "⚙  Paramètres"),
+        ("calibration", "  Calibration", "icon_calib.png"),
+        ("parametres", "  Paramètres", "icon_settings.png"),
     ]),
 ]
 

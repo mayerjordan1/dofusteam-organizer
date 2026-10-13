@@ -111,7 +111,7 @@ class ZaapMenuPage(QWidget):
         rl.setSpacing(10)
 
         self.search = QLineEdit()
-        self.search.setPlaceholderText("🔍  Rechercher un zaap ou une région...")
+        self.search.setPlaceholderText("Rechercher un zaap ou une région...")
         self.search.textChanged.connect(self._filter)
         rl.addWidget(self.search, 1)
 
@@ -277,7 +277,7 @@ class ZaapMenuPage(QWidget):
         coord_row.addWidget(coord_lbl)
         rl.addLayout(coord_row)
 
-        send_btn = QPushButton("⚡ /zaap")
+        send_btn = QPushButton("/zaap")
         send_btn.setToolTip("Envoyer /zaap x y dans le chat de chaque personnage calibré (3.7)")
         send_btn.setCursor(Qt.CursorShape.PointingHandCursor)
         send_btn.setStyleSheet(
@@ -299,7 +299,7 @@ class ZaapMenuPage(QWidget):
         secours. Nécessite macro_positions.chat_positions (calibration "Chat
         (3.7)" par personnage, page Calibration)."""
         if not self.logic:
-            self._set_status("⚠ Aucune connexion au jeu.")
+            self._set_status("Aucune connexion au jeu.")
             return
         from zaap_macro import send_zaap_command
         x, y = z["coords"]

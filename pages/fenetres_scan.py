@@ -116,7 +116,7 @@ class FenetresScanPage(QWidget):
 
         actions_row = QHBoxLayout()
         actions_row.setSpacing(10)
-        scan_btn = ghost_btn("🔍  Scanner", self._scan)
+        scan_btn = ghost_btn("Scanner", self._scan)
         scan_btn.setFixedHeight(38)
         scan_btn.setStyleSheet(scan_btn.styleSheet() + "font-size:13px; padding:8px 18px; font-weight:700;")
         add_btn = ghost_btn("＋  Ajouter", self._add_account)
@@ -189,7 +189,7 @@ class FenetresScanPage(QWidget):
 
         lay.addWidget(section_label("Actions rapides"))
 
-        self.spam_btn = QPushButton("🖱  Spam clic")
+        self.spam_btn = QPushButton("Spam clic")
         self.spam_btn.setCheckable(True)
         self.spam_btn.setFixedHeight(36)
         self.spam_btn.setStyleSheet(
@@ -199,7 +199,7 @@ class FenetresScanPage(QWidget):
         self.spam_btn.toggled.connect(self._toggle_spam)
         lay.addWidget(self.spam_btn)
 
-        sort_btn = ghost_btn("📊 Trier la barre Windows", self._sort_taskbar)
+        sort_btn = ghost_btn("Trier la barre Windows", self._sort_taskbar)
         sort_btn.setFixedHeight(36)
         sort_btn.setStyleSheet(sort_btn.styleSheet() + "font-size:12.5px; padding:8px 12px; font-weight:600;")
         lay.addWidget(sort_btn)
@@ -257,9 +257,9 @@ class FenetresScanPage(QWidget):
         def on_done(accounts):
             lv = len(accounts)
             if lv > 0:
-                self.scan_msg.setText(f"✅  {lv} fenêtre(s) Dofus détectée(s)")
+                self.scan_msg.setText(f"{lv} fenêtre(s) Dofus détectée(s)")
             else:
-                self.scan_msg.setText("⚠  Aucune fenêtre Dofus — Dofus est-il ouvert ?")
+                self.scan_msg.setText("Aucune fenêtre Dofus — Dofus est-il ouvert ?")
             self._refresh()
 
         self._scan_thread = ScanThread(self.logic)

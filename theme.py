@@ -10,25 +10,28 @@ from PyQt6.QtGui import QPixmap, QFont, QIcon
 from PyQt6.QtCore import Qt, QSize, pyqtSignal, QByteArray, QBuffer, QIODevice
 from paths import SKIN_DIR
 
-# ── Palette (alignée sur dofus-team/app/globals.css) ───────────────────────────
-BG     = "#0f1115"
-BG2    = "#151922"
-BG3    = "#1b2130"
-BG4    = "#232a3d"
+# ── Palette (mêmes valeurs que les tokens du site : dofus-team/lib/tokens.ts) ───
+BG     = "#080b10"
+BG2    = "#0d1117"
+BG3    = "#1c2128"
+BG4    = "#252d38"
 ACC    = "#ff8a1e"
-RED    = "#e05555"
-GREEN  = "#3fb950"
+RED    = "#ff5c5c"
+GREEN  = "#6dc96d"
 GOLD   = "#c8a000"
 BLUE   = "#4fa3e0"
-TEXT   = "#f3f4f6"
-MUT    = "#9ca3af"
-BORDER = "rgba(255,255,255,0.08)"
+TEXT   = "#e8e9ed"
+MUT    = "#7a7d8a"
+GHOST  = "#3d4250"
+BORDER  = "rgba(255,255,255,0.07)"
+BORDER2 = "rgba(255,255,255,0.13)"
+BORDER3 = "rgba(255,255,255,0.22)"
 
 # ── Feuille de style globale ────────────────────────────────────────────────────
 # Principes : un seul accent (utilisé pour l'action principale + focus/actif),
 # le reste reste neutre. Space Mono réservé aux valeurs numériques/compteurs.
 STYLE = f"""
-QWidget {{ background:{BG}; color:{TEXT}; font-family:'Segoe UI',sans-serif; font-size:13px; }}
+QWidget {{ background:{BG}; color:{TEXT}; font-family:'DM Sans','Segoe UI',sans-serif; font-size:13px; }}
 QMainWindow, QDialog {{ background:{BG}; }}
 QScrollArea {{ background:transparent; border:none; }}
 QScrollBar:vertical {{ background:{BG2}; width:4px; border-radius:2px; margin:0; }}
@@ -36,7 +39,7 @@ QScrollBar::handle:vertical {{ background:{BG4}; border-radius:2px; min-height:2
 QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical {{ height:0; }}
 QPushButton {{ background:{BG3}; color:{TEXT}; border:1px solid {BORDER};
                border-radius:6px; padding:5px 12px; font-size:12px; }}
-QPushButton:hover {{ background:{BG4}; border-color:rgba(255,255,255,0.16); }}
+QPushButton:hover {{ background:{BG4}; border-color:{BORDER2}; }}
 QPushButton:pressed {{ background:{BG2}; }}
 QLineEdit {{ background:{BG2}; color:{TEXT}; border:1px solid {BORDER};
              border-radius:6px; padding:5px 10px; }}
@@ -44,8 +47,8 @@ QLineEdit:focus {{ border-color:{ACC}; }}
 QComboBox {{ background:{BG3}; color:{TEXT}; border:1px solid {BORDER};
              border-radius:6px; padding:4px 10px; }}
 QComboBox::drop-down {{ border:none; width:20px; }}
-QComboBox QAbstractItemView {{ background:{BG2}; color:{TEXT};
-    selection-background-color:{BG3}; border:1px solid {BORDER}; }}
+QComboBox QAbstractItemView {{ background:{BG2}; color:{TEXT}; padding:4px; outline:none;
+    selection-background-color:{BG4}; selection-color:{TEXT}; border:1px solid {BORDER3}; }}
 QListWidget {{ background:{BG2}; border:1px solid {BORDER}; border-radius:8px; }}
 QListWidget::item {{ padding:6px; border-radius:5px; }}
 QListWidget::item:selected {{ background:rgba(255,138,30,0.14); color:{ACC}; }}
@@ -56,12 +59,12 @@ QCheckBox {{ spacing:6px; }}
 QCheckBox::indicator {{ width:15px; height:15px; border-radius:4px;
     border:1px solid rgba(255,255,255,0.15); background:{BG2}; }}
 QCheckBox::indicator:checked {{ background:{ACC}; border-color:{ACC}; }}
-QMenu {{ background:{BG2}; color:{TEXT}; border:1px solid {BORDER}; border-radius:8px; padding:4px; }}
-QMenu::item {{ padding:6px 20px; border-radius:5px; }}
-QMenu::item:selected {{ background:{BG3}; color:{ACC}; }}
+QMenu {{ background:{BG2}; color:{TEXT}; border:1px solid {BORDER3}; border-radius:10px; padding:6px; }}
+QMenu::item {{ padding:9px 16px; border-radius:7px; font-size:13px; font-weight:600; }}
+QMenu::item:selected {{ background:{BG4}; color:{TEXT}; }}
 QMenu::separator {{ background:{BORDER}; height:1px; margin:4px 8px; }}
-QToolTip {{ background:{BG2}; color:{TEXT}; border:1px solid rgba(255,255,255,0.1);
-            border-radius:5px; padding:4px 8px; font-size:11px; }}
+QToolTip {{ background:{BG2}; color:{TEXT}; border:1px solid {BORDER3};
+            border-radius:8px; padding:6px 10px; font-size:12px; }}
 QStackedWidget > QWidget {{ background:transparent; }}
 """
 
@@ -75,12 +78,12 @@ SIDEBAR_STYLE = f"""
     background:transparent; padding:14px 16px 4px 16px; }}
 #SidebarItem {{ background:transparent; color:{MUT}; border:none; border-radius:8px;
     text-align:left; padding:8px 14px; font-size:12.5px; font-weight:600; }}
-#SidebarItem:hover {{ background:{BG3}; color:{TEXT}; }}
+#SidebarItem:hover {{ background:{BG4}; color:{TEXT}; }}
 #SidebarItem[active="true"] {{ background:rgba(255,138,30,0.12); color:{ACC}; }}
 #PageHeader {{ background:transparent; border-bottom:1px solid {BORDER}; }}
-#PageTitle {{ color:{TEXT}; font-size:16px; font-weight:700; font-family:'Space Mono',monospace;
+#PageTitle {{ color:{TEXT}; font-size:18px; font-weight:700; font-family:'Space Mono',monospace;
     background:transparent; }}
-#PageSubtitle {{ color:{MUT}; font-size:11px; background:transparent; }}
+#PageSubtitle {{ color:{MUT}; font-size:12px; background:transparent; }}
 """
 
 
@@ -220,7 +223,7 @@ def accent_btn(text, fn, color=ACC, icon_file=None, icon_size=22):
     b = QPushButton(text)
     padding = f"8px 16px 8px 12px" if icon_file else "6px 16px"
     b.setStyleSheet(
-        f"background:{color}; color:#0f1115; border:none; border-radius:6px;"
+        f"background:{color}; color:{BG}; border:none; border-radius:6px;"
         f"padding:{padding}; font-weight:700; font-size:12px;"
     )
     if icon_file:
@@ -288,3 +291,15 @@ def make_avatar(classe, size=36, sexe="h"):
     scaled = pix.scaled(size, size, Qt.AspectRatioMode.KeepAspectRatio, Qt.TransformationMode.SmoothTransformation)
     _avatar_cache[key] = scaled
     return scaled
+
+
+def load_fonts():
+    """Charge DM Sans et Space Mono livrées avec l'application (mêmes polices que le site), à appeler une fois
+    après la création de QApplication."""
+    from PyQt6.QtGui import QFontDatabase
+    from paths import RES_DIR
+    d = RES_DIR / "fonts"
+    if not d.exists():
+        return
+    for f in sorted(d.glob("*.ttf")):
+        QFontDatabase.addApplicationFont(str(f))

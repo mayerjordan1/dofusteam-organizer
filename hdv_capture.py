@@ -182,6 +182,11 @@ class _Check(QWidget):
         self._spin.stop()
         self._anim.start()
 
+    def set_sent(self):
+        """« Capture prise » : l'image est partie, le résultat arrive ; on peut passer à l'objet suivant"""
+        self.mode = "sent"
+        self.update()
+
     def paintEvent(self, _):
         p = QPainter(self)
         p.setRenderHint(QPainter.RenderHint.Antialiasing)
@@ -190,6 +195,13 @@ class _Check(QWidget):
             pen = QPen(QColor(GOLD), 3); pen.setCapStyle(Qt.PenCapStyle.RoundCap)
             p.setPen(pen)
             p.drawArc(r, -self._angle * 16, 100 * 16)
+            return
+        if self.mode == "sent":
+            pen = QPen(QColor(255, 255, 255, 70), 2); pen.setCapStyle(Qt.PenCapStyle.RoundCap); pen.setJoinStyle(Qt.PenJoinStyle.RoundJoin)
+            p.setPen(pen)
+            p.drawEllipse(r)
+            p.setPen(QPen(QColor(GOLD), 2.5, Qt.PenStyle.SolidLine, Qt.PenCapStyle.RoundCap, Qt.PenJoinStyle.RoundJoin))
+            p.drawPolyline([QPointF(9.5, 15.5), QPointF(13.5, 19.5), QPointF(20.5, 11)])
             return
         col = QColor(GREEN if self.mode == "ok" else "#fb923c")
         p.setPen(Qt.PenStyle.NoPen)
@@ -289,7 +301,12 @@ class Toast(QWidget):
         a.setStartValue(self.pos()); a.setEndValue(target); a.setEasingCurve(QEasingCurve.Type.OutCubic)
         a.start(); self._move = a
 
-    def set_result(self, status, name, icon_url, prices):
+    def mark_sent(self):
+        self.name.setText("Capture prise")
+        self.prices.setText("Lecture… tu peux continuer")
+        self.check.set_sent()
+
+    def set_result(self, status, name, icon_url, prices, stale=False):
         ok = status == "found"
         dup = status == "duplicate"
         self._edge = GREEN if ok else (MUT if dup else "#fb923c")
@@ -305,7 +322,8 @@ class Toast(QWidget):
             self._fetcher.done.connect(lambda pix: self.icon.setPixmap(pix.scaled(38, 38, Qt.AspectRatioMode.KeepAspectRatio, Qt.TransformationMode.SmoothTransformation)))
             self._fetcher.start()
         self.update()
-        self._hide_timer.start(2600 if dup else 3600 if ok else 5200)
+        # résultat tardif (une autre capture est déjà partie) : bref rappel, sans retenir l'attention
+        self._hide_timer.start(1400 if stale else 2600 if dup else 3600 if ok else 5200)
 
     def fade_out(self):
         o = QPropertyAnimation(self, b"windowOpacity", self); o.setDuration(260)
@@ -435,7 +453,7 @@ class HdvCapture(QObject):
 
     def start(self):
         self.bridge.start()
-        self._timer.start(350)
+        self._timer.start(250)
 
     def shutdown(self):
         self._timer.stop()
@@ -609,7 +627,10 @@ class HdvCapture(QObject):
             self.sent += 1
             self.last_error = ""
             self.frame.set_state("reading", 6000)
-            self.pending[cid] = self._new_toast()
+            toast = self._new_toast()
+            toast.seq = self.sent
+            toast.mark_sent()
+            self.pending[cid] = toast
             self.status_changed.emit()
 
     # ── Résultats ─────────────────────────────────────────────────────────────
@@ -635,7 +656,7 @@ class HdvCapture(QObject):
             self.seen[name] = prices
         self.controls.set_count(len(self.seen))
         self.frame.set_state("ok" if status == "found" else "warn" if status != "duplicate" else "idle", 1400)
-        t.set_result(status, name, msg.get("icon"), prices)
+        t.set_result(status, name, msg.get("icon"), prices, stale=self.sent > getattr(t, "seq", self.sent))
         self.status_changed.emit()
 
     def _on_failed(self, text):

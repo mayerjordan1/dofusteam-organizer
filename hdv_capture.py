@@ -317,6 +317,8 @@ class Toast(QWidget):
         self.prices.setText("  ·  ".join(shown) if shown else ("Aucun prix lu" if status != "ambiguous" else "Plusieurs objets possibles"))
         if empty:
             self.prices.setText("Aucun lot en vente · rien à enregistrer")
+        if status == "cut":
+            self.prices.setText("Fiche coupée · agrandis le cadre")
         if dup:
             self.prices.setText("Déjà pris · " + ("  ·  ".join(shown) if shown else "prix inchangés"))
         self.check.finish("dash" if empty else "ok" if (ok or dup) and shown else ("warn" if not dup else "ok"))
@@ -648,7 +650,9 @@ class HdvCapture(QObject):
         status = msg.get("status", "error")
         name = msg.get("name") or ""
         prices = msg.get("prices") or {}
-        if status == "found" and not prices:
+        if status == "found" and msg.get("cut"):
+            status = "cut"        # fiche coupée par le cadre : lots possiblement manquants, objet à reprendre
+        elif status == "found" and not prices:
             status = "empty"      # fiche reconnue sans aucun lot en vente : rien à prendre, l'objet pourra l'être plus tard
         if status == "found":
             # Objet déjà pris pendant la session : on ne le reprend pas (le site fusionne aussi les doublons)

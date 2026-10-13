@@ -19,14 +19,14 @@ try: import pyautogui, pyperclip; pyautogui.FAILSAFE = False; PYAUTOGUI_OK = Tru
 except: PYAUTOGUI_OK = False
 
 from paths import APP_DIR, SKIN_DIR, SOUNDS_DIR, SETTINGS_PATH
-from theme import (BG, BG2, BG3, BG4, ACC, RED, GREEN, GOLD, BLUE, TEXT, MUT, BORDER,
+from theme import (BG, BG2, BG3, BG4, ACC, RED, GREEN, GOLD, BLUE, TEXT, MUT, BORDER, BORDER2,
                     STYLE, SIDEBAR_STYLE, mono, section_label, card, accent_btn, ghost_btn, make_avatar,
                     ClickableAvatar, load_icon)
 from sidebar import Sidebar
 from updater import UpdateCheckThread, UpdateDownloadThread, can_self_update, apply_update_and_restart
 
 APP_NAME = "DofusTeam"
-VERSION  = "V2.30"
+VERSION  = "V2.31"
 
 CLASSES = ["Cra","Ecaflip","Eliotrope","Eniripsa","Enutrof","Feca","Forgelance",
            "Huppermage","Iop","Osamodas","Ouginak","Pandawa","Roublard","Sacrieur",
@@ -1410,6 +1410,31 @@ class _BackgroundWidget(QWidget):
         super().paintEvent(ev)
 
 
+class HeaderSwitch(QPushButton):
+    """Interrupteur de l'en-tête : libellé + curseur ; allumé = orange, éteint = gris."""
+    def __init__(self,label,parent=None):
+        super().__init__(parent)
+        self._label=label; self._on=False
+        self.setFixedSize(150,36); self.setCursor(Qt.CursorShape.PointingHandCursor)
+        self._hover=False
+    def setOn(self,on): self._on=bool(on); self.update()
+    def enterEvent(self,e): self._hover=True; self.update(); super().enterEvent(e)
+    def leaveEvent(self,e): self._hover=False; self.update(); super().leaveEvent(e)
+    def paintEvent(self,_):
+        p=QPainter(self); p.setRenderHint(QPainter.RenderHint.Antialiasing)
+        r=QRectF(0.5,0.5,self.width()-1,self.height()-1)
+        p.setPen(QPen(QColor(255,255,255,33 if self._hover else 18),1)); p.setBrush(QColor(BG3))
+        p.drawRoundedRect(r,8,8)
+        p.setPen(QColor(TEXT if self._on else MUT)); f=QFont("DM Sans",10); f.setBold(True); p.setFont(f)
+        p.drawText(QRectF(14,0,80,self.height()),Qt.AlignmentFlag.AlignVCenter|Qt.AlignmentFlag.AlignLeft,self._label)
+        # curseur
+        tw,th=34,18; tx=self.width()-14-tw; ty=(self.height()-th)/2
+        p.setPen(Qt.PenStyle.NoPen); p.setBrush(QColor(ACC if self._on else BG4))
+        p.drawRoundedRect(QRectF(tx,ty,tw,th),th/2,th/2)
+        kx=tx+tw-th+2 if self._on else tx+2
+        p.setBrush(QColor(BG if self._on else MUT)); p.drawEllipse(QRectF(kx,ty+2,th-4,th-4))
+        p.end()
+
 class MainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
@@ -1592,7 +1617,7 @@ class MainWindow(QMainWindow):
             apply_update_and_restart(self._new_exe_path)
 
     def _paint_version_btn(self,color):
-        self.version_btn.setStyleSheet(f"background:rgba({self._to_rgb(color)},0.12);color:{color};border:1px solid rgba({self._to_rgb(color)},0.3);border-radius:5px;padding:2px 10px;margin-top:2px;")
+        self.version_btn.setStyleSheet(f"background:rgba({self._to_rgb(color)},0.10);color:{color};border:none;border-radius:12px;padding:0 12px;")
 
     @staticmethod
     def _to_rgb(hexcolor):
@@ -1648,46 +1673,49 @@ class MainWindow(QMainWindow):
 
     # ── Header ────────────────────────────────────────────────────────────────
     def _mk_header(self):
-        w=QWidget(); w.setObjectName("Header"); w.setStyleSheet(f"QWidget#Header{{background:{BG2};border-bottom:1px solid rgba(255,255,255,0.06);}}"); w.setFixedHeight(70)
+        w=QWidget(); w.setObjectName("Header"); w.setStyleSheet(f"QWidget#Header{{background:{BG2};border-bottom:1px solid {BORDER};}}"); w.setFixedHeight(64)
         lay=QHBoxLayout(w); lay.setContentsMargins(20,0,20,0); lay.setSpacing(12)
 
         # Logo — load_icon() recadre la marge transparente du PNG source, sinon
         # le logo ressort visiblement plus petit que les autres icônes une fois
         # mis à l'échelle (même souci que les icônes de la mini-toolbar).
         logo=QLabel()
-        icon=load_icon("logo.png",52)
+        icon=load_icon("logo.png",40)
         if icon:
-            logo.setPixmap(icon.pixmap(52,52))
+            logo.setPixmap(icon.pixmap(40,40))
+        logo.setStyleSheet("background:transparent;")
         lay.addWidget(logo,0,Qt.AlignmentFlag.AlignVCenter)
-        lay.addSpacing(4)
 
-        # Title
+        # Nom (même graphie que la barre du site : Space Mono)
         tl=QLabel(f"<span style='color:{TEXT};'>Dofus</span><span style='color:{ACC};'>Team</span>")
-        tl.setStyleSheet(
-            "font-family:'Poppins','Trebuchet MS','Century Gothic','Segoe UI',sans-serif;"
-            "font-size:21px;font-weight:800;letter-spacing:-0.5px;background:transparent;"
-        )
+        tl.setFont(mono(15,True))
+        tl.setStyleSheet("background:transparent;")
         lay.addWidget(tl,0,Qt.AlignmentFlag.AlignVCenter)
 
+        sep=QFrame(); sep.setFixedSize(1,22); sep.setStyleSheet(f"background:{BORDER2};border:none;")
+        lay.addWidget(sep,0,Qt.AlignmentFlag.AlignVCenter)
+
+        # Version : pastille discrète, colorée selon l'état (à jour / mise à jour disponible / erreur)
         self.version_btn=QPushButton(f"{VERSION} · À jour")
         self.version_btn.setFont(mono(9))
-        self.version_btn.setFixedHeight(22)
+        self.version_btn.setFixedHeight(24)
         self.version_btn.setCursor(Qt.CursorShape.ArrowCursor)
         self._paint_version_btn(GREEN)
-        lay.addWidget(self.version_btn)
+        lay.addWidget(self.version_btn,0,Qt.AlignmentFlag.AlignVCenter)
         lay.addStretch()
 
-        # Raccourcis — un seul bouton bascule, l'état est porté par sa couleur/texte
-        self.hk_btn = QPushButton("Raccourcis : désactivés")
-        self.hk_btn.setFixedHeight(30)
+        # Raccourcis : interrupteur (l'état se lit sur le curseur et la couleur)
+        self.hk_btn=HeaderSwitch("Raccourcis")
         self.hk_btn.setToolTip("Active / désactive les raccourcis clavier (suivant, précédent, chef...)")
-        self.hk_btn.setStyleSheet(f"background:transparent;color:{MUT};border:1px solid {BORDER};border-radius:6px;padding:0 12px;font-size:11px;")
-        self.hk_btn.clicked.connect(self._toggle_hk); lay.addWidget(self.hk_btn)
+        self.hk_btn.clicked.connect(self._toggle_hk)
+        lay.addWidget(self.hk_btn,0,Qt.AlignmentFlag.AlignVCenter)
 
-        # Settings
-        s=QPushButton("⚙"); s.setFixedSize(34,34)
-        s.setStyleSheet(f"background:{BG3};border:1px solid {BORDER};border-radius:6px;font-size:14px;")
-        s.clicked.connect(self._settings); lay.addWidget(s)
+        # Paramètres
+        s=QPushButton(); s.setFixedSize(36,36); s.setToolTip("Paramètres"); s.setCursor(Qt.CursorShape.PointingHandCursor)
+        ic=load_icon("icon_settings.png",18)
+        if ic: s.setIcon(ic); s.setIconSize(QSize(18,18))
+        s.setStyleSheet(f"QPushButton{{background:{BG3};border:1px solid {BORDER};border-radius:8px;padding:0;}}QPushButton:hover{{background:{BG4};border-color:{BORDER2};}}")
+        s.clicked.connect(self._settings); lay.addWidget(s,0,Qt.AlignmentFlag.AlignVCenter)
         return w
 
     # ── Status Bar ────────────────────────────────────────────────────────────
@@ -1781,8 +1809,7 @@ class MainWindow(QMainWindow):
         self._hk=not self._hk
         if self._hk:
             self.hk.enable()
-            self.hk_btn.setText("Raccourcis : activés")
-            self.hk_btn.setStyleSheet(f"background:rgba(63,185,80,0.1);color:{GREEN};border:1px solid rgba(63,185,80,0.3);border-radius:6px;padding:0 12px;font-size:11px;font-weight:600;")
+            self.hk_btn.setOn(True)
             if self.hk.last_errors:
                 bad=", ".join(k for k,_ in self.hk.last_errors)
                 self.scan_msg.setText(f"Raccourcis actifs mais touche(s) invalide(s) : {bad}")
@@ -1792,8 +1819,7 @@ class MainWindow(QMainWindow):
                 self.scan_msg.setStyleSheet(f"color:{MUT};")
         else:
             self.hk.disable()
-            self.hk_btn.setText("Raccourcis : désactivés")
-            self.hk_btn.setStyleSheet(f"background:transparent;color:{MUT};border:1px solid {BORDER};border-radius:6px;padding:0 12px;font-size:11px;")
+            self.hk_btn.setOn(False)
 
     def _hide_to_mini(self): self.hide(); self.mini.show(); self.mini.raise_()
     def _show_self(self): self.mini.hide(); self.show(); self.raise_(); self.activateWindow()

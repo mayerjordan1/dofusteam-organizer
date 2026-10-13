@@ -48,6 +48,7 @@ DEFAULT = {
     "mini_toolbar_x":100,"mini_toolbar_y":100,
     "presets":[],"team_presets":[],
     "radial_menu_active":True,"radial_menu_hotkey":"alt+left_click",
+    "hdv_hotkey":"f8","hdv_auto":True,
 }
 
 class Config:
@@ -1459,6 +1460,8 @@ class MainWindow(QMainWindow):
         from pages.fenetres_scan import FenetresScanPage
         from pages.calibration import CalibrationPage
         from pages.donjons import DonjonsPage
+        from pages.capture_hdv import CaptureHdvPage
+        from hdv_capture import HdvCapture
 
         root=_BackgroundWidget(); self.setCentralWidget(root)
         vl=QVBoxLayout(root); vl.setContentsMargins(0,0,0,0); vl.setSpacing(0)
@@ -1486,6 +1489,14 @@ class MainWindow(QMainWindow):
         self.page_fenetres_scan=FenetresScanPage(self.config,self.logic)
         self.page_calibration=CalibrationPage(self.config,self.logic)
         self.page_donjons=DonjonsPage(self.config,self.logic)
+        # Capture des prix de l'HDV : cadre de viseur + pont local vers le site (lecture passive de l'écran)
+        self.hdv_capture=HdvCapture(self.config)
+        self.hdv_capture.start()
+        self.page_capture_hdv=CaptureHdvPage(self.config,self.logic,self.hdv_capture)
+        hdv_key=self.config.get("hdv_hotkey","f8")
+        if hdv_key and KEYBOARD_OK:
+            try: keyboard.add_hotkey(hdv_key,lambda: QTimer.singleShot(0,self.hdv_capture.capture_now),suppress=False)
+            except: pass
 
         self.pages={
             "mes_equipes":self.page_mes_equipes,
@@ -1498,6 +1509,7 @@ class MainWindow(QMainWindow):
             "fenetres_scan":self.page_fenetres_scan,
             "calibration":self.page_calibration,
             "donjons":self.page_donjons,
+            "capture_hdv":self.page_capture_hdv,
         }
         for page in self.pages.values(): self.stack.addWidget(page)
         bl.addWidget(self.stack, 1)
@@ -1869,7 +1881,7 @@ class MainWindow(QMainWindow):
             self.config.save(); (self.hk.reload() if self._hk else None); dlg.close()
         sv.clicked.disconnect(); sv.clicked.connect(_sv); lay.addWidget(sv); dlg.exec()
 
-    def closeEvent(self,e): self._spam=False; self.hk.disable(); self.config.save(); e.accept()
+    def closeEvent(self,e): self._spam=False; self.hk.disable(); self.hdv_capture.shutdown(); self.config.save(); e.accept()
     def keyPressEvent(self,e):
         pass  # No Escape handling - avoid accidental window switches
 

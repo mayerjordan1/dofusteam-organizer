@@ -24,6 +24,7 @@ echo.
 %PYTHON% -m pip install pyautogui
 %PYTHON% -m pip install pyperclip
 %PYTHON% -m pip install Pillow
+%PYTHON% -m pip install websockets
 %PYTHON% -m pip install pygame --quiet 2>nul || echo [INFO] pygame optionnel - non installe, sons desactives
 
 echo.

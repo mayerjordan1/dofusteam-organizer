@@ -23,6 +23,7 @@ GROUPS = [
     ("OUTILS", [
         ("chasse_tresor", "  Chasse au trésor", "carte.png"),
         ("zaap_menu", "  Zaap", "icon_zaap.png"),
+        ("capture_hdv", "📷  Capture HDV"),
     ]),
     ("DONJON", [
         ("donjons", "  Donjons", "donjon.png"),

@@ -614,9 +614,13 @@ class HdvCapture(QObject):
 
     # ── Résultats ─────────────────────────────────────────────────────────────
     def _on_result(self, msg):
-        t = self.pending.pop(str(msg.get("id")), None)
-        if t is None:      # résultat inconnu ou déjà traité
-            return
+        rid = str(msg.get("id"))
+        t = self.pending.pop(rid, None)
+        if t is None:
+            # Une capture peut montrer plusieurs fiches : le site répond une fois par fiche (identifiants « <id>#2 », « <id>#3 »)
+            if "#" not in rid:      # résultat inconnu ou déjà traité
+                return
+            t = self._new_toast()
         status = msg.get("status", "error")
         name = msg.get("name") or ""
         prices = msg.get("prices") or {}

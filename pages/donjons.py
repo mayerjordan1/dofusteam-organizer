@@ -716,8 +716,7 @@ MOVE_STATES = [
     ("Indéplaçable", "etat_indeplacable.png"), ("Inébranlable", "etat_inebranlable.png"),
 ]
 MOVE_ROWS = [
-    ("Attirer", "sort Attirance", "dep_attirance.png", [True, True, False, False, False]),
-    ("Pousser", "sort Libération", "dep_liberation.png", [True, True, False, False, False]),
+    ("Attirer / Pousser", "sorts Attirance · Libération", ["dep_attirance.png", "dep_liberation.png"], [True, True, False, False, False]),
     ("Téléporter", "sort Bond", "dep_bond.png", [False, True, True, True, True]),
     ("Échanger", "échange de position", "dep_echanger.png", [False, True, False, False, True]),
     ("Porter", "Pandawa", "pandawa_h.png", [True, False, True, False, True]),
@@ -741,8 +740,9 @@ def moves_table_html():
     rows = ""
     for label, sub, icon, cells in MOVE_ROWS:
         tds = "".join(f'<td align="center" bgcolor="#161b22" style="padding:6px;">{ok if c else ko}</td>' for c in cells)
-        rows += (f'<tr><td width="200" bgcolor="#161b22" style="padding:6px 10px;"><img src="{icon}" width="30" height="30" '
-                 f'align="middle">&nbsp;&nbsp;<b>{label}</b><br><span style="font-size:10px; color:#7a7d8a;">{sub}</span></td>{tds}</tr>')
+        icons = icon if isinstance(icon, (list, tuple)) else [icon]
+        imgs = "".join(f'<img src="{i}" width="30" height="30" align="middle">&nbsp;' for i in icons)
+        rows += (f'<tr><td width="200" bgcolor="#161b22" style="padding:6px 10px;">{imgs}&nbsp;<b>{label}</b><br><span style="font-size:10px; color:#7a7d8a;">{sub}</span></td>{tds}</tr>')
     notes = "".join(f'<li style="margin-bottom:6px;">{n}</li>' for n in MOVE_NOTES)
     return (f'<p style="font-size:12px; color:#7a7d8a; margin:0 0 10px 0;">'
             f'<b style="color:#6dc96d;">&#10003;</b> le déplacement fonctionne malgré l\'état &nbsp;·&nbsp; '

@@ -729,26 +729,28 @@ class DonjonsPage(QWidget):
             "Clique sur un boss pour consulter/éditer les indications clé du combat.",
         ))
 
-        body = QWidget()
-        body_lay = QVBoxLayout(body)
-        body_lay.setContentsMargins(24, 18, 24, 18)
-        body_lay.setSpacing(12)
+        # Onglets du haut : Donjons · Avis de recherche · Déplacements
+        tabs_row = QHBoxLayout()
+        tabs_row.setContentsMargins(24, 12, 24, 0)
+        tabs_row.setSpacing(6)
+        self._page_tab_btns = {}
+        self._page_panels = {}
+        content = QVBoxLayout()
+        content.setContentsMargins(0, 0, 0, 0)
 
-        # Référence générale (pas liée à un boss précis) — un seul petit
-        # bouton discret, pas un pavé qui prendrait de la place dans la page.
-        general_path = SKIN_DIR / "deplacement.png"
-        if general_path.exists():
-            ref_row = QHBoxLayout()
-            ref_row.addWidget(ghost_btn("États de déplacement", lambda: self._view_general(general_path)))
-            ref_row.addStretch()
-            body_lay.addLayout(ref_row)
+        def _scroll(inner):
+            sc = QScrollArea()
+            sc.setWidgetResizable(True)
+            sc.setFrameShape(QScrollArea.Shape.NoFrame)
+            sc.setStyleSheet("QScrollArea { background:transparent; border:none; }")
+            sc.setWidget(inner)
+            return sc
 
-        def _section(title):
-            lbl = QLabel(title)
-            lbl.setStyleSheet(f"color:{MUT}; font-size:10px; font-weight:700; letter-spacing:1px; background:transparent; border:none;")
-            body_lay.addWidget(lbl)
-
-        def _grid(items):
+        def _grid_panel(items):
+            body = QWidget()
+            body_lay = QVBoxLayout(body)
+            body_lay.setContentsMargins(24, 18, 24, 18)
+            body_lay.setSpacing(12)
             grid = QWidget()
             grid.setStyleSheet("background:transparent;")
             grid_lay = QGridLayout(grid)
@@ -760,19 +762,56 @@ class DonjonsPage(QWidget):
                 tile.clicked.connect(lambda b=boss: self._open_boss(b))
                 grid_lay.addWidget(tile, i // GRID_COLS, i % GRID_COLS)
             body_lay.addWidget(grid)
+            body_lay.addStretch()
+            return _scroll(body)
 
-        _section("DONJONS")
-        _grid(BOSSES)
-        _section("AVIS DE RECHERCHE · NIVEAU 200")
-        _grid(RECHERCHES)
-        body_lay.addStretch()
+        def _moves_panel(path):
+            body = QWidget()
+            body_lay = QVBoxLayout(body)
+            body_lay.setContentsMargins(24, 18, 24, 18)
+            hint = QLabel("Référence générale : états de déplacement (clique l'image pour l'agrandir).")
+            hint.setStyleSheet(f"color:{MUT}; font-size:11px; background:transparent; border:none;")
+            body_lay.addWidget(hint)
+            img = QLabel()
+            img.setStyleSheet("background:transparent; border:none;")
+            img.setCursor(Qt.CursorShape.PointingHandCursor)
+            img.setPixmap(QPixmap(str(path)).scaledToWidth(
+                720, Qt.TransformationMode.SmoothTransformation))
+            img.mouseReleaseEvent = lambda e, p=path: self._view_general(p)
+            body_lay.addWidget(img, 0, Qt.AlignmentFlag.AlignLeft)
+            body_lay.addStretch()
+            return _scroll(body)
 
-        scroll = QScrollArea()
-        scroll.setWidgetResizable(True)
-        scroll.setFrameShape(QScrollArea.Shape.NoFrame)
-        scroll.setStyleSheet("QScrollArea { background:transparent; border:none; }")
-        scroll.setWidget(body)
-        lay.addWidget(scroll, 1)
+        panels = [
+            ("donjons", f"Donjons ({len(BOSSES)})", _grid_panel(BOSSES)),
+            ("recherches", f"Avis de recherche ({len(RECHERCHES)})", _grid_panel(RECHERCHES)),
+        ]
+        general_path = SKIN_DIR / "deplacement.png"
+        if general_path.exists():
+            panels.append(("moves", "Déplacements", _moves_panel(general_path)))
+        for key, label, panel in panels:
+            btn = QPushButton(label)
+            btn.setCursor(Qt.CursorShape.PointingHandCursor)
+            btn.clicked.connect(lambda _=False, k=key: self._switch_page_tab(k))
+            tabs_row.addWidget(btn)
+            self._page_tab_btns[key] = btn
+            self._page_panels[key] = panel
+            content.addWidget(panel, 1)
+        tabs_row.addStretch()
+        lay.addLayout(tabs_row)
+        lay.addLayout(content, 1)
+        self._switch_page_tab("donjons")
+
+    def _switch_page_tab(self, key):
+        for k, panel in self._page_panels.items():
+            panel.setVisible(k == key)
+        active = (f"QPushButton {{ background:{ACC}22; color:{TEXT}; border:1px solid {ACC}; "
+                  f"border-radius:7px; padding:6px 14px; font-size:12px; font-weight:700; }}")
+        inactive = (f"QPushButton {{ background:transparent; color:{MUT}; border:1px solid {BORDER}; "
+                    f"border-radius:7px; padding:6px 14px; font-size:12px; }}"
+                    f"QPushButton:hover {{ color:{TEXT}; border-color:{ACC}; }}")
+        for k, btn in self._page_tab_btns.items():
+            btn.setStyleSheet(active if k == key else inactive)
 
     def _view_general(self, path):
         dlg = ImageViewerDialog(path, self)

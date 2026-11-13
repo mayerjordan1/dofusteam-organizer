@@ -84,25 +84,6 @@ GUIDES_200["solar"] = "".join([
       "(Grenade Collante : +50% dégâts subis). Après la mort de Solar, chaque monstre ressuscité "
       "<u>perd son Nécronyx</u> : le remettre avant chaque kill. Priorité : celui qui a ressuscité Solar, "
       "puis enchaîner les autres vite."),
-    h("Sorts de Solar (par état)", GOLD),
-    ul([
-        f"{o('Aurore')} — Lève-tôt (bouclier 1300 allié en croix + 1200 Terre) · Aube Saine (+2 PM/tacle alliés, 900 Feu, ligne 4) · Rossée Matinale (Eau selon PV érodés, 4 PO).",
-        f"{o('Zénith')} — Coup de Soleil (1100 Terre, 1400 si Pesanteur, mêlée) · Éruption Solaire (800 Feu à tous, 1200 si Pesanteur, −6 PO) · Démons de Midi (téléporte, 950 Air, −40 fuite).",
-        f"{o('Crépuscule')} — Le Grand Soir (400 Terre en ligne infinie, −80 tacle) · Cours du Soir (400 Air + Affaibli) · Coucher de Soleil (−4 PM + Pesanteur/Indéplaçable/Lourd en ligne 4).",
-        f"{o('Nadir')} — Nuit Blanche (200 Eau + poison 400, −20% PV) · Protecteur d'émoi (150 Feu portée 12, −60 PA/PM + poison PM) · Démons de Minuit (150 Air + poison par PA, +20% dégâts distance).",
-    ]),
-    h("Succès « La mort sait attendre » (aucun ennemi sous Nécronyx avant la mort de Solar)", GOLD),
-    p("Tuer Solar en premier : Nécronyx au <b>tour 1 et 2</b> (il atteint Crépuscule au tour 3), "
-      "puis Nécronyx au tour 3 pour qu'il soit en Nadir au tour 4. Finir au tour 4 ou 5, "
-      "en re-Nécronyxant juste avant le kill. Entamer les monstres entre-temps."),
-    h("Expéditions de guilde", GOLD),
-    ul([
-        f"{o('Audace')} : Solar boost tout le monde en fin de cycle (Aurore 1000 PB · Zénith 300 puissance · Crépuscule 3 PA · Nadir 3 PM), effet de l'état <u>précédent</u>. "
-        "Tuer tous les monstres avant Solar (Moribombe d'abord), le passer en Zénith via Nécronyx, le finir au tour suivant Crépuscule→Nadir.",
-        f"{o('Bravoure')} : Solar pose des glyphes autour de vos persos (invocations incluses) à chaque tour selon son état, "
-        "qui se cumulent et disparaissent au changement de phase. Peu de persos et peu d'invocations, "
-        "espacer les persos (glyphes Crépuscule −2 PA), abuser de Nécronyx pour passer les phases.",
-    ]),
 ])
 
 GUIDES_200["chaloeil"] = "".join([
@@ -139,17 +120,6 @@ GUIDES_200["chaloeil"] = "".join([
       "Une fois vulnérable : +200 esquive PM et Inébranlable pour le reste du combat."),
     figs([("dp_chaloeil_32.png", "Jeu du Chaloeil : Invulnérable pendant 20 tours"),
           ("dp_chaloeil_33.png", "Au tour 21 : Inébranlable + 200 esquive PM")]),
-    h("Ses sorts", GOLD),
-    ul([
-        "<b>Farce et Attrape</b> (dès le tour 2, 3×/tour, 1×/cible, 6 PO sans LDV) : échange de place avec allié ou ennemi ; sur un ennemi 1000 Terre + Pesanteur.",
-        "<b>Toilette Écaflip</b> (ligne, 2 PO) : 1000 Eau, repousse 3 cases, −4 PM.",
-        "À partir du tour 2 : retire 50 de tacle aux ennemis dans un rayon 2, pendant 5 tours (il est quasi intaclable : 350+ de fuite).",
-    ]),
-    h("Routourne (monstres du Grand Jeu)", ORANGE),
-    p("Chaque monstre alterne un bonus d'1 tour sur un cycle de 3 tours (désenvoûtable seulement quand actif) : "
-      "<b>Cavalier Chanceux</b> 2 PM / 100% crit / 1000 poussée · <b>Dame du Hasard</b> 4 PA / crit / 200 dmg · "
-      "<b>Roi Joueur</b> 2000 PB / 400 puissance / crit · <b>Soldat de Fortune</b> crit / 100 fuite / 5 PO · "
-      "<b>Valet Veinard</b> 100 esq. PM / dégâts subis ×80% / crit."),
     h("Conseils tactiques", GREEN),
     ul([
         "<b>Retrait PM = votre meilleur allié</b> : il n'a que 4 PM, vous choisissez où il finit son tour (donc où tombent les dés).",
@@ -157,15 +127,10 @@ GUIDES_200["chaloeil"] = "".join([
         "<b>L'éloigner des monstres</b> (surtout à l'apparition des vagues) pour qu'il ne s'échange pas avec eux.",
         "Rester à <b>11 PO minimum</b> de lui : il peut s'échanger jusqu'à 10 PO (6 PO sort + 4 PM).",
     ]),
-    h("Succès « Liberté » (aucun retrait PM/PO)", GOLD),
-    p("Un <b>tank</b> (idéalement Pandawa) en coin bas-gauche attire le Chaloeil au contact (face Dé 6), "
-      "vos autres persos à l'opposé (bas-droite). Le tank, max résistances, se soigne chaque tour sur les glyphes blancs. "
-      "Surveiller les monstres à 10 PO du Chaloeil : leur mettre <u>Pesanteur</u> avant son tour pour bloquer l'échange."),
-    fig("dp_chaloeil_34.png", "Succès Liberté — placement conseillé (rouge Chaloeil · bleu vos persos · orange dés · blanc glyphes de soin)"),
+    note("Il est <b>quasi impossible à tacler</b> (350+ de fuite, et il retire 50 de tacle à tous les ennemis autour de lui) : le contrôler au retrait PM plutôt qu'au tacle.", ORANGE, "ATTENTION"),
 ])
 
 GUIDES_200["sylargh"] = "".join([
-    fig("dp_sylargh_24.png", "Sylargh — niveau 220, 13 000 PV", 300),
     h("Rendre Sylargh vulnérable", RED),
     p("Sylargh démarre <b>invulnérable</b> et <b>Lourd</b> tout le combat. Tous les monstres (lui compris) ont l'effet "
       "<b>Nécromignon</b> : un monstre tué est <u>réinvoqué en Zombi</u> (10% de ses PV, ~660) par le prochain monstre qui joue, "
@@ -188,19 +153,6 @@ GUIDES_200["sylargh"] = "".join([
       "(Sylargh inclus s'il meurt alors qu'il reste des monstres). <b>Focus le 1<sup>er</sup> monstre réinvoqué</b> : "
       "ceux qu'il a invoqués meurent avec lui. Les Zombis sont Indéplaçables 1 tour, +300 dommages 2 tours, ne jouent pas leur 1<sup>er</sup> tour."),
     fig("dp_sylargh_33.jpg", "Réinvocations en chaîne : Sylargh → Mécanofoux → Mansordide → Brikoglours, chacun à 6 PO du précédent"),
-    h("Sorts de Sylargh", GOLD),
-    ul([
-        "<b>Dégage de qualité</b> (mêlée) : un monstre allié +500 dommages / +200 tacle 1 tour et repoussé de 3.",
-        "<b>Mortier</b> (10 PO modifiable, 2×/tour) : 650 Terre + 650 Eau par ligne de dégâts mêlée subie → <u>jouer à distance</u>.",
-        "<b>Poinçon</b> (1 PO) : 1100 Air vol de vie, retire tous les envoûtements, −100 fuite.",
-    ]),
-    figs([("dp_sylargh_25.png", "Dégage de qualité"), ("dp_sylargh_26.png", "Mortier (portée modifiable)")]),
-    h("Les monstres", ORANGE),
-    ul([
-        "<b>Brikoglours</b> : inoffensif à distance mais énorme à 2 PO, attire de 2 cases jusqu'à 6 PO en ligne.",
-        "<b>Mécanofoux</b> (Expulsar) : 2 tours sur 3 repousse tout en étoile 4 de 4 cases ; tape en ligne sans LDV à longue distance.",
-        "<b>Mansordide</b> (Rotativernal) : 2 tours sur 3 renvoie 100% des dégâts aux ennemis alignés avec lui ; soigne ses alliés. Ne pas le taper avec des alliés en ligne.",
-    ]),
     h("Stratégie", GREEN),
     ul([
         "Retirer PO/PM de Sylargh (Mortier à PO modifiable).",
@@ -229,11 +181,6 @@ GUIDES_200["klime"] = "".join([
         "Un monstre tué = ses 2 glyphes disparaissent. Si tous les monstres sont morts avant le tour 3, Pacifiste arrive seulement au tour 4.",
         "Quand il ne reste que Klime et que les 2 glyphes sont pris, déplacer les occupants pour se mettre dessus.",
     ]),
-    h("Sorts de Klime", GOLD),
-    ul([
-        "<b>Cuir Moustache</b> (ligne, 7 PO sans LDV, 2×/tour) : attire de 6 cases + poison Feu 250 sur 3 tours.",
-        "<b>Moustacheron</b> (mêlée, 2×/tour) : 250 Feu + 250 Air vol de vie + 10% de ses PV manquants en Neutre.",
-    ]),
     h("Conseils", GREEN),
     ul([
         "<b>Moins il a de PV, plus il tape fort</b> : le finir vite une fois entamé.",
@@ -259,12 +206,7 @@ GUIDES_200["missiz_frizz"] = "".join([
     h("Glace de pic & Surgelé", RED),
     p("Quand Missiz Frizz subit des dégâts, elle <b>attire au contact</b> tous les persos en ligne/diagonale avec elle et leur met "
       "l'état <b>Surgelé</b> (Sang froid fait alors +800 Eau en vol de vie)."),
-    h("Sorts", GOLD),
-    ul([
-        "<b>Cristallisation</b> (dès le tour 2, relance 3) : elle et tous les monstres deviennent Intacleurs 1 tour ; tout retrait PM sur un ennemi lui <u>donne 3 PM</u>.",
-        "<b>Sang froid</b> (4 PO, 2×/tour) : 800 Feu, +800 Eau vol de vie si Surgelé ; invocations touchées Intacleurs 2 tours.",
-        "<b>Glace trop physique</b> (8 PO) : 20% érosion, 550 Feu + 35% des PV érodés en Air, Intaclable 1 tour.",
-    ]),
+    note("<b>Cristallisation</b> (dès le tour 2, tous les 3 tours) : tout retrait PM tenté sur un ennemi <u>lui donne 3 PM</u> ce tour-là. Quand vous la tapez, n'ayez aucun allié dans sa ligne ou sa diagonale (dégâts supplémentaires). Tuer en premier le <b>Verglasseur</b> si présent (sorts qui repoussent, dommages de poussée amplifiés).", ORANGE, "ATTENTION"),
 ])
 
 GUIDES_200["nileza"] = "".join([
@@ -296,12 +238,6 @@ GUIDES_200["nileza"] = "".join([
         "<b>40-74% · Amer</b> : +10% soins finaux, mais soigné = dégâts Neutre de 5% des PV actuels.",
         "<b>0-39% · Aigre</b> : +30% critique, mais chaque coup critique fait perdre 1 PM (2 tours, cumulable).",
     ]),
-    h("Sorts de Nileza", GOLD),
-    ul([
-        "<b>Fraction de molaire</b> (ligne, 12 PO modifiable, 2×/tour) : 550 Eau + Terre = 10% (15% crit) de ses PV manquants, repousse de 3.",
-        "<b>Glace sèche</b> (2 PO sans LDV) : échange de place + 750 Feu en croix 1 ; la cible subit même hors zone.",
-        "<b>Liqueur de Fée Ling</b> (tour 1 puis tous les 3 tours) : vampirisme/boost sur les dégâts de mêlée subis.",
-    ]),
 ])
 
 GUIDES_200["merkator"] = "".join([
@@ -320,12 +256,7 @@ GUIDES_200["merkator"] = "".join([
     h("Marée descendante (tours impairs, dès le 3)", RED),
     p("Via <b>Baphe Thysca</b> : Merkator <b>attire jusqu'à 11 cases</b> tous les persos en croix de taille 12 à son contact et leur retire 4 PM. "
       "Baphe Thysca fait aussi monter les dégâts de Sondage de Bronze de +30 par dégât subi (cumulable 5 fois, 1 tour). Dès le tour 2, relance 2 tours."),
-    h("Sorts", GOLD),
-    ul([
-        "<b>Sondage de Bronze</b> (ligne, 3 PO) : 950 Terre en ligne de 5.",
-        "<b>Torpillage de Glace</b> (mêlée, 2×/tour) : 1100 Eau, −50% vitalité de la cible (60% crit) 1 tour + Pesanteur.",
-        "<b>Bouche-à-Bouche</b> (dès le tour 7, relance 5) : réinvoque le dernier allié mort avec 50% de ses PV, 6 PO sans LDV → <u>garder un monstre vivant en fin de combat ou le finir vite</u>.",
-    ]),
+    note("<b>Bouche-à-Bouche</b> (dès le tour 7) : Merkator réinvoque le <u>dernier allié mort</u> avec 50% de ses PV. Ne laissez pas traîner un monstre mort juste avant de finir, ou finissez vite après avoir tué le dernier.", RED, "ATTENTION"),
 ])
 
 GUIDES_200["roi_nidas"] = "".join([
@@ -333,15 +264,6 @@ GUIDES_200["roi_nidas"] = "".join([
       "monstres de la 1<sup>re</sup> vague à 6600 PV, Roi Nidas 15 000-22 000 PV selon le nombre de persos. "
       "Les vagues réapparaissent aux cases de départ ; si des monstres restent, les nouveaux jouent en fin de timeline. "
       "Jeu à distance conseillé : dégâts distance, entrave (PM/PO), placement."),
-    h("Sorts du Roi Nidas (IA agressive)", RED),
-    ul([
-        "<b>Attrape-mutin</b> (ligne 1-6 PO, LDV, dès le tour 2) : 600 Neutre, attire de 6 et échange de place.",
-        "<b>Confusion</b> (1-5 PO, LDV) : 500 Air cercle 2 + état <b>Zizanie</b> : à son tour suivant, les persos Zizanie infligent des dégâts "
-        "autour d'eux (cercle 2) et retirent 2 tours d'effets aux touchés → <u>aucun perso à 2 PO d'un Zizanie</u>.",
-        "<b>Liquidation</b> (1-5 PO, croix diagonale 1) : 500 Feu + Eau = 20% des PV érodés du lanceur.",
-        "<b>Mon Précieux</b> (10 PO sans LDV, tours 3, 5, 7…) : échange de place avec la Boubourse.",
-    ]),
-    p("<b>Astuce</b> : tenir Roi Nidas à distance jusqu'à sa mort."),
     h("La Boubourse", ORANGE),
     ul([
         "Commence collée au Roi Nidas, <b>n'est pas une invocation</b>, joue en dernier à l'initiative.",
@@ -352,12 +274,7 @@ GUIDES_200["roi_nidas"] = "".join([
     h("Stratégie", GREEN),
     p("Tuer vite pour ne pas être submergé à l'arrivée de la vague suivante. Surveiller le <b>Lévitrof</b> "
       "(échange de position avec Reflets placides), le <b>Kamastérisk</b>, le <b>Piloztère</b> et la Boubourse."),
-    h("Succès", GOLD),
-    ul([
-        "<b>Premier</b> (Roi Nidas tué en premier) : éviter l'élément <u>Terre</u> (42% rés.), prendre de l'entrave pour ne pas être gêné. Base : Roublard + Pandawa, ou Eliotrope + Écaflip/Iop.",
-        "<b>Statue</b> (finir chaque tour sur sa case de départ) : compo très forte à distance avec beaucoup d'entrave, placement final rapide (Pandawa conseillé). Dangers : Lévitrof, Roi Nidas.",
-        "<b>Pingrerie</b> (n'attaquer qu'en ligne/diagonale de la cible) : attention aux sorts de zone qui touchent des monstres hors ligne.",
-    ]),
+    note("<b>Confusion</b> met l'état <b>Zizanie</b> : à son tour suivant, les persos Zizanie frappent autour d'eux (cercle 2) et retirent 2 tours d'effets. Vérifiez qu'aucun perso ne se trouve à 2 PO d'un perso Zizanie, et tenez le Roi à distance jusqu'à sa mort.", RED, "ATTENTION"),
 ])
 
 GUIDES_200["protozorreur"] = "".join([
@@ -376,13 +293,6 @@ GUIDES_200["protozorreur"] = "".join([
     note("À l'entrée en Infection, son passif est réinitialisé : si votre 1<sup>re</sup> attaque est alignée il sera de nouveau attiré. "
          "Le taper d'abord une fois <u>sans être en ligne</u>. Le perso qui l'attire doit jouer <b>tôt dans l'initiative</b> : "
          "seuls les premiers dégâts du tour comptent, les persos qui jouent avant lui ne pourront pas le taper (Malamibe).", ORANGE, "ATTENTION"),
-    h("Sorts (différents en et hors Infection)", GOLD),
-    ul([
-        "<b>Protomatisme</b> : +100 puissance à chaque début de tour (réinitialisé à l'Infection).",
-        "<b>Jet Proto</b> (ligne, 10 PO, 2×/tour) : 500 Air ; hors Infection +5 dégâts cumulés à chaque lancer ; en Infection, attire au contact.",
-        "<b>Électrocution</b> (2 PO sans LDV, 2×/tour) : 1000 Feu ; hors Infection −6 PM, en Infection −6 PA (1 tour, débuffable).",
-        "<b>Infection</b> (dès le tour 3, relance 3) : tue les invocations en mêlée. Hors Infection : 20% érosion + repousse 3 (cercle 3). En Infection : Eau = 50% des PV érodés à tous + attire de 3 (cercle 4).",
-    ]),
 ])
 
 GUIDES_200["capitaine_meno"] = "".join([
@@ -396,12 +306,6 @@ GUIDES_200["capitaine_meno"] = "".join([
         "<b>Dès le tour 2</b> il invoque <b>2 monstres par tour</b> (3 à partir du butin 5), selon un cycle fixe parmi Crabe Yoloniste, Mol Husk, Gambaf, Mantaze, Tilamproie.",
         "Tous les monstres sont <b>invulnérables</b> (Mutation Instable) et perdent <b>25% de leurs PV max par tour</b> : morts au bout de 4 tours, −1 PM permanent. Inutile de les focus.",
     ]),
-    h("Sorts de Meno", GOLD),
-    ul([
-        "<b>Matière Volatile</b> (4 PO sans LDV) : 500 Air.",
-        "<b>Crystalisation</b> (10 PO, 2×/tour) : 500 Eau + <b>glyphe permanent</b> de taille 1 sur la cible (état « Crystalisation » si on y finit son tour).",
-        f"<b>Déclenchement</b> : au début de son tour, chaque glyphe <u>occupé</u> inflige {r('1300 Feu')} à tous les persos alignés avec l'occupant jusqu'à 5 PO (et dévoile les invisibles). Glyphe vide = aucun effet.",
-    ]),
     h("Conseils", GREEN),
     ul([
         "Classes à <b>retrait PM / placement à distance</b> (Cra, Enutrof, Sadida…) pour tenir.",
@@ -410,6 +314,7 @@ GUIDES_200["capitaine_meno"] = "".join([
         "Laisser Meno poser les glyphes sur vous (1 par perso). Taper Meno dès que possible : toujours de l'érosion en plus.",
         "Soigner les cibles d'<b>Éclair Obscur</b> (Mantaze) pour retirer l'état « Conducteur ».",
     ]),
+    note("Au début de son tour, chaque <b>glyphe occupé</b> inflige <b>1300 Feu</b> à tous les persos <u>alignés</u> avec l'occupant jusqu'à 5 PO : placez-vous en <b>diagonale</b> les uns des autres, jamais en ligne.", RED, "ATTENTION"),
 ])
 
 GUIDES_200["dantinea"] = "".join([
@@ -425,14 +330,6 @@ GUIDES_200["dantinea"] = "".join([
     note("Tous les <b>5 tours</b> (tours 6, 11, 16…) Dantinéa <u>OS tous ses Grokillages encore en vie ET les persos liés</u>, puis en réinvoque. "
          "Avoir tué <b>tous les Grokillages avant le tour 6, 11, 16…</b>", RED, "DEADLINE"),
     p("Tuer Dantinéa élimine tous les Grokillages restants, définitivement, et libère les dégâts de tout le monde."),
-    h("Sorts de Dantinéa", GOLD),
-    ul([
-        "<b>Pacte Maléfique</b> : invoque les Grokillages liés aux persos.",
-        "<b>Siphon d'Âme</b> (3 PO, 2×/tour, 1×/cible) : 1000 Neutre en vol de vie.",
-        "<b>Danse Tentaculaire</b> (autour d'elle, cercle 2) : 600 Terre + 600 Air.",
-        "<b>Cooquillation</b> (6 PO sans LDV, dès le tour 2 puis tous les 2 tours) : échange de place avec un de ses Grokillages.",
-        "<b>Début de chaque tour</b> : 600 Eau à tous les persos <u>en ligne avec les Grokillages</u> ; elle peut se téléporter via eux.",
-    ]),
     h("Stratégie", GREEN),
     ul([
         "D'abord tuer les Grokillages des persos <b>à plus forte force de frappe</b> pour les libérer.",
@@ -454,22 +351,12 @@ GUIDES_200["tal_kasha"] = "".join([
     h("Piège du retrait PM", ORANGE),
     p("Quand vous lui retirez des PM, elle <b>échange de place avec vous</b> (1×/tour), impossible à éviter (même avec Stabilisation/Pesanteur). "
       "Ne lui retirez pas de PM trop tôt, elle atterrirait au milieu de votre équipe. Un Pandawa qui porte le perso peut contourner."),
-    h("Sorts", GOLD),
-    ul([
-        "<b>Filature</b> (ligne, 5 PO, LDV) : 500 Feu + attire de 4 cases.",
-        "<b>Transe-Perse</b> (mêlée) : 1700 Neutre.",
-        "<b>Cheveux partir de là</b> (uniquement vulnérable, ligne, relance 2 tours) : téléportation jusqu'à 4 PO — attention à ne pas la laisser arriver au centre de l'équipe.",
-    ]),
-    note("Elle peut lancer <b>Filature et Transe-Perse comme si elle était à la place de n'importe lequel de ses alliés</b> : "
-         "ne <u>jamais</u> rester en ligne avec elle ou un monstre (au tour de Tal Kasha). Plusieurs persos alignés : elle vise le plus proche du monstre.", RED, "ALIGNEMENT"),
     h("Stratégie", GREEN),
     ul([
         "Jeu à distance, retrait PM. <b>Enutrof</b> (retrait PM) pour placer les monstres/Tal Kasha sur les glyphes, <b>Cra</b> pour la repousser loin et éloigner les monstres.",
         "Vulnérable ensuite : la tuer à distance, sans retoucher aux monstres (succès Focus).",
     ]),
-    h("Succès Focus", GOLD),
-    p("Un ennemi attaqué doit être achevé avant d'en attaquer un autre : érodez chaque monstre au maximum avant de les tuer un par un, "
-      "puis, une fois le boss désactivé et entamé, <u>ne plus toucher aux monstres</u>."),
+    note("Une fois vulnérable, elle peut <b>se téléporter jusqu'à 4 PO</b> (ligne, LDV) : ne laissez pas votre équipe groupée à sa portée.", ORANGE, "ATTENTION"),
 ])
 
 GUIDES_200["bethel"] = "".join([
@@ -493,13 +380,6 @@ GUIDES_200["bethel"] = "".join([
     h("Dagon des Profondeurs (ennemi)", ORANGE),
     p("Frappe fort en mêlée et retire beaucoup de PA, 4 PM mais <b>s'attire jusqu'à 8 PO</b> en ligne (Charge Aquatique, −60 fuite). "
       "Intaclable. <b>Le pousser une fois par tour</b> le met Inébranlable 1 tour : il ne peut plus s'attirer. Toujours le même perso, qui joue tôt."),
-    h("Sorts de Bethel", GOLD),
-    ul([
-        "<b>Contrat Indicible</b> : invoque un Monolithe et un Dagon (Bethel et Dagon invulnérables).",
-        "<b>Pantang</b> (1-12 PO) : 500-800 Air. <b>Offrande Monolithique</b> : Amas de Tentacules (110 PV) collés à vos persos, +300 puissance Bethel / +200 monstres.",
-        "<b>Monolithe — Hiéroglyphes</b> : bouclier 2600 aux monstres en cercle 4, +200 puissance aux invocations.",
-        "<b>Dagon</b> : Présence Effrayante (−3 PA au contact), Souffle Chaud (600-900 Feu, −2/3 PA).",
-    ]),
 ])
 
 GUIDES_200["dazak"] = "".join([
@@ -513,20 +393,10 @@ GUIDES_200["dazak"] = "".join([
         "Les résistances perdues <b>ne se regagnent pas</b> : si ce n'est pas assez, recommencer au prochain Nimpatience 3.",
         "Iop : <b>Friction</b> / <b>Coup par coup</b> retirent 5% par déplacement lors du coup — à abuser.",
     ]),
-    h("Sorts de Dazak", GOLD),
-    ul([
-        "<b>Empalement royal</b> (mêlée, 2×/tour) : 1500 Neutre, 40% érosion 2 tours, −10% résistance (infini).",
-        "<b>Ninfiltration</b> (ligne, 5 PO, tours pairs dès le 2) : bond de 5 cases, 900 Air, −4 PM esquivables autour de l'arrivée (hache 1).",
-        "<b>Nintrépidité</b> (tours 3, 5, 7…) : alliés +2 PM et 1500 PB 1 tour (désenvoûtable : Souillure, Pelle Fantomatique…).",
-    ]),
-    h("Les monstres", ORANGE),
-    ul([
-        "<b>Tanklume</b> : éviter à tout prix son Nimpatience 3 — le tuer avant, ou le laisser taper un perso pour qu'il ne gagne pas de Nimpatience. Utiliser son <b>Ninrmure</b> (sacrifice) pour le tuer en zone.",
-        "<b>Boufbos</b> : son seul sort se lance à 3 PO minimum, en ligne : le tacler (bloqué contre un mur pour empêcher Forte tête) ou <u>couper les lignes</u> avec des obstacles.",
-    ]),
     h("Stratégie", GREEN),
     p("Retrait PM apprécié, <b>Cra</b> très fort. Surveiller les tours pairs (Ninfiltration). Il existe plusieurs stratégies selon les succès visés "
       "(voir le guide complet)."),
+    note("<b>Tours pairs</b> : son bond (<b>Ninfiltration</b>, +5 cases, 900 Air, −4 PM) le rend vraiment dangereux. Il gagne un niveau de Nimpatience à chaque tour où il ne vous tape pas ; au niveau 3 il ne peut plus en gagner pendant 2 tours : c'est la fenêtre pour lui retirer des résistances.", ORANGE, "ATTENTION"),
 ])
 
 GUIDES_200["kao"] = "".join([
@@ -545,12 +415,6 @@ GUIDES_200["kao"] = "".join([
     p("Quand vous <b>entamez</b> un éclat, il met <b>Chocolathée</b> à chaque perso qui lui inflige directement des dégâts "
       "(et Cloches du Kao tape plus fort par perso Chocolathée). Pas d'état si l'éclat est tué <b>en une seule ligne</b>, "
       "par poisons, invocations, bombes ou mur de bombes (le <b>Roublard</b> excelle). Sinon, <u>toujours le même perso</u> pour limiter."),
-    h("Sorts", GOLD),
-    ul([
-        "<b>Cloches du Kao</b> (tours impairs) : 300 Neutre à tous, +50 de dégâts de base par perso Chocolathée.",
-        "<b>Equador</b> : alliés +50 dommages et ~200 PV de soin autour d'elle (cercle inversé 6).",
-        "<b>Spatule Tranche-Gourmands</b> (ligne 4) : 260 Air, −50 fuite. <b>Commerce Inéquitable</b> (8 PO) : 350 Neutre, vole 1 PM (2 en crit).",
-    ]),
     h("Conseils", GREEN),
     ul([
         "<b>Terre</b> : la Prêtresse y est faible (succès Premier). Résistances <b>Neutre</b> utiles (elle et le Torréfactueur tapent en Neutre).",
@@ -602,9 +466,6 @@ GUIDES_200["guerre"] = "".join([
         "La taper jusqu'à ~18 000-19 000 PV, <b>placer les persos hors de portée de l'arme</b> à venir, la descendre à 17 600 → épée invoquée → la tuer.",
         "Répéter vers ~14 000 PV (Marteau, seuil 13 200), ~9 500 PV (Hache, seuil 8 800), puis pour le Morgenstern.",
     ]),
-    h("Succès Zombie (1 PM par tour)", GOLD),
-    p("Guerre vous collera forcément : avoir 80-90 de fuite minimum ou des téléportations. Impossible d'éviter toutes les armes : "
-      "<b>focus les armes et les tuer avant que Guerre joue</b> (descendre Guerre au seuil + ~500 PV, puis finir)."),
 ])
 
 GUIDES_200["corruption"] = "".join([
@@ -616,12 +477,6 @@ GUIDES_200["corruption"] = "".join([
          "Le vol de vie compte comme soin ; il faut <b>3 soins</b> pour retirer une maladie.", GREEN, "COMMENT"),
     p("<b>Sur Corruption</b> : le retirer le fait <b>descendre de sa monture 3 tours</b> (« délock », il ne lance plus Bouillon de culture). "
       "Après 3 tours, il remonte et remet Kissiphrot à lui et à tous ses alliés vivants."),
-    h("Sorts de Corruption", GOLD),
-    ul([
-        "<b>Aura du Destrier Purulent</b> (début) : Kissiphrot sur lui et ses alliés. <b>Bêche corrompue</b> (ligne 2 PO, 3×/tour) : 600 Feu, −3 PA, −1 durée des effets.",
-        f"{o('Sur sa monture')} — <b>Bombe Bactériologique</b> (6-20 PO) : bouclier 660 + maladie aléatoire (11% chacune) à un allié qui explose en fin de tour (cercle 3, 550 Terre) · <b>Bouillon de culture</b> : glyphe violet rayon 3 (300 dégâts + maladie au passage) · <b>Convalescence Prolifique</b> (10 PO, 3×/tour) : 400 Air, repousse 2 · <b>Incu-Batteur</b> (2-14 PO) : 500 Eau, la cible revient à sa position précédente à chaque dégât reçu.",
-        f"{o('Descendu (délock)')} — Bombe Bactériologique (6 PO, 2×/tour) · <b>Liquéfaction</b> (2-14 PO sans LDV, 4×/tour) : 350 Eau, 50% de maladie, échange de place · <b>Putréfaction</b> (3-10 PO) : 700 Feu · <b>Éclosion germinal</b> : 350 Neutre cercle 2, −200 puissance, +350 bouclier à ses alliés.",
-    ]),
     h("Maladies & Peau pourrissante", ORANGE),
     ul([
         "<b>Peau pourrissante</b> : tant qu'un perso la garde, il ne peut pas attraper d'autre maladie (depuis la 2.68 : −10% de ses PV actuels par fin de tour). "
@@ -661,14 +516,6 @@ GUIDES_200["servitude"] = "".join([
         "<b>Phase 1</b> : jusqu'à 50% PV. <b>Phase 2</b> (50% → 1 PV) : il monte sur sa monture et ses sorts gagnent des effets. <b>Phase 3</b> (à 1 PV) : il <b>rollback la map</b> (tout le monde revient à sa position de début de combat) et se soigne de 25%.",
         f"{r('Astuce')} : lui appliquer <b>Insoignable</b> avant de passer à 1 PV (pas de +25%), ou un poison (ébène) pour qu'il meure au début de son tour.",
     ]),
-    h("Sorts", GOLD),
-    ul([
-        "<b>Esclavagisme</b> : invoque une Armécréante à 2 PO (max 6, relance 2).",
-        "<b>Asservissement</b> (ligne 2-10 PO) : attire de 9 cases ; phase 2 : vole 1 PM et inflige 650.",
-        "<b>Joug Protecteur</b> (5 PO) : 700 Eau + 1000 bouclier + 1 PM à l'allié le plus proche de la cible (et à lui en phase 2).",
-        "<b>Tyrannie</b> : 900 Eau, −1 PA, cercle 2 ; phase 2 : échange de place d'une Armécréante avec le perso le plus proche.",
-        "<b>Trahison</b> : n'est lancé que si un perso a un état Traître : il l'attire (map entière).",
-    ]),
     h("Classes & conseils", GREEN),
     ul([
         "<b>Pandawa</b> (placement, Insoignable, Pesanteur/Stabilisation contre le rollback des Armécréantes), <b>Féca</b> (protections pour taper sans Traître ; Ataraxie = Pesanteur), <b>Eliotrope + Iop</b> (focus rapide via portails et Colère).",
@@ -693,29 +540,15 @@ GUIDES_200["misere"] = "".join([
         "À chaque début de tour, les monstres sans Collecte (ou Collecte hors ligne de vue) gagnent +1 PM et elle leur vole 5% de résistances.",
         "Chaque retrait PA/PM/PO subi donne <b>+10 esquive PA/PM</b> (infini) au monstre visé.",
     ]),
-    h("Sorts (2 phases)", GOLD),
-    ul([
-        "<b>Balance-Fléau</b> (ligne 6 PO, 2×/tour) : 1000 dans tous les éléments sauf Neutre, <b>vole 200 puissance</b> (cumulé max 5 → 1000). Peut vous laisser à 0 dégât.",
-        "<b>Barchan</b> (6 PO, 3×/tour) : 600 Eau, −100 soins et −50% soins reçus.",
-        f"{o('Phase 1')} <b>Dakhma</b> (2 PO, relance 2) : 600 Feu, −100 PA/PM, cible <b>invulnérable</b> 1 tour et téléportée à sa position de début de tour (taper l'allié qui a subi l'effet le retire, ex. une flamiche).",
-        f"{o('Phase 2')} <b>Funérailles Célestes</b> (4-8 PO sans LDV, relance 2, ignore Pesanteur) : 600 Air, échange de place, dégâts Air et attraction de 2 cases autour des deux positions · <b>Grand Urubu</b> (ligne 2 PO, relance 2) : 500 Neutre, −150 rés. poussée, repousse de 6.",
-    ]),
     h("Charognes", ORANGE),
     p("Toute entité qui meurt laisse une <b>charogne (320 PV)</b>. Depuis la 2.67 : 4 charognes maximum et Misère les élimine toutes au début de son tour. "
       "Elles se déclenchent au début du tour d'un monstre/de Misère pour les ennemis à 4 PO ou moins (détail des effets dans le guide complet)."),
+    note("<b>Balance-Fléau</b> (2×/tour) vole 200 puissance, cumulé jusqu'à 1000 : si elle vous touche tous les tours vous ne taperez bientôt plus rien. <b>Dakhma</b> (phase 1) rend la cible Invulnérable 1 tour et la ramène à sa position de début de tour : taper l'allié qui a subi l'effet le retire.", RED, "ATTENTION"),
 ])
 
 GUIDES_200["anerice"] = "".join([
     h("Résilience vampyrique", RED),
     p("Anerice <b>réduit de 90% tous les dégâts subis</b> (infini, dès le début du combat). Il faut donc passer par l'<b>état Goule</b> ou l'<b>érosion</b>."),
-    h("Sorts", GOLD),
-    ul([
-        "<b>Goulification</b> (3 PO, 2×/tour) : 1200 Eau et transforme en <b>Goule</b> — +150% de dégâts subis, Anerice peut alors utiliser Coopération sur vous. "
-        "On sort de l'état en subissant des dégâts (de soi-même ou d'un allié).",
-        "<b>Coopération</b> (PO infinie, sans LDV, relance 2) : se téléporte à votre contact (cible en Goule) et attire de 3 cases les autres persos en ligne avec la cible.",
-        "<b>Vampyrisme</b> (ligne, 6 PO, chaque tour) : 1000 Terre en vol de vie, zone rayon 2.",
-        "<b>Appétit sanguinaire</b> (tour 2, relance 3) : tous les monstres +2 PM et +50% dommages finaux 1 tour.",
-    ]),
     h("Début de combat (commun aux 2 stratégies)", GREEN),
     ul([
         "<b>Tuer tous les monstres avant Anerice</b>, en commençant par la <b>Kérigoule</b> (partage les dégâts entre tous les monstres dès le tour 2 : la tuer avant).",
@@ -730,6 +563,7 @@ GUIDES_200["anerice"] = "".join([
     p("Avec des persos qui <b>érodent</b>, idéalement un <b>Cra</b> qui érode à distance en repoussant avec <b>Flèche cinglante</b>. "
       "L'érosion ne tient compte que des résistances présentes <u>avant le début du combat</u> : la Résilience vampyrique (active seulement une fois le combat lancé) "
       "n'est pas prise en compte dans les PV érodés par coup."),
+    note("<b>Goule</b> : Goulification la met sur un perso (+150% de dégâts subis). On en sort en subissant des dégâts (de soi-même ou d'un allié). Tant qu'un perso est Goule, <b>Coopération</b> peut téléporter Anerice à son contact et attirer les autres.", ORANGE, "MÉCANIQUE"),
 ])
 
 GUIDES_200["ilyzaelle"] = "".join([
@@ -746,12 +580,6 @@ GUIDES_200["ilyzaelle"] = "".join([
         "Au bout de 2 tours le glyphe disparaît, elle repasse chez l'ennemi (encore invulnérable 1 tour).",
         f"{r('Phase 2 (50%)')} : même chose, <b>moment décisif</b> : survivre 2 tours, puis elle <u>tue tous les monstres présents</u> et le combat se termine.",
     ]),
-    h("Sorts d'Ilyzaelle", GOLD),
-    ul([
-        "<b>Hantâme</b> (3 PO, pas au tour 1) : se téléporte sur la case ciblée, 1800 Feu + 40% érosion 2 tours (rayon 2).",
-        "<b>Lance de l'effroi</b> (4 PO, 3×/tour) : 1500 Feu + <b>Pacifiste</b> 1 tour.",
-        "<b>Vers les ténèbres</b> (dès le tour 3, relance 3) : <b>attire de 10 cases en ligne</b> tous les persos vers elle ; l'attirance s'arrête au premier obstacle (perso ou bloc).",
-    ]),
     h("Conseils", GREEN),
     ul([
         "<b>Évitez le full critique</b> : Ilyzaelle a 250 de résistance critique — retirer Dofus Turquoise/Kokulte, Quatre Feuilles → Stalak, Robuste majeur.",
@@ -759,6 +587,7 @@ GUIDES_200["ilyzaelle"] = "".join([
         "<b>Ectorche + Brûlure</b> : éloigner les autres persos de celui qui a la Brûlure (diagonale ou 3 PO+ en ligne).",
         "L'érosion est peu utile ici.",
     ]),
+    note("<b>Vers les ténèbres</b> (dès le tour 3, tous les 3 tours) attire tout le monde de 10 cases en ligne vers elle, en s'arrêtant au premier obstacle : se placer derrière des obstacles. Sa <b>Lance de l'effroi</b> met Pacifiste 1 tour.", RED, "ATTENTION"),
 ])
 
 GUIDES_200["torkelonia"] = "".join([
@@ -778,15 +607,6 @@ GUIDES_200["torkelonia"] = "".join([
     note("Le perso qui <b>tue Torkélonia est OS</b>, sauf si elle meurt en <b>Nouvelle lune</b> ou <b>Pleine lune</b>. "
          "Tuer Torkélonia avec une <u>invocation</u> évite l'OS. Elle mourante : Lunorbe et glyphe disparaissent, les monstres restants deviennent vulnérables. "
          "Garder au moins 2 persos vivants.", RED, "OS"),
-    h("Sorts", GOLD),
-    ul([
-        "<b>Carapace lunaire</b> : dégâts subis ×75% 2 tours.",
-        "<b>Faisceau lunaire</b> : 600 Feu en ligne et diagonale, portée infinie.",
-        "<b>Goutte lunaire</b> (ligne/diagonale 7 PO) : 600 Eau en carré 1 → croix 1 → cône 3 (cycle) ; cible « Cible lunaire » : −10% érosion.",
-        "<b>Ricochet sacré</b> (5 PO) : 900 Eau qui rebondit sur le perso le plus proche (cercle 5) ; cible « Cible lunaire » : −2 PA.",
-    ]),
-    h("Succès « Dernier »", GOLD),
-    p("Tuer Torkélonia en dernier : assez simple, et recommandé car l'<b>Alashasss</b> soigne énormément et doit être tué en premier. Un Pandawa tank peut aider."),
 ])
 
 GUIDES_200["imagami"] = "".join([
@@ -808,18 +628,12 @@ GUIDES_200["imagami"] = "".join([
       "<b>Expiration du Wukin ×4 par tour</b> (+1 par perso au-delà de 4) + un des deux sorts de boost en alternance. "
       "« Inspiration du Wukin » inflige ~300 de plus par perso supplémentaire. <u>L'utiliser pour faire un maximum de dégâts aux monstres.</u> "
       "Après le dernier seuil et les 5 tours, plus d'aide : il ne reste qu'à tuer le Roi."),
-    h("Sorts du Roi Imagami", GOLD),
-    ul([
-        "<b>Kami no Jishin</b> (5 PO sans LDV, relance 2) : 450 Terre, −3 PM esquivable, repousse aux extrémités / attire au milieu (cercle 3).",
-        "<b>Papetuerie</b> (dès le tour 2, tous les 3 tours) : glyphes blancs en croix 1 sur toutes les entités ; au tour suivant <b>700 Neutre</b> à tous — <u>évité si on reste sur la case centrale du glyphe</u>. Le Roi gagne 440 de bouclier, ses alliés 880.",
-        "<b>Parchemin de Traverse</b> (mêlée, 2×/tour) : 600 Neutre + téléporte le monstre de papier le plus proche à votre contact.",
-        "<b>Roque Papier Ciseaux</b> : bond, 750 Neutre, malus aléatoire aux adjacents (−100 fuite / −2 tours d'envoûtements / 40% érosion).",
-    ]),
     h("Classes conseillées", GREEN),
     ul([
         "<b>Pandawa</b> (placement, mode tank), <b>Roublard</b> (dégâts pour atteindre les seuils, mur de bombes pour les invocations), <b>Eniripsa</b> (soins, beaucoup de dégâts subis), <b>Féca</b> (protection, protège les bombes).",
         "Rester au milieu d'un glyphe blanc de Papetuerie.",
     ]),
+    note("<b>Papetuerie</b> (dès le tour 2, tous les 3 tours) pose un glyphe blanc sous chaque entité ; au tour suivant il inflige <b>700 Neutre</b> à tous, <u>évité si on reste sur la case centrale du glyphe</u>. Restez dessus.", RED, "ATTENTION"),
 ])
 
 GUIDES_200["amirukam"] = "".join([
@@ -834,13 +648,7 @@ GUIDES_200["amirukam"] = "".join([
         "Taille décroissante : <b>étoile 3 → 2 → 1</b>.",
         "Déplacée hors du glyphe (Pandawa) à ce moment, les monstres du glyphe ne sont pas OS.",
     ]),
-    h("Sorts de la Reine Amirukam", GOLD),
-    ul([
-        "<b>Brouillard d'Encre</b> (tour 1 puis tous les 3 tours) : glyphes sur toutes les entités ennemies ; au tour suivant ils invoquent des « Rupture d'encre » aussitôt tués par la Reine (cellules occupées : pas d'invocation).",
-        "<b>Getsuga Tenshō</b> (3-8 PO en ligne, 16 PO en diagonale) : 600 Feu + état aléatoire (<b>Intacleur 50%, Pesanteur 30%, Insoignable 20%</b>) ; elle recule de 2 en diagonale / 5 en ligne.",
-        "<b>Monarchie des Roses Noires</b> (1 PO) : repousse de 4 (cône 5), 600 Eau, −2 PO, +20 fuite.",
-        "<b>Toner Deubraiste</b> (4-12 PO ligne, 24 PO diagonale, 2×/tour) : poison 500 Eau + <b>+5% de dommages subis</b> (5 tours, cumulable).",
-    ]),
+    note("<b>Brouillard d'Encre</b> (tour 1, puis tous les 3 tours) pose des glyphes sur vos persos ; <b>Getsuga Tenshō</b> met un état aléatoire (Intacleur 50%, Pesanteur 30%, Insoignable 20%) ; <b>Toner Deubraiste</b> pose un poison qui augmente de 5% (cumulable) les dommages que vous subissez.", ORANGE, "ATTENTION"),
 ])
 
 GUIDES_200["kabahal"] = "".join([
@@ -861,14 +669,7 @@ GUIDES_200["kabahal"] = "".join([
         "Rune posée sur un Bras existant = <b>Surcharge Démoniaque</b> : Bras totalement soigné et +300 puissance 1 tour.",
         "<b>Sacrifice Revigorant</b> : un monstre placé sur une rune de Bras au début du tour de Kabahal est tué par le Bras qui apparaît.",
     ]),
-    h("Sorts de Kabahal", GOLD),
-    ul([
-        "<b>D'une main de maître</b> : +30% dommages distance les tours <u>impairs</u> · <b>Menace Grandissante</b> : +30% dommages mêlée les tours <u>pairs</u>.",
-        "<b>Oeil du Nocher</b> (1 PO, dès le tour 2, relance 3) : −6 PO et −30 esquive PM aux ennemis (cône infini) ; lui et ses alliés +6 PO.",
-        "<b>Offrande au Chaos</b> (mêlée) : 650 Air + 650 Feu + <b>Insoignable</b> 1 tour (+20 par Bras sur le terrain) ; les ennemis se soignent de 25% des dégâts infligés.",
-        "<b>Paume incandescente</b> (6 PO, 2×/tour) : 500 Feu vol de vie, −25% crit (cercle 3) ; s'il crit : +25% crit.",
-        "<b>Ratafia Putride</b> (12 PO, 2×/tour) : poison 500 Air, −50% soins 2 tours ; si la cible est en ligne avec un Bras démoniaque, elle est attirée à son contact.",
-    ]),
+    note("Kabahal alterne : <b>+30% de dommages à distance les tours impairs</b>, <b>+30% en mêlée les tours pairs</b> (adaptez votre distance). Son <b>Offrande au Chaos</b> (mêlée) rend Insoignable 1 tour ; <b>Ratafia Putride</b> attire à son Bras démoniaque si vous êtes aligné.", ORANGE, "ATTENTION"),
 ])
 
 GUIDES_200["eternel_conflit"] = "".join([
@@ -887,40 +688,20 @@ GUIDES_200["eternel_conflit"] = "".join([
     note("Le seul moyen de <b>passer le seuil de 4 000 PV</b> est de le mettre en état <b>« X »</b>, qui le rend aussi <b>vulnérable 2 tours</b>. "
          "Pas obligé de le descendre à 4 000 PV avant ; si vous avez la force de frappe, on peut même le tuer uniquement pendant l'état X. "
          "(Conditions exactes de l'état X : voir le guide complet.)", GREEN, "ÉTAT X"),
-    h("Sorts de l'Éternel Conflit", GOLD),
-    ul([
-        "<b>Poing de la Cité Sombre</b> (mêlée) : 900 Feu, repousse de 4 · <b>Poing de la Cité Blanche</b> (3-5 PO) : 500 Eau + 10% érosion.",
-        "<b>Cycle de la Violence</b> (7 PO) : attire de 4, −3 PO (croix 3), −2 PA (croix 1).",
-        "<b>Massacre de l'Aurore Pourpre</b> (3 PO sans LDV, relance 4, −1 par allié à son contact) : téléportation, retire 4 tours d'envoûtements, Lourd + Indéplaçable 1 tour (lui s'il touche un ennemi), 400 Eau + 400 Feu + 20% érosion.",
-    ]),
-    h("Les diablotins", ORANGE),
-    ul([
-        "<b>Bonraphin</b> : Faux Séraphine (ligne 2-12 PO) 400 Eau + repousse 2 · Colonne de Lumière (7 PO modifiable) 300 Air, −20% soins, état « Bonraphin 2 » (600 Air si déjà touché).",
-        "<b>Brâklotin</b> : Épée Diablotine (mêlée) 500 Feu + attire de 2 (ligne 5) · Colonne de Flammes (2 PO, 3×/tour) 250 Terre vol de vie, « Brâklotin 2 » ; si déjà dedans, téléporté symétriquement par rapport au lanceur.",
-    ]),
 ])
 
 GUIDES_200["belladone"] = "".join([
     p("Tout le combat repose sur l'effet <b>Bellarchimagie</b>, lancé dès le début."),
     h("Phase 1 : Belladone sur son îlot (invulnérable)", ORANGE),
-    p("Elle est seule sur un îlot en haut de la map : <b>Invulnérable</b>, ne bouge pas, n'inflige <u>aucun dégât direct</u> et booste ses alliés. "
-      "<b>Chaque monstre tué</b> lui donne un état <b>Ensorcellement</b> (I à III, 3 monstres morts maximum) qui <u>renforce ses sorts de boost</u> :"),
-    ul([
-        "<b>Ensorcellement explosif</b> (2 tours) sur un allié : s'il est poussé il gagne +3 PM (cumulable) ; échange de place avec le 1<sup>er</sup> perso qui le frappe ; "
-        "au 2<sup>e</sup> tour il explose (cercle 2) : <b>1500 Feu</b> sans Ensorcellement, <b>1600 / 1780 / 2130</b> à I / II / III.",
-        "<b>Charme maléfique</b> (infini, sans LDV, 2×/tour) : soigne <b>10% / 12% / 14% / 18%</b> PV max et donne <b>+10 / 13 / 16 / 22%</b> dommages finaux.",
-        "<b>Enchantement fatal</b> : tous les monstres +PM/PO/bouclier : <b>1 PM/PO + 2% PV</b> (sans état), 2 + 4%, 3 + 6%, <b>4 + 8%</b> (III).",
-        "<b>Glyphe de condamnation</b> (LDV, 1×/tour) : poison 74 Neutre par PA utilisé + <b>glyphe noir en étoile infinie</b> autour de la cible (pas sous elle) qui <b>OS ceux qui commencent leur tour dedans</b>.",
-    ]),
+    p("Elle est seule sur un îlot en haut de la map : <b>Invulnérable</b>, immobile, sans dégât direct. Elle <b>booste ses monstres</b> : soins, bouclier, PM/PO, et un effet qui fait <b>exploser un monstre</b> (zone cercle 2, gros dégâts Feu) deux tours après. "
+      "<b>Chaque monstre tué</b> lui donne un état <b>Ensorcellement</b> (I à III) qui <u>renforce tous ces boosts</u> : tuer les monstres vite et proprement."),
+    note("Elle pose un <b>glyphe noir en étoile</b> (portée infinie, LDV) autour d'un perso, qui <b>OS tous ceux qui commencent leur tour dedans</b> : ne jamais commencer son tour dans ce glyphe.", RED, "OS"),
     h("Phase 2 : elle rejoint le terrain (vulnérable)", RED),
-    p("Pour la rendre vulnérable : <b>tuer tous les monstres</b>. Elle se téléporte alors sur le terrain et lance ses propres sorts de dégâts. "
-      "Elle ne perd l'invulnérabilité <u>qu'à la fin de son tour</u> après s'être téléportée, puis bouge avec ses <b>10 PM</b> (difficile à attraper sans tacle). "
-      "Elle a alors un <b>seuil à 50% de ses PV</b> et redevient invulnérable à ce seuil (voir le guide complet)."),
+    p("Une fois <b>tous les monstres tués</b>, elle quitte son îlot et se téléporte sur le terrain ; elle n'est vulnérable qu'à la <u>fin de son tour</u>, puis bouge avec ses <b>10 PM</b> (difficile à attraper sans tacle). "
+      "Elle a un <b>seuil à 50% de ses PV</b> où elle redevient invulnérable (voir le guide complet)."),
     ul([
-        "<b>Conjuration entravante</b> (14 PO, 4×/tour) : 530 Neutre vol de vie, −4 PA.",
-        "<b>Déchaînement fantasmagorique</b> (7 PO) : 380 Feu (croix diag. 3) + 380 Eau (croix 3), <b>Insoignable</b> au centre.",
-        "<b>Maléfice immobile</b> (6 PO) : 800 Terre, échange de place, −100 PM, <b>glyphe noir 1 case sous le perso qui OS</b> tout perso qui y finit son tour (1 tour).",
-        "<b>Téléportation enivrante</b> (portée infinie) : se téléporte au contact de la cible <u>la plus éloignée</u>, 30% érosion, 1080 Air.",
+        "<b>Maléfice immobile</b> pose un <b>glyphe noir d'1 case sous votre perso</b> qui OS tout perso finissant son tour dedans (1 tour) : bougez dès que vous l'avez reçu.",
+        "<b>Téléportation enivrante</b> : elle vient au contact du perso <u>le plus éloigné</u> (30% érosion, gros dégâts Air). <b>Déchaînement fantasmagorique</b> rend Insoignable le perso au centre.",
     ]),
 ])
 
@@ -941,16 +722,7 @@ GUIDES_200["venerable"] = "".join([
     h("Seuil de 50% (16 000 PV)", RED),
     p("À 50% de ses PV : <b>Gare au Gorille</b> jusqu'à la fin : <b>+20% dommages finaux, +4 PO, +100 dommages de poussée, −60 PA, −60 PM</b> (retraits). "
       "Mêmes PV du Vénérable et de la Monture quel que soit le butin."),
-    h("Sorts", GOLD),
-    ul([
-        "<b>Boulet Fantastique</b> (3-8 PO modifiable, relance 2) : 700 Terre cercle 2, −1 PA (2 crit), −2 PM (3 crit).",
-        "<b>Charge Fantastique</b> (ligne 6 PO modifiable, relance 2) : fonce sur la cible, 800 Neutre, repousse de 3.",
-        "<b>Cri Vénérable</b> (relance 4) : 650 Air vol de vie à tous les persos/invocations dans sa LDV, repousse de 4.",
-        "<b>Primartèlement</b> (relance 3) : 700 Terre à tous, <b>attire de 4 cases</b> toutes les entités.",
-        "<b>Primattaque</b> (ligne 2 PO, 3×/tour, 2×/cible) : 700 Neutre, repousse d'1.",
-        "<b>Saut Impérieux</b> (3-6 PO modifiable, relance 2) : téléportation, 800 Terre cercle 2 — <u>impossible en Pesanteur</u>.",
-    ]),
-    p("Mettre le Vénérable en <b>Pesanteur</b> l'empêche de se téléporter ; il peut aussi rush en ligne jusqu'à 6 PO et taper en zone à longue distance en retirant PA/PM."),
+    note("<b>Primartèlement</b> attire toutes les entités de 4 cases et inflige 700 Terre à tous : prévoir le placement. Il peut se téléporter jusqu'à 6 PO : le mettre en <b>Pesanteur</b> l'en empêche (le Saut impérieux est alors impossible).", ORANGE, "ATTENTION"),
 ])
 
 GUIDES_200["dechireuse"] = "".join([
@@ -972,10 +744,5 @@ GUIDES_200["dechireuse"] = "".join([
         "<b>Saison des Naissances → Voracle</b> : le taper 5 fois ; il devient invisible jusqu'à ses prochains dégâts. Dans le <u>même tour</u> (avant que l'Autel joue), placer la Déchireuse <b>plus près de l'Autel que toute autre entité</b> : l'Autel lui applique l'invisibilité ; "
         "il suffit alors de la taper (en sachant où elle est) pour lui retirer invisibilité <u>et</u> invulnérabilité pour le reste du combat.",
         "<b>Saison de la Chasse → Domptueuse</b> · <b>Saison du Repos → Ébourifauve</b> : même principe via leur propre Réaction Saisonnière (détails dans le guide complet).",
-    ]),
-    h("Sorts", GOLD),
-    ul([
-        f"{o('Phase 1')} <b>Atermoiement</b> (mêlée) : 1000 Eau, repousse d'1 · <b>Brutank</b> (4 PO sans LDV) : 300 Eau + 300 Feu cercle 2, <u>partage les dégâts entre monstres alliés</u> · <b>Hémorasoir</b> (4 PO, 2×/tour) : 500 Feu + poison 90 Feu par PM utilisé.",
-        f"{o('Phase 2 — état Barbarisme')} <b>Musculot</b> : 500 Eau + 500 Feu cercle 3, vole 500 vitalité 2 tours · <b>Proxicaire</b> (ligne 4 PO) : s'attire sur la cible, 900 Eau, −100 fuite · <b>Recentrage</b> (5 PO sans LDV, 2×/tour) : 600 Feu + 10% érosion cumulable, attire d'1.",
     ]),
 ])

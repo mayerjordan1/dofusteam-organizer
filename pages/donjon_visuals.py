@@ -138,10 +138,5 @@ def compose(key, html):
            if g.get("map") else "")
     tail = ""
     if g.get("schemas"):
-        tail += _h("Sorts du boss & schémas du combat") + _grid(g["schemas"])
-    if g.get("monstres"):
-        tail += _h("Monstres — caractéristiques", ORANGE) + "".join(
-            f'<p style="margin:0 0 8px 0;">{_fig(list(r[:3]) + [""], 480)}</p>' for r in g["monstres"])
-    if g.get("sorts_monstres"):
-        tail += _h("Sorts des monstres (zones)", ORANGE) + _grid(g["sorts_monstres"])
+        tail += _h("Schémas du combat") + _grid(g["schemas"][:8])
     return top + add_state_icons(html) + tail

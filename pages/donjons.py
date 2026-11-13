@@ -65,6 +65,122 @@ BOSSES = [
         "key": "koutoulou", "name": "Koutoulou", "icon": "boss_koutoulou.png",
         "url": "https://www.dofuspourlesnoobs.com/temple-de-koutoulou.html",
     },
+    {
+        "key": "solar", "name": "Solar", "icon": "boss_solar.png",
+        "url": "https://www.dofuspourlesnoobs.com/tour-de-solar.html",
+    },
+    {
+        "key": "chaloeil", "name": "Chaloeil", "icon": "boss_chaloeil.png",
+        "url": "https://www.dofuspourlesnoobs.com/defi-du-chaloeil.html",
+    },
+    {
+        "key": "sylargh", "name": "Sylargh", "icon": "boss_sylargh.png",
+        "url": "https://www.dofuspourlesnoobs.com/transporteur-de-sylargh.html",
+    },
+    {
+        "key": "klime", "name": "Klime", "icon": "boss_klime.png",
+        "url": "https://www.dofuspourlesnoobs.com/salons-priveacutes-de-klime.html",
+    },
+    {
+        "key": "missiz_frizz", "name": "Missiz Frizz", "icon": "boss_missiz_frizz.png",
+        "url": "https://www.dofuspourlesnoobs.com/forgefroide-de-missiz-frizz.html",
+    },
+    {
+        "key": "nileza", "name": "Nileza", "icon": "boss_nileza.png",
+        "url": "https://www.dofuspourlesnoobs.com/laboratoire-de-nileza.html",
+    },
+    {
+        "key": "merkator", "name": "Merkator", "icon": "boss_merkator.png",
+        "url": "https://www.dofuspourlesnoobs.com/aquadocircme-de-merkator.html",
+    },
+    {
+        "key": "roi_nidas", "name": "Roi Nidas", "icon": "boss_roi_nidas.png",
+        "url": "https://www.dofuspourlesnoobs.com/palais-du-roi-nidas.html",
+    },
+    {
+        "key": "protozorreur", "name": "Protozorreur", "icon": "boss_protozorreur.png",
+        "url": "https://www.dofuspourlesnoobs.com/ventre-de-la-baleine.html",
+    },
+    {
+        "key": "capitaine_meno", "name": "Capitaine Meno", "icon": "boss_capitaine_meno.png",
+        "url": "https://www.dofuspourlesnoobs.com/vaisseau-du-capitaine-meno.html",
+    },
+    {
+        "key": "dantinea", "name": "Dantinéa", "icon": "boss_dantinea.png",
+        "url": "https://www.dofuspourlesnoobs.com/palais-de-dantineacutea.html",
+    },
+    {
+        "key": "tal_kasha", "name": "Tal Kasha", "icon": "boss_tal_kasha.png",
+        "url": "https://www.dofuspourlesnoobs.com/chambre-de-tal-kasha.html",
+    },
+    {
+        "key": "anerice", "name": "Anerice la Shushess", "icon": "boss_anerice_la_shushess.png",
+        "url": "https://www.dofuspourlesnoobs.com/manoir-des-katrepat.html",
+    },
+    {
+        "key": "ilyzaelle", "name": "Ilyzaelle", "icon": "boss_ilyzaelle.png",
+        "url": "https://www.dofuspourlesnoobs.com/belvedere-d-ilyzaelle.html",
+    },
+    {
+        "key": "bethel", "name": "Bethel Akarna", "icon": "boss_bethel_akarna.png",
+        "url": "https://www.dofuspourlesnoobs.com/tour-de-bethel.html",
+    },
+    {
+        "key": "dazak", "name": "Dazak Martegel", "icon": "boss_dazak_martegel.png",
+        "url": "https://www.dofuspourlesnoobs.com/brasserie-du-roi-dazak.html",
+    },
+    {
+        "key": "kao", "name": "Prêtresse de Kao", "icon": "boss_pretresse_de_kao.png",
+        "url": "https://www.dofuspourlesnoobs.com/temple-du-dieu-kao.html",
+    },
+    {
+        "key": "torkelonia", "name": "Torkélonia", "icon": "boss_torkelonia.png",
+        "url": "https://www.dofuspourlesnoobs.com/sanctuaire-de-torkelonia.html",
+    },
+    {
+        "key": "corruption", "name": "Corruption", "icon": "boss_corruption.png",
+        "url": "https://www.dofuspourlesnoobs.com/arbre-de-mort.html",
+    },
+    {
+        "key": "servitude", "name": "Servitude", "icon": "boss_servitude.png",
+        "url": "https://www.dofuspourlesnoobs.com/fers-de-la-tyrannie.html",
+    },
+    {
+        "key": "misere", "name": "Misère", "icon": "boss_misere.png",
+        "url": "https://www.dofuspourlesnoobs.com/sentence-de-la-balance.html",
+    },
+    {
+        "key": "guerre", "name": "Guerre", "icon": "boss_guerre.png",
+        "url": "https://www.dofuspourlesnoobs.com/trone-de-sang.html",
+    },
+    {
+        "key": "imagami", "name": "Roi Imagami", "icon": "boss_roi_imagami.png",
+        "url": "https://www.dofuspourlesnoobs.com/memoire-d-orukam.html",
+    },
+    {
+        "key": "amirukam", "name": "Reine Amirukam", "icon": "boss_reine_amirukam.png",
+        "url": "https://www.dofuspourlesnoobs.com/souvenir-d-imagiro.html",
+    },
+    {
+        "key": "kabahal", "name": "Kabahal", "icon": "boss_kabahal.png",
+        "url": "https://www.dofuspourlesnoobs.com/rituel-de-kabahal.html",
+    },
+    {
+        "key": "eternel_conflit", "name": "L'Éternel Conflit", "icon": "boss_l_eternel_conflit.png",
+        "url": "https://www.dofuspourlesnoobs.com/bataille-de-l-aurore-pourpre.html",
+    },
+    {
+        "key": "belladone", "name": "Belladone", "icon": "boss_belladone.png",
+        "url": "https://www.dofuspourlesnoobs.com/chambre-des-malefices.html",
+    },
+    {
+        "key": "venerable", "name": "Vénérable Endormi", "icon": "boss_venerable_endormi.png",
+        "url": "https://www.dofuspourlesnoobs.com/breuil-du-venerable.html",
+    },
+    {
+        "key": "dechireuse", "name": "Déchireuse", "icon": "boss_dechireuse.png",
+        "url": "https://www.dofuspourlesnoobs.com/autel-de-la-dechireuse.html",
+    },
 ]
 
 
@@ -461,7 +577,10 @@ class BossNotesDialog(QDialog):
         # externe éventuel dans le Guide est donc silencieusement ignoré ici.
         raw = url.toString()
         if raw.startswith("zoom:"):
-            path = _boss_img_dir(self.boss["key"]) / raw[len("zoom:"):]
+            fname = raw[len("zoom:"):]
+            path = _boss_img_dir(self.boss["key"]) / fname
+            if not path.exists():
+                path = SKIN_DIR / fname  # images curées du Guide (bundlées)
             if path.exists():
                 self._view_image(path)
 

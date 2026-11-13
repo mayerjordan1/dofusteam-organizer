@@ -28,6 +28,9 @@ GROUPS = [
     ("DONJON", [
         ("donjons", "  Donjons", "donjon.png"),
     ]),
+    ("CLASSES", [
+        ("classes", "  Classes", "huppermage.png"),
+    ]),
     ("SYSTÈME", [
         ("calibration", "  Calibration", "icon_calib.png"),
         ("parametres", "  Paramètres", "icon_settings.png"),

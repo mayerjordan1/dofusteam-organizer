@@ -8,6 +8,29 @@ from pages.donjon_gallery_200 import GALLERY_200
 
 GOLD, ORANGE = "#c8a000", "#ff8a1e"
 
+# fichier -> (fichier, w, h, légende) pour toutes les images ; USED = déjà placées dans le texte
+_INDEX = {}
+for _g in GALLERY_200.values():
+    for _k in ("schemas", "monstres", "sorts_monstres"):
+        for _r in _g.get(_k) or []:
+            _INDEX[_r[0]] = tuple(_r)
+    if _g.get("map"):
+        _INDEX[_g["map"][0]] = tuple(_g["map"])
+USED = set()
+
+_STOP = {"sont", "est", "de", "du", "la", "le", "les", "un", "une", "et", "à", "au", "aux", "pour",
+         "quand", "que", "qui", "dans", "sur", "avec", "en", "ce", "se", "l'", "d'", "il", "elle"}
+
+
+def clean_caption(cap):
+    """Légende présentable, sinon chaîne vide (mieux que « Sylargh33 » ou « En bleu : »)."""
+    c = (cap or "").strip().rstrip(".")
+    if (len(c) < 4 or len(c) > 60 or ":" in c or c[0].islower()
+            or re.search(r"\d", c) or re.search(r"fix|correc|modif|ark|^[IVX]+-", c, re.I)
+            or c.split()[-1].lower().strip("’'") in _STOP or c.endswith(("’", "'", ","))):
+        return ""
+    return c
+
 # mot (insensible à la casse) -> icône d'état
 _STATE_ICONS = {
     r"Invulnérables?": "etat_invulnerable.png",
@@ -47,8 +70,35 @@ def _fig(rec, width):
     f, w, h, cap = rec
     dw = min(width, w)
     dh = round(h * dw / w)
-    return (f'<a href="zoom:{f}"><img src="{f}" width="{dw}" height="{dh}"></a>'
-            f'<br><span style="font-size:10px; color:#7a7d8a;">{cap}</span>')
+    cap = cap if cap == "Carte du combat" else clean_caption(cap)
+    capt = (f'<br><span style="font-size:10px; color:#7a7d8a;">{cap}</span>' if cap else "")
+    return f'<a href="zoom:{f}"><img src="{f}" width="{dw}" height="{dh}"></a>{capt}'
+
+
+def fig(fname, caption=None, width=480):
+    """Image placée dans le texte d'un guide (cliquable) ; elle n'est plus répétée dans la galerie du bas."""
+    f, w, h, cap = _INDEX[fname]
+    USED.add(fname)
+    cap = caption if caption is not None else cap
+    dw = min(width, w)
+    dh = round(h * dw / w)
+    return (f'<p style="margin:2px 0 10px 0;"><a href="zoom:{f}"><img src="{f}" width="{dw}" height="{dh}"></a>'
+            f'<br><span style="font-size:10px; color:#7a7d8a;">{cap}</span></p>')
+
+
+def figs(items, width=232):
+    """Plusieurs images par 2 en tableau : items = [(fichier, légende ou None), ...]."""
+    cells = []
+    for fname, cap in items:
+        f, w, h, c0 = _INDEX[fname]
+        USED.add(fname)
+        c = cap if cap is not None else c0
+        dw = min(width, w)
+        dh = round(h * dw / w)
+        cells.append(f'<td style="padding:0 8px 10px 0; vertical-align:top;"><a href="zoom:{f}"><img src="{f}" width="{dw}" height="{dh}"></a>'
+                     f'<br><span style="font-size:10px; color:#7a7d8a;">{c}</span></td>')
+    rows = "".join("<tr>" + "".join(cells[i:i + 2]) + "</tr>" for i in range(0, len(cells), 2))
+    return f'<table style="margin:0 0 4px 0;">{rows}</table>'
 
 
 def _grid(recs):
@@ -82,6 +132,8 @@ def _h(title, color=GOLD):
 def compose(key, html):
     """Carte du combat + texte (avec icônes d'états) + galeries."""
     g = GALLERY_200.get(key) or {}
+    g = {k: ([r for r in v if r[0] not in USED and not re.fullmatch(r"\d+|[IVX]+- .*", r[3])]
+             if isinstance(v, list) and k != "map" else v) for k, v in g.items()}
     top = (f'<p style="margin:0 0 4px 0;">{_fig(list(g["map"][:3]) + ["Carte du combat"], 480)}</p>'
            if g.get("map") else "")
     tail = ""
@@ -89,7 +141,7 @@ def compose(key, html):
         tail += _h("Sorts du boss & schémas du combat") + _grid(g["schemas"])
     if g.get("monstres"):
         tail += _h("Monstres — caractéristiques", ORANGE) + "".join(
-            f'<p style="margin:0 0 8px 0;">{_fig(r, 480)}</p>' for r in g["monstres"])
+            f'<p style="margin:0 0 8px 0;">{_fig(list(r[:3]) + [""], 480)}</p>' for r in g["monstres"])
     if g.get("sorts_monstres"):
         tail += _h("Sorts des monstres (zones)", ORANGE) + _grid(g["sorts_monstres"])
     return top + add_state_icons(html) + tail

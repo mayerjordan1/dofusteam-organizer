@@ -42,6 +42,8 @@ def o(t):
     return f'<b style="color:{ORANGE};">{t}</b>'
 
 
+from pages.donjon_visuals import fig, figs
+
 GUIDES_200 = {}
 
 GUIDES_200["solar"] = "".join([
@@ -53,6 +55,7 @@ GUIDES_200["solar"] = "".join([
     note("Solar (et chaque monstre) doit être sous <b>Nécronyx AVANT de mourir</b>, sinon il se "
          "ressuscite / <u>OS toute l'équipe</u>. Même s'il ne reste que Solar : Nécronyx d'abord, "
          "kill ensuite.", RED, "RÈGLE N°1"),
+    fig("dp_solar_0.png", "Sort Nécronyx — coût 3 PA, portée 1, relance 2", 366),
     h("Pyrozomb (tous les monstres)", RED),
     p("Chaque monstre qui meurt est <b>ressuscité par un allié</b>, renvoie les dégâts subis en zone carrée de 1 "
       "autour de lui et inflige des dégâts Terre (cercle 2) à sa mort. Nécronyx annule tout ça."),
@@ -114,16 +117,28 @@ GUIDES_200["chaloeil"] = "".join([
         "<b>Glyphes blancs</b> : posés à <b>distance impaire</b> du Chaloeil, <b>soignent intégralement</b> ceux qui finissent leur tour dessus.",
         "12 placements possibles (6 faces × case paire/impaire).",
     ]),
+    fig("dp_chaloeil_17.png", "Valeur de chaque cellule : 1 bleu · 2 vert · 3 rouge · 4 jaune · 5 orange · 6 violet"),
+    fig("dp_chaloeil_18.jpg", "Exemple : Dés (orange) et glyphes blancs de soin posés selon la face où termine le Chaloeil"),
+    p("<b>Placement des Dés (orange) et des glyphes blancs (blanc) selon la face</b> — rouge = position finale du Chaloeil, case paire ou impaire :"),
+    figs([("dp_chaloeil_20.png", "Dé 1 · cellule paire"), ("dp_chaloeil_21.png", "Dé 1 · cellule impaire"),
+          ("dp_chaloeil_22.png", "Dé 2 · cellule paire"), ("dp_chaloeil_23.png", "Dé 2 · cellule impaire"),
+          ("dp_chaloeil_24.png", "Dé 3 · cellule paire"), ("dp_chaloeil_25.png", "Dé 3 · cellule impaire"),
+          ("dp_chaloeil_26.png", "Dé 4 · cellule paire"), ("dp_chaloeil_27.png", "Dé 4 · cellule impaire"),
+          ("dp_chaloeil_28.png", "Dé 5 · cellule paire"), ("dp_chaloeil_29.png", "Dé 5 · cellule impaire"),
+          ("dp_chaloeil_30.png", "Dé 6 · cellule paire"), ("dp_chaloeil_31.png", "Dé 6 · cellule impaire")]),
     h("États de Dé & monstres", RED),
     p("Chaque entité a un état de Dé = la face où elle a fini son tour. À partir du tour 2, <b>chaque monstre</b> "
       "(sauf le Chaloeil) inflige <b>20% érosion + 450 dégâts aléatoires</b> à tous les persos/invocations "
       "<u>dans le même état de Dé que lui</u> : ne finissez pas vos tours sur la même face qu'un monstre."),
     p("<b>Gros Yeux</b> (tours 3, 6, 9…) boost le Chaloeil et les monstres selon leur Dé : "
       "1 → 200 esquive PM · 2 → 5 PO · 3 → Indéplaçable · 4 → 3 PM · 5 → soin 20% PV · 6 → 600 puissance."),
+    fig("dp_chaloeil_19.jpg", "États de Dé des entités (le chiffre s'affiche au-dessus de chaque entité)", 308),
     h("Invulnérabilité", GOLD),
     p("Le Chaloeil est <b>invulnérable jusqu'au tour 21</b> (impossible de le retirer, il faut survivre), "
       "même tour que la 5<sup>e</sup> et dernière vague. Vagues de monstres aux tours <b>1 / 6 / 11 / 16 / 21</b>. "
       "Une fois vulnérable : +200 esquive PM et Inébranlable pour le reste du combat."),
+    figs([("dp_chaloeil_32.png", "Jeu du Chaloeil : Invulnérable pendant 20 tours"),
+          ("dp_chaloeil_33.png", "Au tour 21 : Inébranlable + 200 esquive PM")]),
     h("Ses sorts", GOLD),
     ul([
         "<b>Farce et Attrape</b> (dès le tour 2, 3×/tour, 1×/cible, 6 PO sans LDV) : échange de place avec allié ou ennemi ; sur un ennemi 1000 Terre + Pesanteur.",
@@ -146,9 +161,11 @@ GUIDES_200["chaloeil"] = "".join([
     p("Un <b>tank</b> (idéalement Pandawa) en coin bas-gauche attire le Chaloeil au contact (face Dé 6), "
       "vos autres persos à l'opposé (bas-droite). Le tank, max résistances, se soigne chaque tour sur les glyphes blancs. "
       "Surveiller les monstres à 10 PO du Chaloeil : leur mettre <u>Pesanteur</u> avant son tour pour bloquer l'échange."),
+    fig("dp_chaloeil_34.png", "Succès Liberté — placement conseillé (rouge Chaloeil · bleu vos persos · orange dés · blanc glyphes de soin)"),
 ])
 
 GUIDES_200["sylargh"] = "".join([
+    fig("dp_sylargh_24.png", "Sylargh — niveau 220, 13 000 PV", 300),
     h("Rendre Sylargh vulnérable", RED),
     p("Sylargh démarre <b>invulnérable</b> et <b>Lourd</b> tout le combat. Tous les monstres (lui compris) ont l'effet "
       "<b>Nécromignon</b> : un monstre tué est <u>réinvoqué en Zombi</u> (10% de ses PV, ~660) par le prochain monstre qui joue, "
@@ -158,19 +175,26 @@ GUIDES_200["sylargh"] = "".join([
       "du Zombi tué → il est <b>vulnérable 1 tour</b>."),
     note("Placer Sylargh à <b>5-10 PO</b> d'un Zombi avant de le tuer (pile 5 PO : vulnérable avant de prendre les "
          "dégâts). Trop près, il reste invulnérable. Chaîne de Zombis proches de lui = énormes dégâts Feu.", ORANGE, "CLÉ"),
+    figs([("dp_sylargh_28.png", "Réinvocation à 6 PO : cases 1 à 7, dans l'ordre (sens horaire)"),
+          ("dp_sylargh_29.png", "Zone 5-10 PO autour du Zombi tué : Sylargh y devient vulnérable"),
+          ("dp_sylargh_34.png", "Zombidule : explosion en cercle de 5 (dégressif)"),
+          ("dp_sylargh_31.png", "Effet Nécromignon : état Zombi")]),
     h("État Pacifiste", RED),
     p("Tuer un Zombi rend <b>Pacifiste 1 tour</b> (non débuffable) tous les persos à <b>90% PV ou plus</b>. "
       "Restez <u>sous 90% PV</u> en permanence : tapez un allié si besoin, ne prenez pas de pain en début de combat."),
+    fig("dp_sylargh_30.png", "Rester sous 90 % de PV (le pourcentage s'affiche en survolant l'allié)", 341),
     h("Réinvocation en chaîne", GOLD),
     p("C'est toujours le <b>dernier monstre tué</b> qui est réinvoqué ; plusieurs morts = réinvocations à la chaîne "
       "(Sylargh inclus s'il meurt alors qu'il reste des monstres). <b>Focus le 1<sup>er</sup> monstre réinvoqué</b> : "
       "ceux qu'il a invoqués meurent avec lui. Les Zombis sont Indéplaçables 1 tour, +300 dommages 2 tours, ne jouent pas leur 1<sup>er</sup> tour."),
+    fig("dp_sylargh_33.jpg", "Réinvocations en chaîne : Sylargh → Mécanofoux → Mansordide → Brikoglours, chacun à 6 PO du précédent"),
     h("Sorts de Sylargh", GOLD),
     ul([
         "<b>Dégage de qualité</b> (mêlée) : un monstre allié +500 dommages / +200 tacle 1 tour et repoussé de 3.",
         "<b>Mortier</b> (10 PO modifiable, 2×/tour) : 650 Terre + 650 Eau par ligne de dégâts mêlée subie → <u>jouer à distance</u>.",
         "<b>Poinçon</b> (1 PO) : 1100 Air vol de vie, retire tous les envoûtements, −100 fuite.",
     ]),
+    figs([("dp_sylargh_25.png", "Dégage de qualité"), ("dp_sylargh_26.png", "Mortier (portée modifiable)")]),
     h("Les monstres", ORANGE),
     ul([
         "<b>Brikoglours</b> : inoffensif à distance mais énorme à 2 PO, attire de 2 cases jusqu'à 6 PO en ligne.",
@@ -184,6 +208,7 @@ GUIDES_200["sylargh"] = "".join([
         "Placer Sylargh/monstres plutôt à gauche pour que les réinvocations (priorité horaire) ne tombent pas sur vous.",
         "S'écarter à 5 PO des Zombis avant de les finir (dégâts dégressifs).",
     ]),
+    fig("dp_sylargh_35.jpg", "Sylargh placé tout à gauche : les Zombis réapparaissent loin de l'équipe"),
 ])
 
 GUIDES_200["klime"] = "".join([

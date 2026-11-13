@@ -4776,5 +4776,1274 @@ GALLERY_200 = {
     "Hauspice"
    ]
   ]
+ },
+ "w_chevalier_glace": {
+  "map": None,
+  "schemas": [
+   [
+    "dp_w_chevalier_glace_3.png",
+    427,
+    121,
+    "Wanted37 108"
+   ],
+   [
+    "dp_w_chevalier_glace_6.png",
+    429,
+    124,
+    "Wanted37 102"
+   ],
+   [
+    "dp_w_chevalier_glace_7.png",
+    428,
+    146,
+    "Wanted37 107"
+   ],
+   [
+    "dp_w_chevalier_glace_8.png",
+    430,
+    124,
+    "Wanted37 109"
+   ],
+   [
+    "dp_w_chevalier_glace_9.png",
+    640,
+    333,
+    "La force du faible"
+   ],
+   [
+    "dp_w_chevalier_glace_10.png",
+    640,
+    333,
+    "Souffle amollissant"
+   ],
+   [
+    "dp_w_chevalier_glace_11.png",
+    320,
+    186,
+    "Tranchant absorbant"
+   ],
+   [
+    "dp_w_chevalier_glace_12.png",
+    588,
+    322,
+    "Wanted37 saut"
+   ],
+   [
+    "dp_w_chevalier_glace_13.png",
+    640,
+    331,
+    "Souffler n'est pas jouer"
+   ]
+  ],
+  "monstres": [
+   [
+    "dp_w_chevalier_glace_0.png",
+    523,
+    55,
+    "Wanted37 112"
+   ],
+   [
+    "dp_w_chevalier_glace_1.png",
+    513,
+    59,
+    "Wanted37 116"
+   ],
+   [
+    "dp_w_chevalier_glace_2.png",
+    620,
+    88,
+    "Wanted37 103"
+   ],
+   [
+    "dp_w_chevalier_glace_4.png",
+    640,
+    151,
+    "Wanted37 115"
+   ],
+   [
+    "dp_w_chevalier_glace_5.png",
+    565,
+    55,
+    "Wanted37 117"
+   ]
+  ],
+  "sorts_monstres": []
+ },
+ "w_culbutoeuf": {
+  "map": None,
+  "schemas": [
+   [
+    "dp_w_culbutoeuf_0.png",
+    428,
+    166,
+    "De plus tous vos"
+   ],
+   [
+    "dp_w_culbutoeuf_1.png",
+    432,
+    170,
+    "Sinon Culbutoeuf"
+   ],
+   [
+    "dp_w_culbutoeuf_2.png",
+    430,
+    125,
+    "Présentation des effets et des sorts du recherché :"
+   ],
+   [
+    "dp_w_culbutoeuf_3.png",
+    430,
+    123,
+    "Sur Culbutoeuf,"
+   ],
+   [
+    "dp_w_culbutoeuf_4.png",
+    431,
+    147,
+    "Sur vos personnages,"
+   ],
+   [
+    "dp_w_culbutoeuf_5.png",
+    428,
+    166,
+    "De bon coeur"
+   ],
+   [
+    "dp_w_culbutoeuf_6.png",
+    559,
+    307,
+    "Sinistro vole"
+   ],
+   [
+    "dp_w_culbutoeuf_7.png",
+    492,
+    266,
+    "Roule ma boule"
+   ],
+   [
+    "dp_w_culbutoeuf_8.png",
+    640,
+    331,
+    "Va te faire cuire un oeuf"
+   ]
+  ],
+  "monstres": [],
+  "sorts_monstres": []
+ },
+ "w_mekamouth": {
+  "map": None,
+  "schemas": [
+   [
+    "dp_w_mekamouth_0.png",
+    424,
+    167,
+    "Mekamouth"
+   ],
+   [
+    "dp_w_mekamouth_1.png",
+    456,
+    174,
+    "Wanted62 118"
+   ],
+   [
+    "dp_w_mekamouth_2.png",
+    425,
+    142,
+    "Wanted62 113"
+   ],
+   [
+    "dp_w_mekamouth_3.png",
+    426,
+    188,
+    "Wanted62 121"
+   ],
+   [
+    "dp_w_mekamouth_4.png",
+    429,
+    122,
+    "Le Mekamouth se boost de 25% de sa vitalité maximale."
+   ],
+   [
+    "dp_w_mekamouth_5.png",
+    427,
+    120,
+    "Wanted62 116"
+   ],
+   [
+    "dp_w_mekamouth_6.png",
+    431,
+    124,
+    "Présentation des effets et des sorts du recherché :"
+   ],
+   [
+    "dp_w_mekamouth_7.png",
+    430,
+    124,
+    "Effet sur le Mekamouth, il est Invulnérable (infini)"
+   ],
+   [
+    "dp_w_mekamouth_8.png",
+    424,
+    167,
+    "Effet sur vos personnages, ils ont deux malus pour tout le combat."
+   ],
+   [
+    "dp_w_mekamouth_9.png",
+    427,
+    142,
+    "Presque tous les sorts"
+   ],
+   [
+    "dp_w_mekamouth_10.png",
+    640,
+    346,
+    "Surtension"
+   ],
+   [
+    "dp_w_mekamouth_11.png",
+    640,
+    350,
+    "Glyglyphe"
+   ],
+   [
+    "dp_w_mekamouth_12.png",
+    640,
+    335,
+    "Mekabouste"
+   ],
+   [
+    "dp_w_mekamouth_13.png",
+    640,
+    342,
+    "Liquide de refroidissement"
+   ],
+   [
+    "dp_w_mekamouth_14.png",
+    640,
+    379,
+    "La défense c'est l'attaque"
+   ],
+   [
+    "dp_w_mekamouth_15.png",
+    640,
+    346,
+    "Spahunglif"
+   ],
+   [
+    "dp_w_mekamouth_16.png",
+    395,
+    360,
+    "Wanted62 111"
+   ]
+  ],
+  "monstres": [],
+  "sorts_monstres": []
+ },
+ "w_takomako": {
+  "map": None,
+  "schemas": [
+   [
+    "dp_w_takomako_1.png",
+    430,
+    144,
+    "Enfin, Takomako possède un seul"
+   ],
+   [
+    "dp_w_takomako_2.png",
+    430,
+    125,
+    "Wanted20 103"
+   ],
+   [
+    "dp_w_takomako_3.png",
+    429,
+    124,
+    "Présentation des effets et des sorts du recherché :"
+   ],
+   [
+    "dp_w_takomako_4.png",
+    430,
+    169,
+    "Wanted20 101"
+   ],
+   [
+    "dp_w_takomako_5.png",
+    430,
+    168,
+    "Wanted20 113"
+   ],
+   [
+    "dp_w_takomako_6.png",
+    400,
+    164,
+    "Comme dans le donjon de la zone, les mobs et Takomako peuvent"
+   ],
+   [
+    "dp_w_takomako_7.png",
+    431,
+    126,
+    "Wanted20 104"
+   ],
+   [
+    "dp_w_takomako_8.png",
+    640,
+    339,
+    "Wanted20 takotak"
+   ],
+   [
+    "dp_w_takomako_9.png",
+    640,
+    328,
+    "Wanted20 makomak"
+   ]
+  ],
+  "monstres": [
+   [
+    "dp_w_takomako_0.jpg",
+    640,
+    147,
+    "Wanted20 2"
+   ]
+  ],
+  "sorts_monstres": []
+ },
+ "w_homard_medali": {
+  "map": None,
+  "schemas": [
+   [
+    "dp_w_homard_medali_1.png",
+    428,
+    147,
+    "Wanted10 111"
+   ],
+   [
+    "dp_w_homard_medali_2.png",
+    430,
+    144,
+    "Wanted10 115"
+   ],
+   [
+    "dp_w_homard_medali_3.png",
+    429,
+    124,
+    "Présentation des effets et des sorts du recherché :"
+   ],
+   [
+    "dp_w_homard_medali_4.png",
+    428,
+    146,
+    "Wanted10 101"
+   ],
+   [
+    "dp_w_homard_medali_5.png",
+    575,
+    311,
+    "Télépunch"
+   ],
+   [
+    "dp_w_homard_medali_6.png",
+    267,
+    159,
+    "Drachetaulque"
+   ],
+   [
+    "dp_w_homard_medali_7.png",
+    640,
+    350,
+    "Hypercut"
+   ]
+  ],
+  "monstres": [
+   [
+    "dp_w_homard_medali_0.jpg",
+    640,
+    147,
+    "Wanted10 2"
+   ]
+  ],
+  "sorts_monstres": []
+ },
+ "w_atcham": {
+  "map": None,
+  "schemas": [
+   [
+    "dp_w_atcham_1.png",
+    606,
+    519,
+    "Wanted1 103"
+   ],
+   [
+    "dp_w_atcham_2.png",
+    479,
+    138,
+    "Wanted1 114"
+   ],
+   [
+    "dp_w_atcham_3.png",
+    427,
+    125,
+    "Wanted1 112"
+   ],
+   [
+    "dp_w_atcham_4.png",
+    428,
+    124,
+    "Wanted1 115"
+   ],
+   [
+    "dp_w_atcham_5.png",
+    427,
+    144,
+    "Wanted1 111"
+   ],
+   [
+    "dp_w_atcham_6.png",
+    602,
+    190,
+    "Présentation des effets et des sorts du recherché :"
+   ],
+   [
+    "dp_w_atcham_7.png",
+    302,
+    122,
+    "Wanted1 110"
+   ],
+   [
+    "dp_w_atcham_8.png",
+    500,
+    313,
+    "À chaque début de tour de Fou, celui-ci"
+   ],
+   [
+    "dp_w_atcham_9.png",
+    426,
+    122,
+    "Wanted1 106"
+   ],
+   [
+    "dp_w_atcham_10.png",
+    409,
+    230,
+    "Wanted1 coupe"
+   ],
+   [
+    "dp_w_atcham_11.png",
+    492,
+    273,
+    "Enveloppage"
+   ]
+  ],
+  "monstres": [
+   [
+    "dp_w_atcham_0.png",
+    587,
+    54,
+    "Wanted1 107"
+   ]
+  ],
+  "sorts_monstres": []
+ },
+ "w_buldalazred": {
+  "map": None,
+  "schemas": [
+   [
+    "dp_w_buldalazred_1.png",
+    452,
+    350,
+    "Si un de vos personnages"
+   ],
+   [
+    "dp_w_buldalazred_4.png",
+    428,
+    191,
+    "Wanted2 115"
+   ],
+   [
+    "dp_w_buldalazred_5.png",
+    419,
+    254,
+    "Wanted2 116"
+   ],
+   [
+    "dp_w_buldalazred_6.png",
+    640,
+    334,
+    "Wanted2 uction"
+   ],
+   [
+    "dp_w_buldalazred_7.png",
+    640,
+    334,
+    "Piège dimensionnel"
+   ]
+  ],
+  "monstres": [
+   [
+    "dp_w_buldalazred_0.jpg",
+    640,
+    147,
+    "Wanted2 2"
+   ],
+   [
+    "dp_w_buldalazred_2.png",
+    592,
+    59,
+    "Wanted2 113"
+   ],
+   [
+    "dp_w_buldalazred_3.png",
+    548,
+    92,
+    "Wanted2 109"
+   ]
+  ],
+  "sorts_monstres": []
+ },
+ "w_ganos": {
+  "map": None,
+  "schemas": [
+   [
+    "dp_w_ganos_0.png",
+    411,
+    131,
+    "Wanted82 10meganos"
+   ],
+   [
+    "dp_w_ganos_1.jpg",
+    260,
+    260,
+    "Ganorage 1"
+   ],
+   [
+    "dp_w_ganos_2.jpg",
+    260,
+    260,
+    "Ganorage Ultime"
+   ],
+   [
+    "dp_w_ganos_3.png",
+    590,
+    338,
+    "Wanted82 1matatak"
+   ],
+   [
+    "dp_w_ganos_4.png",
+    613,
+    337,
+    "Sabotage"
+   ],
+   [
+    "dp_w_ganos_5.png",
+    410,
+    247,
+    "Sanglissade"
+   ],
+   [
+    "dp_w_ganos_6.png",
+    294,
+    218,
+    "Taure Ture"
+   ],
+   [
+    "dp_w_ganos_7.png",
+    640,
+    345,
+    "Groincision"
+   ],
+   [
+    "dp_w_ganos_8.png",
+    640,
+    348,
+    "Taure Peur"
+   ]
+  ],
+  "monstres": [],
+  "sorts_monstres": []
+ },
+ "w_glourdorak": {
+  "map": None,
+  "schemas": [
+   [
+    "dp_w_glourdorak_0.png",
+    308,
+    298,
+    "Wanted50 114"
+   ],
+   [
+    "dp_w_glourdorak_1.png",
+    430,
+    121,
+    "Wanted50 105"
+   ],
+   [
+    "dp_w_glourdorak_2.png",
+    428,
+    443,
+    "Glourdorak peut"
+   ],
+   [
+    "dp_w_glourdorak_3.png",
+    616,
+    241,
+    "Présentation des effets et des sorts du recherché :"
+   ],
+   [
+    "dp_w_glourdorak_4.png",
+    429,
+    168,
+    "Pour lui"
+   ],
+   [
+    "dp_w_glourdorak_5.png",
+    431,
+    124,
+    "En plus des états Invulnérable et Lourd,"
+   ],
+   [
+    "dp_w_glourdorak_6.png",
+    430,
+    125,
+    "Wanted50 102"
+   ],
+   [
+    "dp_w_glourdorak_7.png",
+    430,
+    126,
+    "Gloursofulgur"
+   ],
+   [
+    "dp_w_glourdorak_8.png",
+    386,
+    238,
+    "Gloursofulgur"
+   ],
+   [
+    "dp_w_glourdorak_9.png",
+    640,
+    346,
+    "Dard des villes"
+   ],
+   [
+    "dp_w_glourdorak_10.png",
+    640,
+    344,
+    "Ruche Hour"
+   ],
+   [
+    "dp_w_glourdorak_11.png",
+    258,
+    177,
+    "Miel de Jouvence"
+   ],
+   [
+    "dp_w_glourdorak_12.png",
+    640,
+    346,
+    "Gloursolaser"
+   ],
+   [
+    "dp_w_glourdorak_13.png",
+    252,
+    174,
+    "Gloursopoing"
+   ]
+  ],
+  "monstres": [],
+  "sorts_monstres": []
+ },
+ "w_kongoku": {
+  "map": None,
+  "schemas": [
+   [
+    "dp_w_kongoku_2.png",
+    256,
+    220,
+    "Wanted52 112b"
+   ],
+   [
+    "dp_w_kongoku_4.png",
+    408,
+    236,
+    "Invocation de la Cocolune"
+   ],
+   [
+    "dp_w_kongoku_6.png",
+    429,
+    147,
+    "Wanted52 105"
+   ],
+   [
+    "dp_w_kongoku_7.png",
+    427,
+    124,
+    "Wanted52 109"
+   ],
+   [
+    "dp_w_kongoku_8.png",
+    430,
+    125,
+    "Wanted52 106"
+   ],
+   [
+    "dp_w_kongoku_9.png",
+    429,
+    124,
+    "Wanted52 107"
+   ],
+   [
+    "dp_w_kongoku_10.png",
+    427,
+    146,
+    "Uppercut magistral"
+   ],
+   [
+    "dp_w_kongoku_11.png",
+    626,
+    345,
+    "Saruharuha"
+   ],
+   [
+    "dp_w_kongoku_12.png",
+    502,
+    335,
+    "Déplacement instantané"
+   ]
+  ],
+  "monstres": [
+   [
+    "dp_w_kongoku_0.jpg",
+    640,
+    152,
+    "Wanted52 2b"
+   ],
+   [
+    "dp_w_kongoku_1.png",
+    547,
+    97,
+    "Wanted52 101"
+   ],
+   [
+    "dp_w_kongoku_3.png",
+    543,
+    75,
+    "Wanted52 111"
+   ],
+   [
+    "dp_w_kongoku_5.png",
+    634,
+    133,
+    "Wanted52 103"
+   ],
+   [
+    "dp_w_kongoku_13.jpg",
+    640,
+    152,
+    "Wanted52 200a"
+   ]
+  ],
+  "sorts_monstres": []
+ },
+ "w_hyperscampe": {
+  "map": None,
+  "schemas": [
+   [
+    "dp_w_hyperscampe_1.png",
+    433,
+    378,
+    "Dans un premier temps attendre qu’il"
+   ],
+   [
+    "dp_w_hyperscampe_2.png",
+    433,
+    378,
+    "Wanted56 120"
+   ],
+   [
+    "dp_w_hyperscampe_3.png",
+    429,
+    146,
+    "Wanted56 122"
+   ],
+   [
+    "dp_w_hyperscampe_4.png",
+    429,
+    146,
+    "Sinon, l’Hyperscampe frappe"
+   ],
+   [
+    "dp_w_hyperscampe_5.png",
+    428,
+    145,
+    "Pour rendre"
+   ],
+   [
+    "dp_w_hyperscampe_6.png",
+    429,
+    145,
+    "Wanted56 116"
+   ],
+   [
+    "dp_w_hyperscampe_8.png",
+    640,
+    220,
+    "Wanted56 150"
+   ],
+   [
+    "dp_w_hyperscampe_9.png",
+    431,
+    125,
+    "Wanted56 103"
+   ],
+   [
+    "dp_w_hyperscampe_11.png",
+    430,
+    144,
+    "Wanted56 131"
+   ],
+   [
+    "dp_w_hyperscampe_13.png",
+    427,
+    122,
+    "Exemple 2 : Deux personnages pour rendre l'Hyperscampe vulnérable :"
+   ],
+   [
+    "dp_w_hyperscampe_14.png",
+    640,
+    326,
+    "Sur la première image,"
+   ],
+   [
+    "dp_w_hyperscampe_15.png",
+    640,
+    320,
+    "Sur la première image,"
+   ],
+   [
+    "dp_w_hyperscampe_16.png",
+    498,
+    271,
+    "Percussion"
+   ],
+   [
+    "dp_w_hyperscampe_17.png",
+    289,
+    167,
+    "Wanted56 rupture"
+   ],
+   [
+    "dp_w_hyperscampe_18.png",
+    520,
+    261,
+    "Wanted56 forage"
+   ],
+   [
+    "dp_w_hyperscampe_19.png",
+    640,
+    248,
+    "Riveteuse"
+   ]
+  ],
+  "monstres": [
+   [
+    "dp_w_hyperscampe_0.jpg",
+    640,
+    150,
+    "Wanted56 2"
+   ],
+   [
+    "dp_w_hyperscampe_7.png",
+    637,
+    104,
+    "Wanted56 109"
+   ],
+   [
+    "dp_w_hyperscampe_10.png",
+    640,
+    139,
+    "Wanted56 130"
+   ],
+   [
+    "dp_w_hyperscampe_12.png",
+    640,
+    69,
+    "Wanted56 132"
+   ]
+  ],
+  "sorts_monstres": []
+ },
+ "w_khepricorne": {
+  "map": None,
+  "schemas": [
+   [
+    "dp_w_khepricorne_0.png",
+    462,
+    127,
+    "De plus, en passant vulnérable il"
+   ],
+   [
+    "dp_w_khepricorne_1.png",
+    330,
+    335,
+    "Wanted12 152"
+   ],
+   [
+    "dp_w_khepricorne_3.png",
+    371,
+    311,
+    "Wanted12 101"
+   ],
+   [
+    "dp_w_khepricorne_4.png",
+    424,
+    124,
+    "Les autres sorts lui permettent"
+   ],
+   [
+    "dp_w_khepricorne_5.png",
+    428,
+    193,
+    "Wanted12 150"
+   ],
+   [
+    "dp_w_khepricorne_6.png",
+    403,
+    228,
+    "Il peut invoquer des"
+   ],
+   [
+    "dp_w_khepricorne_7.jpg",
+    525,
+    366,
+    "Les Boulettes Puantes entourent les 4 libertés de vos personnages"
+   ],
+   [
+    "dp_w_khepricorne_9.png",
+    431,
+    125,
+    "Pour lui"
+   ],
+   [
+    "dp_w_khepricorne_10.png",
+    429,
+    238,
+    "Cependant lorsqu’il passe vulnérable, il se boost de :"
+   ],
+   [
+    "dp_w_khepricorne_11.png",
+    640,
+    336,
+    "Bouse de Feu"
+   ],
+   [
+    "dp_w_khepricorne_12.png",
+    584,
+    465,
+    "Bouse de là"
+   ],
+   [
+    "dp_w_khepricorne_13.png",
+    640,
+    394,
+    "Roulé-bousé"
+   ],
+   [
+    "dp_w_khepricorne_14.png",
+    640,
+    351,
+    "Avoir les Bouses"
+   ]
+  ],
+  "monstres": [
+   [
+    "dp_w_khepricorne_2.png",
+    634,
+    133,
+    "Wanted12 115"
+   ],
+   [
+    "dp_w_khepricorne_8.png",
+    636,
+    133,
+    "Wanted12 114"
+   ]
+  ],
+  "sorts_monstres": []
+ },
+ "w_braideur": {
+  "map": None,
+  "schemas": [
+   [
+    "dp_w_braideur_0.png",
+    427,
+    164,
+    "Durant tout le combat,"
+   ],
+   [
+    "dp_w_braideur_2.png",
+    427,
+    145,
+    "Wanted45 106"
+   ],
+   [
+    "dp_w_braideur_3.png",
+    439,
+    161,
+    "Wanted45 101"
+   ],
+   [
+    "dp_w_braideur_4.png",
+    583,
+    191,
+    "Présentation des effets et des sorts du recherché :"
+   ],
+   [
+    "dp_w_braideur_5.png",
+    427,
+    164,
+    "Elle repousse"
+   ],
+   [
+    "dp_w_braideur_7.png",
+    640,
+    333,
+    "Carroyage"
+   ],
+   [
+    "dp_w_braideur_8.png",
+    640,
+    338,
+    "Wanted45 mastaba"
+   ],
+   [
+    "dp_w_braideur_9.png",
+    640,
+    332,
+    "Paléolitige"
+   ]
+  ],
+  "monstres": [
+   [
+    "dp_w_braideur_1.png",
+    558,
+    40,
+    "Wanted45 105"
+   ],
+   [
+    "dp_w_braideur_6.png",
+    633,
+    132,
+    "Wanted45 110"
+   ]
+  ],
+  "sorts_monstres": []
+ },
+ "w_psikopompe": {
+  "map": None,
+  "schemas": [
+   [
+    "dp_w_psikopompe_0.png",
+    431,
+    125,
+    "Wanted74 111"
+   ],
+   [
+    "dp_w_psikopompe_1.png",
+    430,
+    123,
+    "Wanted74 114"
+   ],
+   [
+    "dp_w_psikopompe_2.png",
+    429,
+    144,
+    "Wanted74 117"
+   ],
+   [
+    "dp_w_psikopompe_3.png",
+    430,
+    124,
+    "Sinon Psikopompe"
+   ],
+   [
+    "dp_w_psikopompe_4.png",
+    429,
+    169,
+    "Wanted74 104"
+   ],
+   [
+    "dp_w_psikopompe_5.png",
+    429,
+    215,
+    "Pour lui"
+   ],
+   [
+    "dp_w_psikopompe_6.png",
+    275,
+    211,
+    "Wanted74 110b"
+   ],
+   [
+    "dp_w_psikopompe_7.png",
+    640,
+    331,
+    "Sentence"
+   ],
+   [
+    "dp_w_psikopompe_8.png",
+    640,
+    341,
+    "Coupe-Jatte"
+   ],
+   [
+    "dp_w_psikopompe_9.png",
+    640,
+    361,
+    "Retour à l'envoyeur"
+   ],
+   [
+    "dp_w_psikopompe_10.png",
+    640,
+    359,
+    "Flagellation stimulante"
+   ]
+  ],
+  "monstres": [],
+  "sorts_monstres": []
+ },
+ "w_sicogne": {
+  "map": None,
+  "schemas": [
+   [
+    "dp_w_sicogne_0.png",
+    640,
+    358,
+    "Sicogne :"
+   ],
+   [
+    "dp_w_sicogne_2.png",
+    430,
+    123,
+    "Wanted78 128"
+   ],
+   [
+    "dp_w_sicogne_3.png",
+    427,
+    126,
+    "Wanted78 129"
+   ],
+   [
+    "dp_w_sicogne_5.png",
+    428,
+    136,
+    "Présentation des effets et des sorts du recherché :"
+   ],
+   [
+    "dp_w_sicogne_6.png",
+    424,
+    167,
+    "Effet « Glyphe téléporteur »"
+   ],
+   [
+    "dp_w_sicogne_7.png",
+    430,
+    145,
+    "Superpuissance"
+   ],
+   [
+    "dp_w_sicogne_8.png",
+    412,
+    272,
+    "Superpuissance"
+   ],
+   [
+    "dp_w_sicogne_9.png",
+    640,
+    330,
+    "Agression"
+   ],
+   [
+    "dp_w_sicogne_10.png",
+    410,
+    220,
+    "Annihilation"
+   ],
+   [
+    "dp_w_sicogne_11.png",
+    640,
+    358,
+    "Charge Destructrice"
+   ]
+  ],
+  "monstres": [
+   [
+    "dp_w_sicogne_1.png",
+    503,
+    55,
+    "Wanted78 131"
+   ],
+   [
+    "dp_w_sicogne_4.png",
+    620,
+    88,
+    "Wanted78 101b"
+   ]
+  ],
+  "sorts_monstres": []
+ },
+ "w_voldelor": {
+  "map": None,
+  "schemas": [
+   [
+    "dp_w_voldelor_1.png",
+    429,
+    120,
+    "Sinon Voldelor"
+   ],
+   [
+    "dp_w_voldelor_2.png",
+    431,
+    165,
+    "Présentation des effets et des sorts du recherché :"
+   ],
+   [
+    "dp_w_voldelor_3.png",
+    430,
+    123,
+    "Wanted26 109"
+   ],
+   [
+    "dp_w_voldelor_4.png",
+    408,
+    234,
+    "Armada Cadavra"
+   ],
+   [
+    "dp_w_voldelor_5.png",
+    640,
+    339,
+    "Sort Scellé"
+   ],
+   [
+    "dp_w_voldelor_6.png",
+    570,
+    362,
+    "Magitation"
+   ],
+   [
+    "dp_w_voldelor_7.png",
+    640,
+    337,
+    "Retour à la vie"
+   ]
+  ],
+  "monstres": [
+   [
+    "dp_w_voldelor_0.png",
+    599,
+    89,
+    "Wanted26 110"
+   ]
+  ],
+  "sorts_monstres": []
  }
 }

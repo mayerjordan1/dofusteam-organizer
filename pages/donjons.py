@@ -184,6 +184,75 @@ BOSSES = [
 ]
 
 
+# Avis de recherche de niveau 200 (même popup que les boss ; clés préfixées « w_ »).
+RECHERCHES = [
+    {
+        "key": "w_chevalier_glace", "name": "Chevalier de Glace", "icon": "recherche_chevalier_glace.png",
+        "url": "https://www.dofuspourlesnoobs.com/on-recherche-le-chevalier-de-glace.html",
+    },
+    {
+        "key": "w_culbutoeuf", "name": "Culbutoeuf", "icon": "recherche_culbutoeuf.png",
+        "url": "https://www.dofuspourlesnoobs.com/on-recherche-culbutoeuf.html",
+    },
+    {
+        "key": "w_mekamouth", "name": "Mekamouth", "icon": "recherche_mekamouth.png",
+        "url": "https://www.dofuspourlesnoobs.com/on-recherche-mekamouth.html",
+    },
+    {
+        "key": "w_takomako", "name": "Takomako", "icon": "recherche_takomako.png",
+        "url": "https://www.dofuspourlesnoobs.com/on-recherche-takomako.html",
+    },
+    {
+        "key": "w_homard_medali", "name": "Homard Medali", "icon": "recherche_homard_medali.png",
+        "url": "https://www.dofuspourlesnoobs.com/on-recherche-le-homard-medali.html",
+    },
+    {
+        "key": "w_atcham", "name": "Atcham", "icon": "recherche_atcham.png",
+        "url": "https://www.dofuspourlesnoobs.com/on-recherche-atcham.html",
+    },
+    {
+        "key": "w_buldalazred", "name": "Buldalazred", "icon": "recherche_buldalazred.png",
+        "url": "https://www.dofuspourlesnoobs.com/on-recherche-buldalazred.html",
+    },
+    {
+        "key": "w_ganos", "name": "Ganos", "icon": "recherche_ganos.png",
+        "url": "https://www.dofuspourlesnoobs.com/on-recherche-ganos.html",
+    },
+    {
+        "key": "w_glourdorak", "name": "Glourdorak", "icon": "recherche_glourdorak.png",
+        "url": "https://www.dofuspourlesnoobs.com/on-recherche-glourdorak.html",
+    },
+    {
+        "key": "w_kongoku", "name": "Grand Kongoku", "icon": "recherche_kongoku.png",
+        "url": "https://www.dofuspourlesnoobs.com/on-recherche-le-grand-kongoku.html",
+    },
+    {
+        "key": "w_hyperscampe", "name": "Hyperscampe", "icon": "recherche_hyperscampe.png",
+        "url": "https://www.dofuspourlesnoobs.com/on-recherche-l-hyperscampe.html",
+    },
+    {
+        "key": "w_khepricorne", "name": "Khepricorne", "icon": "recherche_khepricorne.png",
+        "url": "https://www.dofuspourlesnoobs.com/on-recherche-le-khepricorne.html",
+    },
+    {
+        "key": "w_braideur", "name": "Fantôme Braïdeur", "icon": "recherche_braideur.png",
+        "url": "https://www.dofuspourlesnoobs.com/on-recherche-le-fantome-braideur.html",
+    },
+    {
+        "key": "w_psikopompe", "name": "Psikopompe", "icon": "recherche_psikopompe.png",
+        "url": "https://www.dofuspourlesnoobs.com/on-recherche-le-psikopompe.html",
+    },
+    {
+        "key": "w_sicogne", "name": "Sicogne", "icon": "recherche_sicogne.png",
+        "url": "https://www.dofuspourlesnoobs.com/on-recherche-sicogne.html",
+    },
+    {
+        "key": "w_voldelor", "name": "Voldelor", "icon": "recherche_voldelor.png",
+        "url": "https://www.dofuspourlesnoobs.com/on-recherche-voldelor.html",
+    },
+]
+
+
 def _boss_img_dir(boss_key):
     d = NOTES_IMG_DIR / boss_key
     d.mkdir(parents=True, exist_ok=True)
@@ -674,22 +743,36 @@ class DonjonsPage(QWidget):
             ref_row.addStretch()
             body_lay.addLayout(ref_row)
 
-        grid = QWidget()
-        grid.setStyleSheet("background:transparent;")
-        grid_lay = QGridLayout(grid)
-        grid_lay.setContentsMargins(0, 0, 0, 0)
-        grid_lay.setSpacing(14)
-        grid_lay.setAlignment(Qt.AlignmentFlag.AlignLeft)
+        def _section(title):
+            lbl = QLabel(title)
+            lbl.setStyleSheet(f"color:{MUT}; font-size:10px; font-weight:700; letter-spacing:1px; background:transparent; border:none;")
+            body_lay.addWidget(lbl)
 
-        for i, boss in enumerate(BOSSES):
-            tile = BossCard(boss)
-            tile.clicked.connect(lambda b=boss: self._open_boss(b))
-            grid_lay.addWidget(tile, i // GRID_COLS, i % GRID_COLS)
+        def _grid(items):
+            grid = QWidget()
+            grid.setStyleSheet("background:transparent;")
+            grid_lay = QGridLayout(grid)
+            grid_lay.setContentsMargins(0, 0, 0, 0)
+            grid_lay.setSpacing(14)
+            grid_lay.setAlignment(Qt.AlignmentFlag.AlignLeft)
+            for i, boss in enumerate(items):
+                tile = BossCard(boss)
+                tile.clicked.connect(lambda b=boss: self._open_boss(b))
+                grid_lay.addWidget(tile, i // GRID_COLS, i % GRID_COLS)
+            body_lay.addWidget(grid)
 
-        body_lay.addWidget(grid)
+        _section("DONJONS")
+        _grid(BOSSES)
+        _section("AVIS DE RECHERCHE · NIVEAU 200")
+        _grid(RECHERCHES)
         body_lay.addStretch()
 
-        lay.addWidget(body, 1)
+        scroll = QScrollArea()
+        scroll.setWidgetResizable(True)
+        scroll.setFrameShape(QScrollArea.Shape.NoFrame)
+        scroll.setStyleSheet("QScrollArea { background:transparent; border:none; }")
+        scroll.setWidget(body)
+        lay.addWidget(scroll, 1)
 
     def _view_general(self, path):
         dlg = ImageViewerDialog(path, self)

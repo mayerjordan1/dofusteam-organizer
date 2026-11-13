@@ -15,3 +15,5 @@ DEFAULT_GUIDES = {
 from pages.donjon_guides_200 import GUIDES_200
 from pages.donjon_visuals import compose
 DEFAULT_GUIDES.update({k: compose(k, v) for k, v in GUIDES_200.items()})
+from pages.donjon_guides_wanted import GUIDES_WANTED
+DEFAULT_GUIDES.update({k: compose(k, v) for k, v in GUIDES_WANTED.items()})

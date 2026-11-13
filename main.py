@@ -26,7 +26,7 @@ from sidebar import Sidebar
 from updater import UpdateCheckThread, UpdateDownloadThread, can_self_update, apply_update_and_restart
 
 APP_NAME = "DofusTeam"
-VERSION  = "V2.42"
+VERSION  = "V2.43"
 
 CLASSES = ["Cra","Ecaflip","Eliotrope","Eniripsa","Enutrof","Feca","Forgelance",
            "Huppermage","Iop","Osamodas","Ouginak","Pandawa","Roublard","Sacrieur",
@@ -1486,6 +1486,7 @@ class MainWindow(QMainWindow):
         from pages.calibration import CalibrationPage
         from pages.donjons import DonjonsPage
         from pages.capture_hdv import CaptureHdvPage
+        from pages.classes import ClassesPage
         from hdv_capture import HdvCapture
 
         root=_BackgroundWidget(); self.setCentralWidget(root)
@@ -1514,6 +1515,7 @@ class MainWindow(QMainWindow):
         self.page_fenetres_scan=FenetresScanPage(self.config,self.logic)
         self.page_calibration=CalibrationPage(self.config,self.logic)
         self.page_donjons=DonjonsPage(self.config,self.logic)
+        self.page_classes=ClassesPage(self.config,self.logic)
         # Capture des prix de l'HDV : cadre de viseur + pont local vers le site (lecture passive de l'écran)
         self.hdv_capture=HdvCapture(self.config)
         self.hdv_capture.start()
@@ -1538,6 +1540,7 @@ class MainWindow(QMainWindow):
             "fenetres_scan":self.page_fenetres_scan,
             "calibration":self.page_calibration,
             "donjons":self.page_donjons,
+            "classes":self.page_classes,
             "capture_hdv":self.page_capture_hdv,
         }
         for page in self.pages.values(): self.stack.addWidget(page)

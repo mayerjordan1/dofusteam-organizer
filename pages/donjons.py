@@ -709,6 +709,49 @@ class BossNotesDialog(QDialog):
         event.accept()
 
 
+# ── Tableau « États de déplacement » (refait à partir du tableau de Coverer) ──
+# colonnes = états ; ligne = (libellé, sous-titre/sort, icône, [True = déplacement possible]) 
+MOVE_STATES = [
+    ("Pesanteur", "etat_pesanteur.png"), ("Lourd", "etat_lourd.png"), ("Enraciné", "etat_enracine.png"),
+    ("Indéplaçable", "etat_indeplacable.png"), ("Inébranlable", "etat_inebranlable.png"),
+]
+MOVE_ROWS = [
+    ("Attirer", "sort Attirance", "dep_attirance.png", [True, True, False, False, False]),
+    ("Pousser", "sort Libération", "dep_liberation.png", [True, True, False, False, False]),
+    ("Téléporter", "sort Bond", "dep_bond.png", [False, True, True, True, True]),
+    ("Échanger", "échange de position", "dep_echanger.png", [False, True, False, False, True]),
+    ("Porter", "Pandawa", "pandawa_h.png", [True, False, True, False, True]),
+    ("Portail", "Eliotrope", "dep_portail.png", [True, True, False, False, True]),
+]
+MOVE_NOTES = [
+    "Des exceptions s'appliquent pour certains gardiens de donjon.",
+    "Les sorts qui provoquent un <b>changement de position</b> suivent la rangée « <b>Échanger</b> », "
+    "même lors d'un atterrissage sur une case libre (ce n'est donc pas une Téléportation !).",
+    "Exemples : Projection du Sacrieur · Éviction du Pandawa · tout sort de déplacement Xélor.",
+]
+
+
+def moves_table_html():
+    """Tableau lisible dans un QTextBrowser (icônes de skin/, thème DofusTeam)."""
+    ok = f'<span style="color:#6dc96d; font-size:20px; font-weight:700;">&#10003;</span>'
+    ko = f'<span style="color:#e05c5c; font-size:18px; font-weight:700;">&#10005;</span>'
+    th = "".join(
+        f'<td width="104" align="center" style="padding:8px 4px;"><img src="{ic}" width="34" height="34"><br>'
+        f'<span style="font-size:11px; font-weight:700;">{name}</span></td>' for name, ic in MOVE_STATES)
+    rows = ""
+    for label, sub, icon, cells in MOVE_ROWS:
+        tds = "".join(f'<td align="center" bgcolor="#161b22" style="padding:6px;">{ok if c else ko}</td>' for c in cells)
+        rows += (f'<tr><td width="200" bgcolor="#161b22" style="padding:6px 10px;"><img src="{icon}" width="30" height="30" '
+                 f'align="middle">&nbsp;&nbsp;<b>{label}</b><br><span style="font-size:10px; color:#7a7d8a;">{sub}</span></td>{tds}</tr>')
+    notes = "".join(f'<li style="margin-bottom:6px;">{n}</li>' for n in MOVE_NOTES)
+    return (f'<p style="font-size:12px; color:#7a7d8a; margin:0 0 10px 0;">'
+            f'<b style="color:#6dc96d;">&#10003;</b> le déplacement fonctionne malgré l\'état &nbsp;·&nbsp; '
+            f'<b style="color:#e05c5c;">&#10005;</b> bloqué par l\'état</p>'
+            f'<table cellspacing="4" cellpadding="0" width="740"><tr><td width="200"></td>{th}</tr>{rows}</table>'
+            f'<ul style="margin:14px 0 6px 0; padding-left:18px; color:#e8e9ed;">{notes}</ul>'
+            f'<p style="font-size:10px; color:#7a7d8a;">Tableau d\'origine : Coverer (Coverer Dofus sur YouTube).</p>')
+
+
 class DonjonsPage(QWidget):
     """Grille de boss — clic = ouvre les indications de combat associées."""
 
@@ -765,30 +808,27 @@ class DonjonsPage(QWidget):
             body_lay.addStretch()
             return _scroll(body)
 
-        def _moves_panel(path):
+        def _moves_panel():
             body = QWidget()
             body_lay = QVBoxLayout(body)
             body_lay.setContentsMargins(24, 18, 24, 18)
-            hint = QLabel("Référence générale : états de déplacement (clique l'image pour l'agrandir).")
-            hint.setStyleSheet(f"color:{MUT}; font-size:11px; background:transparent; border:none;")
-            body_lay.addWidget(hint)
-            img = QLabel()
-            img.setStyleSheet("background:transparent; border:none;")
-            img.setCursor(Qt.CursorShape.PointingHandCursor)
-            img.setPixmap(QPixmap(str(path)).scaledToWidth(
-                720, Qt.TransformationMode.SmoothTransformation))
-            img.mouseReleaseEvent = lambda e, p=path: self._view_general(p)
-            body_lay.addWidget(img, 0, Qt.AlignmentFlag.AlignLeft)
-            body_lay.addStretch()
-            return _scroll(body)
+            tb = QTextBrowser()
+            tb.setOpenLinks(False)
+            tb.setSearchPaths([str(SKIN_DIR)])
+            tb.setFrameShape(QTextBrowser.Shape.NoFrame)
+            tb.setStyleSheet(f"QTextBrowser {{ background:transparent; color:{TEXT}; border:none; font-size:12px; }}")
+            tb.setHtml(moves_table_html())
+            tb.setMinimumWidth(780)
+            tb.setMaximumWidth(860)
+            body_lay.addWidget(tb, 1)
+            body_lay.addStretch(0)
+            return body
 
         panels = [
             ("donjons", f"Donjons ({len(BOSSES)})", _grid_panel(BOSSES)),
             ("recherches", f"Avis de recherche ({len(RECHERCHES)})", _grid_panel(RECHERCHES)),
         ]
-        general_path = SKIN_DIR / "deplacement.png"
-        if general_path.exists():
-            panels.append(("moves", "Déplacements", _moves_panel(general_path)))
+        panels.append(("moves", "Déplacements", _moves_panel()))
         for key, label, panel in panels:
             btn = QPushButton(label)
             btn.setCursor(Qt.CursorShape.PointingHandCursor)

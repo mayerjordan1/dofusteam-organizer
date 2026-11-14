@@ -194,9 +194,17 @@ class ClassesPage(QWidget):
         cl.addWidget(_icon("pa.png", 11))
         return chip
 
-    def _pair(self, a, b, small=False, total=False):
+    def _pair(self, a, b, small=False, total=False, center=False, lead=None, pad=0):
+        """center : enchaînement centré. lead : widget (« ou ») placé juste avant ; pad : marge de même largeur de chaque
+        côté, pour que le « ou » ne décale pas le centre de la ligne du bas par rapport à celle du haut."""
         h = QHBoxLayout()
         h.setSpacing(4)
+        if center:
+            h.addStretch()
+        if lead is not None:
+            h.addWidget(lead)
+        elif pad:
+            h.addSpacing(pad)
         h.addWidget(self._spell_chip(a, small))
         h.addWidget(_text("+", MUT, 11, False, True))
         h.addWidget(self._spell_chip(b, small))
@@ -204,6 +212,8 @@ class ClassesPage(QWidget):
             h.addSpacing(4)
             h.addWidget(_text("= 6", ACC, 10, True, True))
             h.addWidget(_icon("pa.png", 11))
+        if pad:
+            h.addSpacing(pad)
         h.addStretch()
         return h
 
@@ -267,15 +277,17 @@ class ClassesPage(QWidget):
     def _spells_cell(self, pair, alt):
         w = QWidget()
         w.setStyleSheet("background:transparent;")
+        # Les deux enchaînements sont centrés l'un par rapport à l'autre : le « ou » est placé juste avant la ligne du bas,
+        # et la ligne du haut a une marge de même largeur de chaque côté, donc leurs centres restent alignés.
         vl = QVBoxLayout(w)
         vl.setContentsMargins(0, 0, 0, 0)
         vl.setSpacing(3)
-        vl.addLayout(self._pair(pair[0], pair[1], total=True))
-        h = QHBoxLayout()
-        h.setSpacing(4)
-        h.addWidget(_text("ou", MUT, 10))
-        h.addLayout(self._pair(alt[0], alt[1], small=True), 1)
-        vl.addLayout(h)
+        ow = 18
+        ou = _text("ou", MUT, 10)
+        ou.setFixedWidth(ow)
+        ou.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        vl.addLayout(self._pair(pair[0], pair[1], total=True, center=True, pad=ow))
+        vl.addLayout(self._pair(alt[0], alt[1], small=True, center=True, lead=ou, pad=ow))
         return w
 
     def _table(self):

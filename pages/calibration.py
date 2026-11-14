@@ -32,7 +32,7 @@ def _make_header(title, subtitle):
 class _CharStatusRow(QFrame):
     recalibrate = pyqtSignal(str, str)  # (mode, nom)
 
-    def __init__(self, name, classe, chat_ok, parent=None):
+    def __init__(self, name, classe, chat_ok, parent=None, sexe="h"):
         super().__init__(parent)
         self.setObjectName("CharStatusRow")
         self.setStyleSheet(f"QFrame#CharStatusRow {{ background:{BG2}; border:1px solid {BORDER}; border-radius:8px; }}")
@@ -43,7 +43,7 @@ class _CharStatusRow(QFrame):
         av = QLabel()
         av.setFixedSize(26, 26)
         av.setStyleSheet("background:transparent;border:none;")
-        pix = make_avatar(classe or "", 26)
+        pix = make_avatar(classe or "", 26, sexe)
         if pix:
             av.setPixmap(pix)
         lay.addWidget(av)
@@ -179,7 +179,7 @@ class CalibrationPage(QWidget):
             self.rows_lay.addWidget(empty)
         else:
             for name in order:
-                row = _CharStatusRow(name, classes.get(name, ""), name in chat_positions)
+                row = _CharStatusRow(name, classes.get(name, ""), name in chat_positions, sexe=self.config.get("sexes", {}).get(name, "h"))
                 row.recalibrate.connect(lambda mode, n: self.open_calibration.emit(mode, n))
                 self.rows_lay.addWidget(row)
                 if name == just_calibrated:

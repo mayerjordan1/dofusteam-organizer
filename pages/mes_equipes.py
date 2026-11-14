@@ -533,12 +533,12 @@ class MesEquipesPage(QWidget):
         editor.exec()
 
     def _delete_preset(self, idx):
-        from PyQt6.QtWidgets import QMessageBox
+        from ui_kit import confirm
         presets = self.config.get("presets", [])
         if not (0 <= idx < len(presets)):
             return
         name = presets[idx].get("name", "?")
-        if QMessageBox.question(self, "Supprimer le preset", f"Supprimer le preset « {name} » ?") != QMessageBox.StandardButton.Yes:
+        if not confirm(self, "Supprimer ce preset ?", f"Le preset « {name} » sera supprimé définitivement.", ok="Supprimer", danger=True):
             return
         presets.pop(idx)
         self.config.set("presets", presets)
@@ -583,7 +583,7 @@ class MesEquipesPage(QWidget):
             av.setAlignment(Qt.AlignmentFlag.AlignCenter)
             op = "" if name in live_names else "opacity:0.4;"
             av.setStyleSheet(f"background:{BG3}; border-radius:14px; {op}")
-            pix = make_avatar(classes.get(name, ""), 24)
+            pix = make_avatar(classes.get(name, ""), 24, self.config.get("sexes", {}).get(name, "h"))
             if pix:
                 av.setPixmap(pix)
             cv.addWidget(av)

@@ -30,7 +30,7 @@ class CharCell(QPushButton):
         lay = QVBoxLayout(self); lay.setContentsMargins(6,8,6,4); lay.setSpacing(3)
         av = QLabel(); av.setAlignment(Qt.AlignmentFlag.AlignCenter); av.setFixedHeight(46)
         av.setStyleSheet("background:transparent;border:none;")
-        pix = make_avatar(acc.get("classe",""), 46)
+        pix = make_avatar(acc.get("classe",""), 46, acc.get("sexe","h"))
         if pix: av.setPixmap(pix)
         else: av.setText("?"); av.setStyleSheet(f"color:{MUT};font-size:18px;background:transparent;border:none;")
         lay.addWidget(av)

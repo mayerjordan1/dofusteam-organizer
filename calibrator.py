@@ -59,7 +59,7 @@ class CalibOverlay(QWidget):
         self.title_lbl.setText(f"Calibrer Zaap — {name}")
         self.inst_lbl.setText("Ouvre le havre-sac → clique sur le bouton Zaap")
         self.prog_lbl.setText(f"{cur}/{total} personnages")
-        pix=make_avatar(classe,46)
+        pix=make_avatar(classe,46,getattr(self,"sexes",{}).get(name,"h"))
         if pix: self.av.setPixmap(pix)
         else: self.av.setText("?"); self.av.setStyleSheet(f"color:{MUT};font-size:20px;")
         self._skip_requested=False
@@ -91,6 +91,7 @@ class CalibrationManager(QObject):
         self.config=config; self.logic=logic; self.mode=mode; self._running=False
         self.target_name=target_name
         self.overlay=CalibOverlay()
+        self.overlay.sexes=self.config.get("sexes",{})
 
     def start(self):
         self._running=True

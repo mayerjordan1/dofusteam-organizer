@@ -5,6 +5,7 @@ from PyQt6.QtCore import *
 from PyQt6.QtGui import *
 
 from paths import SKIN_DIR
+from ui_kit import DtDialog
 from theme import STYLE, make_avatar
 
 try:
@@ -25,39 +26,41 @@ def abs_to_rel(hwnd,ax,ay):
     if w<=0 or h<=0: return None
     return (ax-rect[0])/w,(ay-rect[1])/h
 
-class ZaapDialog(QDialog):
+class ZaapDialog(DtDialog):
     _status_sig=pyqtSignal(str)
     _phase2_sig=pyqtSignal()
     _done_sig=pyqtSignal()
 
     def __init__(self,config,logic,parent=None):
-        super().__init__(parent); self.config=config; self.logic=logic
+        super().__init__(parent,"Auto-Zaap","Méthode en 3 phases : ouvrir les havre-sacs, cliquer le zaap, coller la destination.",
+                         icon="icon_zaap.png",width=560,height=600)
+        self.config=config; self.logic=logic
         self.executor=None; self._calib_active=False
-        self.setWindowTitle("Auto-Zaap"); self.setFixedSize(520,540); self.setStyleSheet(STYLE)
         self._status_sig.connect(self._on_status)
         self._phase2_sig.connect(self._on_phase2)
         self._done_sig.connect(self._on_done)
         self._build()
 
     def _build(self):
-        lay=QVBoxLayout(self); lay.setContentsMargins(0,0,0,0); lay.setSpacing(0)
-        # Header + tabs
-        hdr=QWidget(); hdr.setStyleSheet("background:#0d1117;border-bottom:1px solid rgba(255,255,255,0.06);"); hdr.setFixedHeight(50)
-        hl=QHBoxLayout(hdr); hl.setContentsMargins(16,0,16,0)
-        hl.addWidget(QLabel("Auto-Zaap").setStyleSheet("font-size:15px;font-weight:700;") or QLabel("Auto-Zaap")); hl.addStretch()
+        # Onglets (contrôle segmenté) puis pages
+        tabs=QHBoxLayout(); tabs.setSpacing(6)
         self.tab_calib=QPushButton("Calibration"); self.tab_exec=QPushButton("Exécution")
-        for b in (self.tab_calib,self.tab_exec): b.setStyleSheet("background:transparent;border:none;color:#7a7d8a;padding:5px 14px;font-size:12px;")
+        for b in (self.tab_calib,self.tab_exec):
+            b.setCheckable(True); b.setCursor(Qt.CursorShape.PointingHandCursor); b.setMinimumHeight(32)
+            tabs.addWidget(b)
+        tabs.addStretch()
         self.tab_calib.clicked.connect(lambda:self._tab(0)); self.tab_exec.clicked.connect(lambda:self._tab(1))
-        hl.addWidget(self.tab_calib); hl.addWidget(self.tab_exec); lay.addWidget(hdr)
+        self.body.addLayout(tabs)
         self.stack=QStackedWidget(); self.stack.addWidget(self._calib_page()); self.stack.addWidget(self._exec_page())
-        lay.addWidget(self.stack); self._tab(0)
+        self.body.addWidget(self.stack,1); self._tab(0)
 
     def _tab(self,idx):
         self.stack.setCurrentIndex(idx)
-        active="background:rgba(255,138,30,0.1);border-bottom:2px solid #ff8a1e;color:#ff8a1e;padding:5px 14px;font-size:12px;"
-        inactive="background:transparent;border:none;color:#7a7d8a;padding:5px 14px;font-size:12px;"
-        self.tab_calib.setStyleSheet(active if idx==0 else inactive)
-        self.tab_exec.setStyleSheet(active if idx==1 else inactive)
+        on="QPushButton{background:rgba(255,138,30,0.14);color:#ff8a1e;border:1px solid rgba(255,138,30,0.5);border-radius:8px;padding:4px 16px;font-weight:700;}"
+        off="QPushButton{background:transparent;color:#7a7d8a;border:1px solid rgba(255,255,255,0.07);border-radius:8px;padding:4px 16px;}QPushButton:hover{color:#e8e9ed;}"
+        self.tab_calib.setChecked(idx==0); self.tab_exec.setChecked(idx==1)
+        self.tab_calib.setStyleSheet(on if idx==0 else off)
+        self.tab_exec.setStyleSheet(on if idx==1 else off)
 
     def _calib_page(self):
         page=QWidget(); lay=QVBoxLayout(page); lay.setContentsMargins(16,12,16,12); lay.setSpacing(10)
@@ -83,13 +86,13 @@ class ZaapDialog(QDialog):
         if not order: self.calib_layout.addWidget(QLabel("Aucun compte — scannez d'abord.")); return
         for name in order:
             coords=zaaps.get(name); row=QWidget(); rl=QHBoxLayout(row); rl.setContentsMargins(4,2,4,2); rl.setSpacing(8)
-            av=QLabel(); av.setFixedSize(32,32); pix=make_avatar(self.config.get("classes",{}).get(name,""))
+            av=QLabel(); av.setFixedSize(32,32); pix=make_avatar(self.config.get("classes",{}).get(name,""),36,self.config.get("sexes",{}).get(name,"h"))
             if pix: av.setPixmap(pix)
             rl.addWidget(av)
             lbl=QLabel(name); lbl.setMinimumWidth(110); lbl.setStyleSheet("font-weight:600;"); rl.addWidget(lbl)
             sl=QLabel(f"({coords[0]:.3f}, {coords[1]:.3f})" if coords else "Non calibré")
             sl.setStyleSheet(f"color:{'#ff8a1e' if coords else '#ff5c5c'};font-size:10px;"); sl.setMinimumWidth(160); rl.addWidget(sl); rl.addStretch()
-            cb=QPushButton("Calibrer"); cb.setStyleSheet("background:#c8a000;color:white;border:none;border-radius:5px;padding:4px 10px;font-size:11px;")
+            cb=QPushButton("Calibrer"); cb.setCursor(Qt.CursorShape.PointingHandCursor)
             cb.clicked.connect(lambda _,n=name,s=sl:self._start_calib(n,s)); rl.addWidget(cb)
             self.calib_layout.addWidget(row)
         self.calib_layout.addStretch()
@@ -127,15 +130,15 @@ class ZaapDialog(QDialog):
         inst.setStyleSheet("color:#7a7d8a;font-size:11px;"); inst.setWordWrap(True); lay.addWidget(inst)
         sep=QFrame(); sep.setFrameShape(QFrame.Shape.HLine); sep.setStyleSheet("background:rgba(255,255,255,0.07);"); lay.addWidget(sep)
         self.status_box=QLabel("En attente...")
-        self.status_box.setStyleSheet("background:#0d1117;border:1px solid rgba(255,255,255,0.07);border-radius:6px;padding:10px;font-size:12px;"); self.status_box.setWordWrap(True); self.status_box.setMinimumHeight(80); lay.addWidget(self.status_box)
+        self.status_box.setStyleSheet("background:#0d1117;border:1px solid rgba(255,255,255,0.09);border-radius:8px;padding:12px;font-size:12px;"); self.status_box.setWordWrap(True); self.status_box.setMinimumHeight(80); lay.addWidget(self.status_box)
         warn=QLabel("Ne touchez pas la souris pendant l'exécution."); warn.setStyleSheet("color:#f4a700;font-size:10px;"); lay.addWidget(warn)
         lay.addStretch()
         self.p1_btn=QPushButton("▶  Lancer Phase 1 — Ouvrir les Zaaps")
-        self.p1_btn.setStyleSheet("background:#ff8a1e;color:#080b10;border:none;border-radius:6px;padding:10px;font-weight:700;font-size:13px;"); self.p1_btn.clicked.connect(self._launch_p1); lay.addWidget(self.p1_btn)
+        self.p1_btn.setProperty("role","primary"); self.p1_btn.setMinimumHeight(40); self.p1_btn.clicked.connect(self._launch_p1); lay.addWidget(self.p1_btn)
         self.exec_btn=QPushButton("Exécuter — Coller la destination")
-        self.exec_btn.setStyleSheet("background:#c8a000;color:white;border:none;border-radius:6px;padding:10px;font-weight:700;font-size:13px;"); self.exec_btn.setEnabled(False); self.exec_btn.clicked.connect(self._launch_p3); lay.addWidget(self.exec_btn)
+        self.exec_btn.setMinimumHeight(40); self.exec_btn.setEnabled(False); self.exec_btn.clicked.connect(self._launch_p3); lay.addWidget(self.exec_btn)
         self.stop_btn=QPushButton("■  Arrêter")
-        self.stop_btn.setStyleSheet("background:#ff5c5c;color:white;border:none;border-radius:6px;padding:6px;"); self.stop_btn.setEnabled(False); self.stop_btn.clicked.connect(self._stop); lay.addWidget(self.stop_btn)
+        self.stop_btn.setProperty("role","danger"); self.stop_btn.setEnabled(False); self.stop_btn.clicked.connect(self._stop); lay.addWidget(self.stop_btn)
         return page
 
     def _launch_p1(self):
@@ -160,5 +163,7 @@ class ZaapDialog(QDialog):
         self.p1_btn.setEnabled(True); self.exec_btn.setEnabled(False); self.stop_btn.setEnabled(False); self._on_status("Arrêté.")
 
     def _on_status(self,msg): self.status_box.setText(msg)
-    def _on_phase2(self): self.exec_btn.setEnabled(True); self.exec_btn.setStyleSheet("background:#ff8a1e;color:#080b10;border:none;border-radius:6px;padding:10px;font-weight:700;font-size:13px;")
+    def _on_phase2(self):
+        self.exec_btn.setEnabled(True); self.exec_btn.setProperty("role","primary")
+        self.exec_btn.style().unpolish(self.exec_btn); self.exec_btn.style().polish(self.exec_btn)
     def _on_done(self): self.p1_btn.setEnabled(True); self.exec_btn.setEnabled(False); self.stop_btn.setEnabled(False)

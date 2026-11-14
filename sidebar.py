@@ -42,6 +42,22 @@ GROUPS = [
 NON_PAGE_KEYS = {"parametres", "chasse_tresor", "pnj"}
 
 
+def _square_icon(filename, size):
+    """Icône centrée dans un carré fixe : sans ça, une icône étroite (l'œuf DofusTeam) décale son libellé par rapport aux autres."""
+    from PyQt6.QtGui import QPixmap, QPainter, QIcon
+    from paths import SKIN_DIR
+    pm = QPixmap(str(SKIN_DIR / filename))
+    if pm.isNull():
+        return None
+    pm = pm.scaled(size, size, Qt.AspectRatioMode.KeepAspectRatio, Qt.TransformationMode.SmoothTransformation)
+    out = QPixmap(size, size)
+    out.fill(Qt.GlobalColor.transparent)
+    p = QPainter(out)
+    p.drawPixmap((size - pm.width()) // 2, (size - pm.height()) // 2, pm)
+    p.end()
+    return QIcon(out)
+
+
 class Sidebar(QWidget):
     sig_navigate = pyqtSignal(str)
 
@@ -55,8 +71,8 @@ class Sidebar(QWidget):
 
     def _build(self, version):
         lay = QVBoxLayout(self)
-        lay.setContentsMargins(0, 8, 0, 8)
-        lay.setSpacing(0)
+        lay.setContentsMargins(10, 8, 10, 8)   # boutons inset : plus de pastilles collées aux bords
+        lay.setSpacing(2)
 
         for group_label, entries in GROUPS:
             gl = QLabel(group_label)
@@ -65,12 +81,12 @@ class Sidebar(QWidget):
             for entry in entries:
                 key, label = entry[0], entry[1]
                 icon_file = entry[2] if len(entry) > 2 else None
-                btn = QPushButton(label)
+                btn = QPushButton("  " + label.strip())      # libellés normalisés (un seul espace d'icône pour tous)
                 btn.setObjectName("SidebarItem")
                 btn.setProperty("active", "false")
                 btn.setCursor(Qt.CursorShape.PointingHandCursor)
                 if icon_file:
-                    icon = load_icon(icon_file, ICON_SIZE)
+                    icon = _square_icon(icon_file, ICON_SIZE)
                     if icon:
                         btn.setIcon(icon)
                         btn.setIconSize(QSize(ICON_SIZE, ICON_SIZE))

@@ -21,6 +21,7 @@ except ImportError:
     WINDOWS=False
 
 from paths import SKIN_DIR
+from ui_kit import DtDialog
 from theme import BG, BG2, BG3, ACC, TEXT, MUT, GOLD, RED, STYLE
 
 
@@ -163,32 +164,18 @@ def run_zaap_to_destination(config, logic, destination_name, on_status=None):
     threading.Thread(target=_run, daemon=True).start()
 
 
-class ZaapFavoritesDialog(QDialog):
+class ZaapFavoritesDialog(DtDialog):
     """Fenêtre de gestion des zaap favoris."""
 
     def __init__(self, config, parent=None):
-        super().__init__(parent)
+        super().__init__(parent, "Zaap favoris", "Marque tes zaaps préférés avec l'étoile : ils apparaissent dans le menu rapide.",
+                         icon="icon_zaap.png", width=620, height=660)
         self.config = config
-        self.setWindowTitle("Zaap Favoris")
-        self.setFixedSize(560, 580)
-        self.setStyleSheet(STYLE)
         self._build()
 
     def _build(self):
-        lay = QVBoxLayout(self); lay.setContentsMargins(0,0,0,0)
-
-        # Header
-        hdr = QWidget(); hdr.setObjectName("FavHeader")
-        hdr.setStyleSheet(f"QWidget#FavHeader{{background:{BG2};border-bottom:1px solid rgba(255,255,255,0.06);}}"); hdr.setFixedHeight(52)
-        hl = QHBoxLayout(hdr); hl.setContentsMargins(16,0,16,0)
-        title = QLabel("Zaap Favoris")
-        title.setStyleSheet(f"font-size:15px;font-weight:700;font-family:'Space Mono';color:{TEXT};")
-        hl.addWidget(title); hl.addStretch()
-        info = QLabel("☆ = marquer comme favori")
-        info.setStyleSheet(f"color:{MUT};font-size:11px;"); hl.addWidget(info)
-        lay.addWidget(hdr)
-
-        content = QWidget(); cl = QVBoxLayout(content); cl.setContentsMargins(12,10,12,12); cl.setSpacing(8)
+        cl = self.body
+        cl.setSpacing(10)
 
         # Search
         search_row = QHBoxLayout(); search_row.setSpacing(6)
@@ -216,7 +203,7 @@ class ZaapFavoritesDialog(QDialog):
         self.list_l.setSpacing(2); self.list_l.setContentsMargins(0,0,0,0)
         self.list_l.addStretch(); scroll.setWidget(self.list_w); cl.addWidget(scroll)
 
-        lay.addWidget(content)
+        self.add_button("Fermer", "primary", self.accept)
         self._current_tab = "favs"
         self._show_tab("favs")
 

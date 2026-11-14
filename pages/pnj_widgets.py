@@ -16,6 +16,7 @@ from PyQt6.QtWidgets import (
 )
 
 import pnj_data
+from ui_kit import DtDialog
 from paths import SKIN_DIR
 from pnj_engine import Result, zone_hue
 
@@ -377,37 +378,37 @@ def _spin(lo=-99, hi=99, val=0):
     s = QSpinBox()
     s.setRange(lo, hi)
     s.setValue(val)
+    s.setMinimumHeight(34)
+    s.setAlignment(Qt.AlignmentFlag.AlignCenter)
     return s
 
 
-class CorrectionDialog(QDialog):
+def _field(dlg, label, icon, *widgets):
+    """Une ligne de formulaire : icône du jeu + libellé, puis les champs."""
+    dlg.body.addWidget(dlg.section(label))
+    row = QHBoxLayout()
+    row.setSpacing(8)
+    if icon:
+        row.addWidget(icon_label(icon, 22))
+    for w in widgets:
+        row.addWidget(w, 1)
+    dlg.body.addLayout(row)
+
+
+class CorrectionDialog(DtDialog):
     """Corriger la position et/ou le zaap d'un PNJ (local uniquement). `reset` = retour à l'original."""
 
     def __init__(self, r: Result, th: Theme, parent=None):
-        super().__init__(parent)
-        self.setWindowTitle(f"Corriger — {r.name}")
+        super().__init__(parent, "Corriger ce PNJ", f"{r.name} : position et zaap conseillé. Stocké sur ton PC uniquement.", width=420)
         self.reset = False
-        self.setStyleSheet(f"QDialog{{background:{th.bg2};}} QLabel{{color:{th.text};}}")
-        form = QFormLayout(self)
         self.x, self.y = _spin(val=r.x), _spin(val=r.y)
-        row = QHBoxLayout()
-        row.addWidget(icon_label(ICON_POSITION, 18))
-        row.addWidget(self.x)
-        row.addWidget(self.y)
-        form.addRow("Position", row)
+        _field(self, "Position (x, y)", ICON_POSITION, self.x, self.y)
         zx, zy = (r.zaap.x, r.zaap.y) if r.zaap else (r.x, r.y)
         self.zx, self.zy = _spin(val=zx), _spin(val=zy)
-        zrow = QHBoxLayout()
-        zrow.addWidget(icon_label(ICON_ZAAP, 18))
-        zrow.addWidget(self.zx)
-        zrow.addWidget(self.zy)
-        form.addRow("Zaap", zrow)
-        bb = QDialogButtonBox(QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel)
-        back = bb.addButton("Revenir à l'original", QDialogButtonBox.ButtonRole.ResetRole)
-        back.clicked.connect(lambda: (setattr(self, "reset", True), self.accept()))
-        bb.accepted.connect(self.accept)
-        bb.rejected.connect(self.reject)
-        form.addRow(bb)
+        _field(self, "Zaap conseillé (x, y)", ICON_ZAAP, self.zx, self.zy)
+        self.add_button("Revenir à l'original", "ghost", lambda: (setattr(self, "reset", True), self.accept()), min_width=150)
+        self.add_button("Annuler", "ghost", self.reject)
+        self.add_button("Enregistrer", "primary", self.accept)
         self._r = r
 
     def result_correction(self):
@@ -422,35 +423,29 @@ class CorrectionDialog(QDialog):
         return c or None
 
 
-class CustomPosDialog(QDialog):
+class CustomPosDialog(DtDialog):
     """Position perso : nom, coordonnées, icône du jeu au choix."""
 
     def __init__(self, th: Theme, parent=None, pos=None):
-        super().__init__(parent)
-        self.setWindowTitle("Position perso")
-        self.setStyleSheet(f"QDialog{{background:{th.bg2};}} QLabel{{color:{th.text};}}")
-        form = QFormLayout(self)
+        super().__init__(parent, "Position perso" if not pos else "Modifier la position", "Un endroit à toi : champ, atelier, banque…", width=420)
         self.name = QLineEdit(pos["name"] if pos else "")
-        self.name.setPlaceholderText("Champ, atelier, banque…")
-        form.addRow("Nom", self.name)
-        row = QHBoxLayout()
-        row.addWidget(icon_label(ICON_POSITION, 18))
+        self.name.setPlaceholderText("Ex : Mon champ")
+        self.name.setMinimumHeight(36)
+        _field(self, "Nom", None, self.name)
         self.x, self.y = _spin(val=pos["x"] if pos else 0), _spin(val=pos["y"] if pos else 0)
-        row.addWidget(self.x)
-        row.addWidget(self.y)
-        form.addRow("Position", row)
+        _field(self, "Position (x, y)", ICON_POSITION, self.x, self.y)
         self.icon = QComboBox()
+        self.icon.setMinimumHeight(34)
         for label, f in CUSTOM_ICON_CHOICES:
             self.icon.addItem(label, f)
         if pos and pos.get("icon"):
             i = self.icon.findData(pos["icon"])
             if i >= 0:
                 self.icon.setCurrentIndex(i)
-        form.addRow("Icône", self.icon)
-        bb = QDialogButtonBox(QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel)
-        bb.accepted.connect(self.accept)
-        bb.rejected.connect(self.reject)
-        form.addRow(bb)
+        _field(self, "Icône", None, self.icon)
+        self.add_button("Annuler", "ghost", self.reject)
+        self.add_button("Enregistrer", "primary", self.accept)
+        self.name.setFocus()
 
     def value(self):
         return {"name": self.name.text().strip() or "Position", "x": self.x.value(), "y": self.y.value(),

@@ -237,8 +237,9 @@ class PacksView(QWidget):
 
     # ── packs perso ──
     def _new_pack(self):
-        name, ok = QInputDialog.getText(self, "Pack perso", "Nom du pack")
-        if ok and name.strip():
+        from ui_kit import ask_text
+        name = ask_text(self, "Nouveau pack", "Donne un nom à ton pack de PNJ.", placeholder="Ex : Mes PNJ de quête", ok="Créer")
+        if name:
             self.prefs["custom_packs"].append({"id": f"perso-{len(self.prefs['custom_packs']) + 1}-{abs(hash(name)) % 9999}",
                                                "name": name.strip(), "npcs": []})
             self.prefs.save()
@@ -247,8 +248,9 @@ class PacksView(QWidget):
     def _new_zone_pack(self):
         zones = sorted(((self.data.area_name(sa, self.lang), sa) for sa in {int(k) for k in self.data.areas}), key=lambda t: t[0])
         names = [z for z, _ in zones]
-        pick, ok = QInputDialog.getItem(self, "Pack d'une zone", "Zone", names, 0, False)
-        if not ok:
+        from ui_kit import ask_choice
+        pick = ask_choice(self, "Pack d'une zone", "Tous les PNJ de quête de la zone choisie, les plus cités d'abord.", names, ok="Créer le pack")
+        if not pick:
             return
         sa = dict(zones)[pick]
         npcs = [n["id"] for n in self.data.npcs if n["p"] and n["p"][0][2] == sa]

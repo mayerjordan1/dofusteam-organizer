@@ -23,10 +23,11 @@ from theme import (BG, BG2, BG3, BG4, ACC, RED, GREEN, GOLD, BLUE, TEXT, MUT, BO
                     STYLE, SIDEBAR_STYLE, mono, section_label, card, accent_btn, ghost_btn, make_avatar,
                     ClickableAvatar, load_icon)
 from sidebar import Sidebar
+from ui_kit import DtDialog, install_app_chrome, confirm as ui_confirm, info as ui_info, warn as ui_warn, error as ui_error, ask_text as ui_ask_text, ask_choice as ui_ask_choice
 from updater import UpdateCheckThread, UpdateDownloadThread, can_self_update, apply_update_and_restart
 
 APP_NAME = "DofusTeam"
-VERSION  = "V2.50"
+VERSION  = "V3.01"
 
 CLASSES = ["Cra","Ecaflip","Eliotrope","Eniripsa","Enutrof","Feca","Forgelance",
            "Huppermage","Iop","Osamodas","Ouginak","Pandawa","Roublard","Sacrieur",
@@ -782,17 +783,17 @@ class _PresetDropZone(QWidget):
         e.acceptProposedAction()
 
 
-class PresetEditor(QDialog):
+class PresetEditor(DtDialog):
     saved=pyqtSignal()
     def __init__(self,config,idx,parent=None,initial_order=None):
-        super().__init__(parent); self.config=config; self.idx=idx
+        super().__init__(parent,"Preset d'initiative","Choisis les personnages et leur ordre de passage.",icon="icon_group.png",width=700,height=560)
+        self.config=config; self.idx=idx
         presets=self.config.get("presets",[])
         if idx>=0 and idx<len(presets):
             self.preset=presets[idx].copy()
         else:
             self.preset={"name":"","order":list(initial_order) if initial_order else []}
         self._selected=list(self.preset.get("order",[]))
-        self.setWindowTitle("Preset d'initiative"); self.setFixedSize(620,480); self.setStyleSheet(STYLE)
         self._build()
 
     def _all_known(self):
@@ -805,15 +806,11 @@ class PresetEditor(QDialog):
         return list(dict.fromkeys(list(self.config.get("custom_order",[]))+known+self._selected))
 
     def _build(self):
-        lay=QVBoxLayout(self); lay.setContentsMargins(20,18,20,18); lay.setSpacing(14)
-
-        name_row=QHBoxLayout(); name_row.setSpacing(10)
-        name_lbl=QLabel("Nom du preset :"); name_lbl.setStyleSheet(f"color:{TEXT};font-weight:600;")
-        name_row.addWidget(name_lbl)
-        self.name_inp=QLineEdit(self.preset.get("name","")); self.name_inp.setPlaceholderText("Ex: Farm Abysse")
-        self.name_inp.setFixedHeight(32)
-        name_row.addWidget(self.name_inp,stretch=1)
-        lay.addLayout(name_row)
+        lay=self.body
+        lay.addWidget(self.section("Nom du preset"))
+        self.name_inp=QLineEdit(self.preset.get("name","")); self.name_inp.setPlaceholderText("Ex : Farm Abysse")
+        self.name_inp.setFixedHeight(36)
+        lay.addWidget(self.name_inp)
 
         cols=QHBoxLayout(); cols.setSpacing(16)
 
@@ -849,11 +846,8 @@ class PresetEditor(QDialog):
         lay.addLayout(cols,stretch=1)
         self._rebuild_lists()
 
-        btns=QHBoxLayout()
-        btns.addStretch()
-        cancel=ghost_btn("Annuler",self.reject); btns.addWidget(cancel)
-        save=accent_btn("Sauvegarder",self._save); btns.addWidget(save)
-        lay.addLayout(btns)
+        self.add_button("Annuler","ghost",self.reject)
+        self.add_button("Sauvegarder","primary",self._save)
 
     def _clear_lay(self,lay):
         while lay.count():
@@ -914,7 +908,8 @@ class PresetEditor(QDialog):
 
     def _save(self):
         name=self.name_inp.text().strip()
-        if not name: return
+        if not name:
+            self.name_inp.setStyleSheet(f"border:1px solid {RED};"); self.name_inp.setPlaceholderText("Donne un nom au preset"); self.name_inp.setFocus(); return
         preset={"name":name,"order":list(self._selected)}
         presets=self.config.get("presets",[])
         if self.idx>=0 and self.idx<len(presets): presets[self.idx]=preset
@@ -982,7 +977,10 @@ class RosterPanel(QWidget):
         self.roster_applied.emit()
 
     def _delete(self,idx):
-        rosters=self.config.get("team_presets",[]); rosters.pop(idx)
+        rosters=self.config.get("team_presets",[])
+        if not (0<=idx<len(rosters)): return
+        if not ui_confirm(self,"Supprimer ce roster ?",f"Le roster « {rosters[idx].get('name','?')} » sera supprimé définitivement.",ok="Supprimer",danger=True): return
+        rosters.pop(idx)
         self.config.set("team_presets",rosters); self.config.save(); self.refresh_rosters()
 
     def _new_roster(self): self._open_editor(-1)
@@ -991,34 +989,31 @@ class RosterPanel(QWidget):
     def _open_editor(self,idx):
         dlg=RosterEditor(self.config,idx,self); dlg.saved.connect(self.refresh_rosters); dlg.exec()
 
-class RosterEditor(QDialog):
+class RosterEditor(DtDialog):
     saved=pyqtSignal()
     def __init__(self,config,idx,parent=None):
-        super().__init__(parent); self.config=config; self.idx=idx
+        super().__init__(parent,"Roster d'équipe","Coche les personnages qui font partie de cette équipe.",icon="icon_group.png",width=420,height=560)
+        self.config=config; self.idx=idx
         rosters=self.config.get("team_presets",[])
         if idx>=0 and idx<len(rosters):
             self.roster=rosters[idx].copy()
         else:
             self.roster={"name":"","members":[]}
-        self.setWindowTitle("Roster d'équipe"); self.setFixedSize(360,480); self.setStyleSheet(STYLE)
         self._build()
 
     def _build(self):
-        lay=QVBoxLayout(self); lay.setContentsMargins(16,16,16,16); lay.setSpacing(12)
-        lay.addWidget(QLabel("Nom du roster :"))
-        self.name_inp=QLineEdit(self.roster.get("name","")); self.name_inp.setPlaceholderText("Ex: Farm Abysse"); lay.addWidget(self.name_inp)
-        lay.addWidget(QLabel("Personnages du roster :"))
+        lay=self.body
+        lay.addWidget(self.section("Nom du roster"))
+        self.name_inp=QLineEdit(self.roster.get("name","")); self.name_inp.setPlaceholderText("Ex : Farm Abysse"); self.name_inp.setFixedHeight(36); lay.addWidget(self.name_inp)
+        lay.addWidget(self.section("Personnages"))
 
         scroll=QScrollArea(); scroll.setWidgetResizable(True)
-        scroll.setStyleSheet(f"QScrollArea{{background:{BG3};border:none;border-radius:6px;}}")
+        scroll.setStyleSheet(f"QScrollArea{{background:{BG2};border:1px solid {BORDER};border-radius:8px;}}")
         list_w=QWidget(); list_l=QVBoxLayout(list_w); list_l.setContentsMargins(6,6,6,6); list_l.setSpacing(2)
-        scroll.setWidget(list_w); lay.addWidget(scroll)
+        scroll.setWidget(list_w); lay.addWidget(scroll,1)
         self._build_char_list(list_l)
-
-        btns=QHBoxLayout()
-        cancel=ghost_btn("Annuler",self.reject); btns.addWidget(cancel)
-        save=accent_btn("Sauvegarder",self._save); btns.addWidget(save)
-        lay.addLayout(btns)
+        self.add_button("Annuler","ghost",self.reject)
+        self.add_button("Sauvegarder","primary",self._save)
 
     def _build_char_list(self,list_l):
         all_known=self.config.get("custom_order",[])
@@ -1040,7 +1035,8 @@ class RosterEditor(QDialog):
 
     def _save(self):
         name=self.name_inp.text().strip()
-        if not name: return
+        if not name:
+            self.name_inp.setStyleSheet(f"border:1px solid {RED};"); self.name_inp.setPlaceholderText("Donne un nom au roster"); self.name_inp.setFocus(); return
         members=[n for n,chk in self.checks.items() if chk.isChecked()]
         roster={"name":name,"members":members}
         rosters=self.config.get("team_presets",[])
@@ -1213,14 +1209,8 @@ class MiniToolbar(QWidget):
         from zaap_macro import send_zaap_command
         coords_by_name = {z["name"]: z["coords"] for z in ZAAPS}
         favs = get_favorites(self.config)
-        menu = QMenu(self)
-        menu.setStyleSheet(f"""
-            QMenu{{background:#0d1117;color:#e8e9ed;border:1px solid rgba(255,138,30,0.3);border-radius:8px;padding:4px;}}
-            QMenu::item{{padding:7px 20px;border-radius:5px;font-size:12px;}}
-            QMenu::item:selected{{background:#1c2128;color:#ff8a1e;}}
-            QMenu::separator{{background:rgba(255,255,255,0.07);height:1px;margin:4px 8px;}}
-        """)
-        menu.addAction("Gérer les favoris").triggered.connect(self._open_fav_manager)
+        menu = QMenu(self)   # style commun : APP_STYLE (ui_kit), même rendu que tous les menus de l'appli
+        menu.addAction("⭐  Gérer les favoris").triggered.connect(self._open_fav_manager)
         if favs:
             menu.addSeparator()
             for name in favs:
@@ -1604,7 +1594,7 @@ class MainWindow(QMainWindow):
 
     def _apply_update(self):
         if self._new_exe_path:
-            QMessageBox.information(self, "Mise à jour",
+            ui_info(self, "Mise à jour prête",
                 "DofusTeam va se fermer pour terminer la mise à jour.\n"
                 "Relance-le ensuite depuis ton raccourci habituel.")
             apply_update_and_restart(self._new_exe_path)
@@ -1867,6 +1857,8 @@ class MainWindow(QMainWindow):
         current = None
         lst = self.logic.get_cycle_list()
         if 0 <= self.logic._idx < len(lst): current = lst[self.logic._idx]["name"]
+        sexes = self.config.get("sexes", {})
+        for a in accounts: a["sexe"] = sexes.get(a["name"], "h")   # le sélecteur affiche le sexe défini dans l'ordre d'initiative
         self._char_selector.show_for(accounts, current)
 
     def _open_calib(self): self._open_calib_mode("zaap","")
@@ -1877,7 +1869,7 @@ class MainWindow(QMainWindow):
         if target_name:
             label = f"{label} — {target_name}"
         if not self.logic.scan_slots():
-            QMessageBox.warning(self,f"Calibration {label}","Aucune fenêtre Dofus.\nOuvrez Dofus et scannez d'abord."); return
+            ui_warn(self,f"Calibration {label}","Aucune fenêtre Dofus détectée.\nOuvre Dofus et lance d'abord un scan des fenêtres."); return
         self._calib_mgr=CalibrationManager(self.config,self.logic,self,mode=mode,target_name=target_name or None)
         self._calib_mgr.status.connect(lambda m: self.scan_msg.setText(m[:60]))
         def _done():
@@ -1890,15 +1882,12 @@ class MainWindow(QMainWindow):
         self._calib_mgr.start()
 
     def _settings(self):
-        dlg=QDialog(self); dlg.setWindowTitle("Paramètres avancés"); dlg.setMinimumSize(520,420); dlg.setStyleSheet(STYLE)
-        lay=QVBoxLayout(dlg); lay.setContentsMargins(22,20,22,20); lay.setSpacing(16)
-
-        title=QLabel("⌨ Raccourcis de cycle rapide")
-        title.setStyleSheet(f"color:{TEXT}; font-size:15px; font-weight:700; background:transparent;")
-        lay.addWidget(title)
-        sub=QLabel("Ctrl+F1 à Ctrl+F8 — bascule directement sur le personnage du slot correspondant.")
+        dlg=DtDialog(self,"Paramètres avancés","Raccourcis de cycle rapide et réglages fins.",icon="icon_settings.png",width=560)
+        lay=dlg.body; lay.setSpacing(14)
+        lay.addWidget(dlg.section("Raccourcis de cycle rapide"))
+        sub=QLabel("Ctrl+F1 à Ctrl+F8 : bascule directement sur le personnage du slot correspondant.")
         sub.setWordWrap(True)
-        sub.setStyleSheet(f"color:{MUT}; font-size:11.5px; background:transparent;")
+        sub.setStyleSheet(f"color:{MUT}; font-size:12px; background:transparent;")
         lay.addWidget(sub)
 
         binds=self.config.get("cycle_row_binds",[]); grid=QGridLayout()
@@ -1922,9 +1911,9 @@ class MainWindow(QMainWindow):
             inps.append(inp)
         lay.addLayout(grid)
 
-        lay.addWidget(section_label("AUTRES RÉGLAGES"))
+        lay.addWidget(dlg.section("Autres réglages"))
         sr=QHBoxLayout(); sr.setSpacing(10)
-        sr_lbl=QLabel("Intervalle spam clic (s) :")
+        sr_lbl=QLabel("Intervalle du spam clic (secondes)")
         sr_lbl.setStyleSheet(f"color:{TEXT}; font-size:12px; background:transparent;")
         sr.addWidget(sr_lbl)
         si=QLineEdit(str(self.config.get("spam_click_interval",0.1))); si.setFixedWidth(70); si.setFixedHeight(30)
@@ -1932,14 +1921,12 @@ class MainWindow(QMainWindow):
         lay.addLayout(sr)
 
         lay.addStretch()
-        sv=accent_btn("Sauvegarder",lambda:None)
-        sv.setFixedHeight(38)
         def _sv():
             self.config.set("cycle_row_binds",[i.text().strip() for i in inps])
             try: self.config.set("spam_click_interval",float(si.text()))
             except: pass
             self.config.save(); (self.hk.reload() if self._hk else None); dlg.close()
-        sv.clicked.disconnect(); sv.clicked.connect(_sv); lay.addWidget(sv); dlg.exec()
+        dlg.add_button("Annuler","ghost",dlg.reject); dlg.add_button("Sauvegarder","primary",_sv); dlg.exec()
 
     def closeEvent(self,e): self._spam=False; self.hk.disable(); self.config.save(); e.accept()
     def keyPressEvent(self,e):
@@ -1953,7 +1940,7 @@ class AppTray(QSystemTrayIcon):
         icon=load_icon("logo.png",32)
         if icon: pix=icon.pixmap(32,32)
         self.setIcon(QIcon(pix)); self.setToolTip(f"{APP_NAME} {VERSION}")
-        menu=QMenu(); menu.setStyleSheet(STYLE)
+        menu=QMenu()
         menu.addAction("▸  Afficher").triggered.connect(window._show_self)
         menu.addAction("▪  Cacher").triggered.connect(window._hide_to_mini)
         menu.addSeparator(); menu.addAction("✕  Quitter").triggered.connect(QApplication.quit)
@@ -1973,6 +1960,7 @@ def main():
     tk_root=tk.Tk(); tk_root.withdraw()
     app=QApplication(sys.argv); app.setApplicationName(APP_NAME); app.setQuitOnLastWindowClosed(False)
     from theme import load_fonts; load_fonts()
+    install_app_chrome(app)
     if (SKIN_DIR/"logo.png").exists(): app.setWindowIcon(QIcon(str(SKIN_DIR/"logo.png")))
     window=MainWindow(); window.show(); tray=AppTray(app,window)
 

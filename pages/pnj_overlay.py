@@ -480,18 +480,19 @@ class PnjOverlay(QWidget):
 
     # ── packs perso : ajouter / retirer un PNJ, épingler un pack en favori ──
     def _add_to_pack(self, npc_id):
-        from PyQt6.QtWidgets import QInputDialog
+        from ui_kit import ask_choice, ask_text
         packs = self.prefs["custom_packs"]
         new_label = "＋ Nouveau pack…"
-        pick, ok = QInputDialog.getItem(self, "Ajouter à un pack", "Pack", [c["name"] for c in packs] + [new_label], 0, False)
-        if not ok:
+        pick = ask_choice(self, "Ajouter à un pack", "Choisis le pack qui recevra ce PNJ.", [c["name"] for c in packs],
+                          ok="Ajouter", extra=new_label)
+        if not pick:
             return
         if pick == new_label:
-            name, ok = QInputDialog.getText(self, "Nouveau pack", "Nom du pack")
-            if not ok or not name.strip():
+            name = ask_text(self, "Nouveau pack", "Donne un nom à ton pack de PNJ.", placeholder="Ex : Mes PNJ de quête", ok="Créer")
+            if not name:
                 return
             pack = {"id": f"perso-{max([int(c['id'].split('-')[1]) for c in packs if c['id'].startswith('perso-') and c['id'].split('-')[1].isdigit()] + [0]) + 1}",
-                    "name": name.strip(), "npcs": []}
+                    "name": name, "npcs": []}
             packs.append(pack)
         else:
             pack = next(c for c in packs if c["name"] == pick)

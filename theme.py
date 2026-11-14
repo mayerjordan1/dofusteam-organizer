@@ -9,6 +9,7 @@ from PyQt6.QtWidgets import QPushButton, QLabel, QApplication
 from PyQt6.QtGui import QPixmap, QFont, QIcon
 from PyQt6.QtCore import Qt, QSize, pyqtSignal, QByteArray, QBuffer, QIODevice
 from paths import SKIN_DIR
+CHECK_URL = (SKIN_DIR / "check.png").as_posix()
 
 # ── Palette (mêmes valeurs que les tokens du site : dofus-team/lib/tokens.ts) ───
 BG     = "#080b10"
@@ -58,7 +59,24 @@ QSlider::sub-page:horizontal {{ background:{ACC}; border-radius:2px; }}
 QCheckBox {{ spacing:6px; }}
 QCheckBox::indicator {{ width:15px; height:15px; border-radius:4px;
     border:1px solid rgba(255,255,255,0.15); background:{BG2}; }}
-QCheckBox::indicator:checked {{ background:{ACC}; border-color:{ACC}; }}
+QCheckBox::indicator:hover {{ border-color:rgba(255,255,255,0.35); }}
+QCheckBox::indicator:checked {{ background:{ACC}; border-color:{ACC}; image:url({CHECK_URL}); }}
+QPushButton[role="primary"] {{ background:{ACC}; color:#0d1117; border:1px solid {ACC}; font-weight:700; padding:6px 18px; }}
+QPushButton[role="primary"]:hover {{ background:#ffa347; border-color:#ffa347; }}
+QPushButton[role="primary"]:pressed {{ background:#e87a14; }}
+QPushButton[role="primary"]:disabled {{ background:{BG3}; color:{GHOST}; border-color:{BORDER}; }}
+QPushButton[role="danger"] {{ background:rgba(255,92,92,0.12); color:{RED}; border:1px solid rgba(255,92,92,0.45); font-weight:700; padding:6px 18px; }}
+QPushButton[role="danger"]:hover {{ background:{RED}; color:#0d1117; border-color:{RED}; }}
+QSpinBox, QDoubleSpinBox {{ background:{BG2}; color:{TEXT}; border:1px solid {BORDER}; border-radius:6px; padding:4px 8px; }}
+QSpinBox:focus, QDoubleSpinBox:focus {{ border-color:{ACC}; }}
+QSpinBox::up-button, QSpinBox::down-button, QDoubleSpinBox::up-button, QDoubleSpinBox::down-button {{ width:0; border:none; }}
+QTextEdit, QPlainTextEdit, QTextBrowser {{ background:{BG2}; color:{TEXT}; border:1px solid {BORDER}; border-radius:8px; padding:6px; }}
+QTextEdit:focus, QPlainTextEdit:focus {{ border-color:{ACC}; }}
+QScrollBar:horizontal {{ background:{BG2}; height:4px; border-radius:2px; margin:0; }}
+QScrollBar::handle:horizontal {{ background:{BG4}; border-radius:2px; min-width:20px; }}
+QScrollBar::add-line:horizontal, QScrollBar::sub-line:horizontal {{ width:0; }}
+QComboBox:hover {{ border-color:{BORDER2}; }}
+QComboBox:focus {{ border-color:{ACC}; }}
 QMenu {{ background:{BG2}; color:{TEXT}; border:1px solid {BORDER3}; border-radius:10px; padding:6px; }}
 QMenu::item {{ padding:9px 16px; border-radius:7px; font-size:13px; font-weight:600; }}
 QMenu::item:selected {{ background:{BG4}; color:{TEXT}; }}

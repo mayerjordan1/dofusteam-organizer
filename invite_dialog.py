@@ -13,37 +13,30 @@ except ImportError:
 from paths import SKIN_DIR
 from theme import BG, BG2, BG3, ACC, RED, TEXT, MUT as MUTED, GOLD, STYLE, make_avatar
 
-class InviteDialog(QDialog):
+from ui_kit import DtDialog, warn as _ui_warn
+
+
+class InviteDialog(DtDialog):
     _status_sig = pyqtSignal(str)
     _done_sig = pyqtSignal()
 
     def __init__(self, config, logic, parent=None):
-        super().__init__(parent)
+        super().__init__(parent, "Inviter le groupe", "Une invitation groupée, envoyée depuis le chat du chef.",
+                         icon="icon_group.png", width=440, height=590)
         self.config = config
         self.logic  = logic
-        self.setWindowTitle("Inviter le groupe")
-        self.setFixedSize(420, 540)
-        self.setStyleSheet(STYLE)
         self._status_sig.connect(lambda m: self.status_lbl.setText(m))
         self._done_sig.connect(lambda: QTimer.singleShot(900, self.close))
         self._build()
 
     def _build(self):
-        lay = QVBoxLayout(self); lay.setContentsMargins(0,0,0,0)
-
-        # Header
-        hdr = QWidget(); hdr.setStyleSheet(f"background:{BG2};border-bottom:1px solid rgba(255,255,255,0.06);"); hdr.setFixedHeight(50)
-        hl = QHBoxLayout(hdr); hl.setContentsMargins(16,0,16,0)
-        tl = QLabel("Inviter le groupe"); tl.setStyleSheet(f"font-size:15px;font-weight:700;font-family:'Space Mono',monospace;color:{TEXT};"); hl.addWidget(tl)
-        lay.addWidget(hdr)
-
-        content = QWidget(); cl = QVBoxLayout(content); cl.setContentsMargins(16,14,16,14); cl.setSpacing(12)
+        cl = self.body
 
         # Chat calibration — juste un bouton qui bascule en confirmation verte
         # une fois calibré ; les coordonnées X/Y brutes n'intéressent personne.
-        cp_frame = QFrame(); cp_frame.setStyleSheet(f"QFrame{{background:{BG2};border:1px solid rgba(255,255,255,0.07);border-radius:8px;}}")
+        cp_frame = QFrame(); cp_frame.setObjectName("ChatFrame"); cp_frame.setStyleSheet(f"QFrame#ChatFrame{{background:{BG2};border:1px solid rgba(255,255,255,0.09);border-radius:10px;}} QFrame#ChatFrame QLabel{{background:transparent;border:none;}}")
         cpl = QHBoxLayout(cp_frame); cpl.setContentsMargins(12,8,12,8); cpl.setSpacing(8)
-        cpl.addWidget(QLabel("Chat :"))
+        cpl.addWidget(QLabel("Barre de chat du chef"))
         cpl.addStretch()
         self.calib_btn = QPushButton()
         self.calib_btn.clicked.connect(self._calibrate_chat)
@@ -52,8 +45,7 @@ class InviteDialog(QDialog):
         cl.addWidget(cp_frame)
 
         # Account list — auto from detected accounts
-        list_title = QLabel("Personnages à inviter :")
-        list_title.setStyleSheet(f"font-weight:700;color:{TEXT};"); cl.addWidget(list_title)
+        cl.addWidget(self.section("Personnages à inviter"))
 
         hint = QLabel("Tous les personnages détectés (sauf le chef) seront invités.")
         hint.setStyleSheet(f"color:{MUTED};font-size:11px;"); cl.addWidget(hint)
@@ -72,23 +64,10 @@ class InviteDialog(QDialog):
         self.status_lbl.setStyleSheet(f"color:{ACC};font-size:11px;font-weight:600;"); self.status_lbl.setWordWrap(True)
         cl.addWidget(self.status_lbl)
 
-        # Buttons — invitation groupée en avant : syntaxe correcte trouvée et
-        # confirmée en jeu ("/invite n1; /invite n2; ..."). L'ancien flow
-        # classique (_invite_all, 1 message/perso) reste dans le code,
-        # dormant, pas de bouton pour éviter de dupliquer deux boutons qui
-        # font la même chose.
-        btns = QHBoxLayout()
-        refresh_btn = QPushButton("↻ Actualiser")
-        refresh_btn.setStyleSheet(f"background:{BG3};border-radius:6px;padding:6px 14px;")
-        refresh_btn.clicked.connect(self._populate_list); btns.addWidget(refresh_btn)
-        btns.addStretch()
-        cl.addLayout(btns)
-
-        go = QPushButton("Invitation groupée")
-        go.setStyleSheet(f"background:{ACC};color:#080b10;border:none;border-radius:6px;padding:8px 20px;font-weight:700;font-size:13px;")
-        go.clicked.connect(self._invite_grouped); cl.addWidget(go)
-
-        lay.addWidget(content)
+        # Pied de page : invitation groupée (syntaxe confirmée en jeu : "/invite n1; /invite n2; ...").
+        # L'ancien flow classique (_invite_all, 1 message/perso) reste dans le code, dormant, sans bouton.
+        self.add_button("↻ Actualiser", "ghost", self._populate_list, min_width=110)
+        self.add_button("Invitation groupée", "primary", self._invite_grouped, min_width=170)
 
     def _populate_list(self):
         # Clear
@@ -102,7 +81,7 @@ class InviteDialog(QDialog):
         accounts = sorted(accounts, key=lambda a: a["name"] != leader)
 
         if not accounts:
-            self.list_l.addWidget(QLabel("Aucun compte détecté — scannez d'abord."))
+            _e = QLabel("Aucun compte détecté.\nLance d'abord un scan des fenêtres."); _e.setAlignment(Qt.AlignmentFlag.AlignCenter); _e.setStyleSheet(f"color:{MUTED};font-size:12px;padding:30px;"); self.list_l.addWidget(_e)
             return
 
         for acc in accounts:
@@ -113,7 +92,7 @@ class InviteDialog(QDialog):
 
             # Avatar
             av = QLabel(); av.setFixedSize(28, 28)
-            pix = make_avatar(acc.get("classe", ""))
+            pix = make_avatar(acc.get("classe", ""), 36, self.config.get("sexes", {}).get(name, "h"))   # sexe défini dans l'ordre d'initiative
             if pix: av.setPixmap(pix)
             rl.addWidget(av)
 
@@ -164,7 +143,7 @@ class InviteDialog(QDialog):
 
     def _invite_all(self):
         if not PYAUTOGUI_OK:
-            QMessageBox.warning(self, "Erreur", "pyautogui non installé."); return
+            _ui_warn(self, "Module manquant", "pyautogui n'est pas installé : lance install.bat."); return
 
         cp = self.config.get("macro_positions", {}).get("chat_position")
         if not cp:
@@ -207,7 +186,7 @@ class InviteDialog(QDialog):
         existante) sans besoin de la calibration par-personnage (chat_multi),
         qui ne sert qu'à la macro /zaap collée dans chaque fenêtre."""
         if not PYAUTOGUI_OK:
-            QMessageBox.warning(self, "Erreur", "pyautogui non installé."); return
+            _ui_warn(self, "Module manquant", "pyautogui n'est pas installé : lance install.bat."); return
 
         cp = self.config.get("macro_positions", {}).get("chat_position")
         if not cp:

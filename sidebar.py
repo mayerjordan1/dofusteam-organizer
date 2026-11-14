@@ -22,6 +22,7 @@ GROUPS = [
     ]),
     ("OUTILS", [
         ("chasse_tresor", "  Chasse au trésor", "carte.png"),
+        ("pnj", "  PNJ", "icon_dofusteam.png"),
         ("zaap_menu", "  Zaap", "icon_zaap.png"),
         ("capture_hdv", "  Capture HDV", "icon_capture.png"),
     ]),
@@ -39,7 +40,7 @@ GROUPS = [
 
 # Entrées qui ne correspondent à aucune page du QStackedWidget — MainWindow
 # les intercepte dans _navigate() pour ouvrir un dialog à la place.
-NON_PAGE_KEYS = {"parametres", "chasse_tresor"}
+NON_PAGE_KEYS = {"parametres", "chasse_tresor", "pnj"}
 
 
 class Sidebar(QWidget):

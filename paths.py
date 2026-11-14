@@ -18,6 +18,8 @@ else:
 
 SKIN_DIR = RES_DIR / "skin"
 SOUNDS_DIR = RES_DIR / "sounds"
+# Copie embarquée des données PNJ (repli : ni cache téléchargé, ni site joignable)
+PNJ_SEED_DIR = RES_DIR / "pnj_seed"
 SETTINGS_PATH = APP_DIR / "settings.json"
 
 # Images collées/ajoutées par l'utilisateur dans les notes de boss — contenu

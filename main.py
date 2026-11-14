@@ -49,6 +49,7 @@ DEFAULT = {
     "presets":[],"team_presets":[],
     "radial_menu_active":True,"radial_menu_hotkey":"alt+left_click",
     "hdv_hotkey":"f8","hdv_toggle_hotkey":"f9","hdv_auto":True,
+    "pnj_overlay_key":"f7","pnj":{},
 }
 
 class Config:
@@ -1529,6 +1530,7 @@ class MainWindow(QMainWindow):
             try: keyboard.add_hotkey(hdv_toggle,lambda: QTimer.singleShot(0,self.hdv_capture.toggle_capture),suppress=False)
             except: pass
 
+        self._bind_pnj_key()
         self.pages={
             "mes_equipes":self.page_mes_equipes,
             "rosters":self.page_rosters,
@@ -1636,11 +1638,52 @@ class MainWindow(QMainWindow):
         if page_key in NON_PAGE_KEYS:
             if page_key=="parametres": self._settings()
             elif page_key=="chasse_tresor": self._open_chasse_tresor()
+            elif page_key=="pnj": self._open_pnj()
             return
         page=self.pages.get(page_key)
         if page is None: return
         self.stack.setCurrentWidget(page)
         self.sidebar.set_active(page_key)
+
+    def _open_pnj(self):
+        """Overlay PNJ (fenêtre flottante). Créé à la demande ; le raccourci global bascule son affichage."""
+        if not hasattr(self,"_pnj_overlay"):
+            from pages.pnj_overlay import PnjOverlay
+            self._pnj_overlay=PnjOverlay(self.config,self.logic)
+            self._pnj_overlay.hotkey_changed.connect(self._bind_pnj_key)
+            self._sync_pnj_data()
+        self._pnj_overlay.show_overlay()
+
+    def _sync_pnj_data(self):
+        """Met à jour les données PNJ (version comparée au site) sans bloquer l'interface."""
+        def _run():
+            import pnj_data
+            try:
+                changed=pnj_data.refresh("pnj") | pnj_data.refresh("packs")
+            except Exception: changed=False
+            if changed and hasattr(self,"_pnj_overlay"):
+                QTimer.singleShot(0,self._reload_pnj_data)
+        threading.Thread(target=_run,daemon=True).start()
+
+    def _reload_pnj_data(self):
+        import pnj_data
+        o=self._pnj_overlay
+        o.data=pnj_data.load_pnj(); o.packs=pnj_data.load_packs(); o._build()
+
+    def _bind_pnj_key(self,key=None):
+        """(Ré)enregistre le raccourci global d'affichage de l'overlay PNJ (suppress=False obligatoire)."""
+        if not KEYBOARD_OK: return
+        if getattr(self,"_pnj_hk",None):
+            try: keyboard.remove_hotkey(self._pnj_hk)
+            except Exception: pass
+            self._pnj_hk=None
+        key=self.config.get("pnj_overlay_key","f7") if key is None else key
+        if not key: return
+        def _fire():
+            if not hasattr(self,"_pnj_overlay"): QTimer.singleShot(0,self._open_pnj)
+            else: self._pnj_overlay.toggle_requested.emit()
+        try: self._pnj_hk=keyboard.add_hotkey(key,_fire,suppress=False)
+        except Exception: self._pnj_hk=None
 
     def _open_chasse_tresor(self):
         # Popup toujours au-dessus plutôt qu'une page dans la nav — pour

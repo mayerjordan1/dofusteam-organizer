@@ -45,8 +45,6 @@ echo.
     --hidden-import "mouse" ^
     --hidden-import "pyautogui" ^
     --hidden-import "PIL" ^
-    --hidden-import "websockets" ^
-    --hidden-import "websockets.asyncio.server" ^
     --hidden-import "pygame" ^
     --hidden-import "tkinter" ^
     --hidden-import "requests" ^

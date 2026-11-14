@@ -26,7 +26,7 @@ from sidebar import Sidebar
 from updater import UpdateCheckThread, UpdateDownloadThread, can_self_update, apply_update_and_restart
 
 APP_NAME = "DofusTeam"
-VERSION  = "V2.49"
+VERSION  = "V2.50"
 
 CLASSES = ["Cra","Ecaflip","Eliotrope","Eniripsa","Enutrof","Feca","Forgelance",
            "Huppermage","Iop","Osamodas","Ouginak","Pandawa","Roublard","Sacrieur",
@@ -48,7 +48,6 @@ DEFAULT = {
     "mini_toolbar_x":100,"mini_toolbar_y":100,
     "presets":[],"team_presets":[],
     "radial_menu_active":True,"radial_menu_hotkey":"alt+left_click",
-    "hdv_hotkey":"f8","hdv_toggle_hotkey":"f9","hdv_auto":True,
     "pnj_overlay_key":"f7","pnj":{},
 }
 
@@ -1486,9 +1485,7 @@ class MainWindow(QMainWindow):
         from pages.fenetres_scan import FenetresScanPage
         from pages.calibration import CalibrationPage
         from pages.donjons import DonjonsPage
-        from pages.capture_hdv import CaptureHdvPage
         from pages.classes import ClassesPage
-        from hdv_capture import HdvCapture
 
         root=_BackgroundWidget(); self.setCentralWidget(root)
         vl=QVBoxLayout(root); vl.setContentsMargins(0,0,0,0); vl.setSpacing(0)
@@ -1517,18 +1514,6 @@ class MainWindow(QMainWindow):
         self.page_calibration=CalibrationPage(self.config,self.logic)
         self.page_donjons=DonjonsPage(self.config,self.logic)
         self.page_classes=ClassesPage(self.config,self.logic)
-        # Capture des prix de l'HDV : cadre de viseur + pont local vers le site (lecture passive de l'écran)
-        self.hdv_capture=HdvCapture(self.config)
-        self.hdv_capture.start()
-        self.page_capture_hdv=CaptureHdvPage(self.config,self.logic,self.hdv_capture)
-        hdv_key=self.config.get("hdv_hotkey","f8")
-        if hdv_key and KEYBOARD_OK:
-            try: keyboard.add_hotkey(hdv_key,lambda: QTimer.singleShot(0,self.hdv_capture.capture_now),suppress=False)
-            except: pass
-        hdv_toggle=self.config.get("hdv_toggle_hotkey","f9")
-        if hdv_toggle and KEYBOARD_OK:
-            try: keyboard.add_hotkey(hdv_toggle,lambda: QTimer.singleShot(0,self.hdv_capture.toggle_capture),suppress=False)
-            except: pass
 
         self._bind_pnj_key()
         self.pages={
@@ -1543,7 +1528,6 @@ class MainWindow(QMainWindow):
             "calibration":self.page_calibration,
             "donjons":self.page_donjons,
             "classes":self.page_classes,
-            "capture_hdv":self.page_capture_hdv,
         }
         for page in self.pages.values(): self.stack.addWidget(page)
         bl.addWidget(self.stack, 1)
@@ -1957,7 +1941,7 @@ class MainWindow(QMainWindow):
             self.config.save(); (self.hk.reload() if self._hk else None); dlg.close()
         sv.clicked.disconnect(); sv.clicked.connect(_sv); lay.addWidget(sv); dlg.exec()
 
-    def closeEvent(self,e): self._spam=False; self.hk.disable(); self.hdv_capture.shutdown(); self.config.save(); e.accept()
+    def closeEvent(self,e): self._spam=False; self.hk.disable(); self.config.save(); e.accept()
     def keyPressEvent(self,e):
         pass  # No Escape handling - avoid accidental window switches
 

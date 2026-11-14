@@ -24,7 +24,6 @@ GROUPS = [
         ("chasse_tresor", "  Chasse au trésor", "carte.png"),
         ("pnj", "  PNJ", "icon_dofusteam.png"),
         ("zaap_menu", "  Zaap", "icon_zaap.png"),
-        ("capture_hdv", "  Capture HDV", "icon_capture.png"),
     ]),
     ("DONJON", [
         ("donjons", "  Donjons", "donjon.png"),
